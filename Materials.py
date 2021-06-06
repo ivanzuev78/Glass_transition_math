@@ -51,15 +51,18 @@ def get_tg_df(db_name: str) -> pd.DataFrame:
     return df_tg_base
 
 
-def add_material(table: str, name: str, activity: float, db_name: str) -> None:
-    connection = sqlite3.connect('material.db')
+def add_material(db_name: str, table: str, name: str, activity: float = None,
+                 tg_inf_type: str = None, a: float = None, b: float = None) -> None:
+    connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
+    #INSERT INTO Product (type, model, maker)  VALUES ('PC', 1157, 'B')
     try:
-        command = f"INSERT INTO {table} VALUES ('{name}', {activity})"
+        command = f"INSERT INTO {table} VALUES ('{name}', {activity}, '{tg_inf_type}', '{a}', '{b}')"
         cursor.execute(command)
         connection.commit()
     except sqlite3.IntegrityError as e:
-        # TODO вызывать подсказку о том, что материал уже существует
+        # TODO вызывать подсказку о том, что материал уже существует и сделать так, что бы не добавлялось сырье в список
+        print(e)
         pass
 
     connection.close()

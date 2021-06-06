@@ -1,18 +1,11 @@
-import os
 import sys
-from PyQt5 import uic, QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 
 
-def isfloat(value):
-  try:
-    float(value)
-    return True
-  except ValueError:
-    return False
+from Materials import *
+
+DB_NAME = 'material.db'
 
 
 class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
@@ -20,29 +13,32 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         super(MainWindow, self).__init__()
         self.setupUi(self)
 
+        self.db_name = DB_NAME
+        self.add_material_window = None
+        self.material_to_add = None
         self.widgetList = []
-        self.items_a = []
-        self.items_a_type = []
-        self.items_b_type = []
-        self.items_lines_a = []
-        self.items_b = []
-        self.items_lines_b = []
+
+        self.material_comboboxes_a = []
+        self.material_comboboxes_b = []
+        self.material_a_types = []
+        self.material_b_types = []
+        self.material_percent_lines_a = []
+        self.material_percent_lines_b = []
 
         self.final_a = None
         self.final_b = None
         self.final_a_numb = 0
         self.final_b_numb = 0
 
-        self.types_of_items = ["None", 'Epoxy', 'NH2', 'OH', 'NCO']
-        self.list_of_item_names = ["KER-828", "YDPN-638",
-                        "Лапроксид БД"]
-        self.space = QSpacerItem
+        self.types_of_items = get_all_material_types(self.db_name)
+
+        self.list_of_item_names = {material: get_all_material_of_one_type(material, self.db_name)
+                                   for material in self.types_of_items}
 
         self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
         self.gridLayout_b.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
 
         self.layout = QGridLayout()
-        # print(self.layout.itemAt())
 
         self.setLayout(self.gridLayout_a)
         self.add_A_but.clicked.connect(self.add_A_line)
@@ -50,78 +46,86 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.add_B_but.clicked.connect(self.add_B_line)
         self.del_B_but.clicked.connect(self.del_B_line)
         self.debug_but.clicked.connect(self.debug)
+        self.add_raw.clicked.connect(self.add_material)
         self.normalise_A.clicked.connect(self.normalise_func('A'))
         self.normalise_B.clicked.connect(self.normalise_func('B'))
-        # delBUtton.clicked.connect(self.delete)
+
 
     def debug(self):
         self.debug_string.setText('Good')
 
     def to_float(self, komponent):
         if komponent == "A":
-            items_lines = self.items_lines_a
-        if komponent == "B":
-            items_lines = self.items_lines_b
+            items_lines = self.material_percent_lines_a
+        elif komponent == "B":
+            items_lines = self.material_percent_lines_b
 
         for widget in items_lines:
             numb = widget.text().replace(',', '.')
-            if not isfloat(numb):
+            if not self.isfloat(numb):
                 numb = 0
             widget.setText(str(numb))
-
 
     def add_line(self, komponent):
         final_label = QLabel('Итого')
         if komponent == 'A':
-            items_type = self.items_a_type
-            items = self.items_a
-            items_lines = self.items_lines_a
+            items_type = self.material_a_types
+            items = self.material_comboboxes_a
+            items_lines = self.material_percent_lines_a
             grid = self.gridLayout_a
             if self.final_a:
                 self.final_a.deleteLater()
             self.final_a = final_label
 
         if komponent == 'B':
-            items_type = self.items_b_type
-            items = self.items_b
-            items_lines = self.items_lines_b
+            items_type = self.material_b_types
+            items = self.material_comboboxes_b
+            items_lines = self.material_percent_lines_b
             grid = self.gridLayout_b
             if self.final_b:
                 self.final_b.deleteLater()
             self.final_b = final_label
 
 
-        item = QComboBox()
-        item.addItems(self.list_of_item_names)
-        item.setFixedWidth(120)
-        itemtype = QComboBox()
-        itemtype.addItems(self.types_of_items)
-        itemtype.setFixedWidth(50)
+        material_combobox = QComboBox()
+        material_combobox.addItems(self.list_of_item_names['None'])
+        material_combobox.setFixedWidth(120)
+        materia_typel_combobox = QComboBox()
+        materia_typel_combobox.addItems(self.types_of_items)
+        materia_typel_combobox.setFixedWidth(60)
+        materia_typel_combobox.currentIndexChanged.connect(
+            self.change_list_of_materials(material_combobox, materia_typel_combobox))
         line = QLineEdit()
         line.setText('0')
-        items_type.append(itemtype)
-        items.append(item)
+        items_type.append(materia_typel_combobox)
+        items.append(material_combobox)
         items_lines.append(line)
         row_count = grid.count()
-        grid.addWidget(itemtype, row_count + 1, 0)
-        grid.addWidget(item, row_count + 1, 1)
+        grid.addWidget(materia_typel_combobox, row_count + 1, 0)
+        grid.addWidget(material_combobox, row_count + 1, 1)
         grid.addWidget(line, row_count + 1, 2)
         grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
 
+    def change_list_of_materials(self, material_combobox, material_type):
+        def wrapper():
+            material_combobox.clear()
+            material_combobox.addItems(self.list_of_item_names[material_type.currentText()])
+        return wrapper
+
     def del_line(self, komponent):
         if komponent == "A":
-            items_type = self.items_a_type
-            items = self.items_a
-            items_lines = self.items_lines_a
+            items_type = self.material_a_types
+            items = self.material_comboboxes_a
+            items_lines = self.material_percent_lines_a
             grid = self.gridLayout_a
             if self.final_a:
                 self.final_a.deleteLater()
                 self.final_a = None
 
         if komponent == "B":
-            items_type = self.items_b_type
-            items = self.items_b
-            items_lines = self.items_lines_b
+            items_type = self.material_b_types
+            items = self.material_comboboxes_b
+            items_lines = self.material_percent_lines_b
             grid = self.gridLayout_b
             if self.final_b:
                 self.final_b.deleteLater()
@@ -154,9 +158,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
     def normalise_func(self, komponent):
         if komponent == 'A':
-            items_lines = self.items_lines_a
+            items_lines = self.material_percent_lines_a
         if komponent == 'B':
-            items_lines = self.items_lines_b
+            items_lines = self.material_percent_lines_b
 
         def wrap():
             self.to_float(komponent)
@@ -180,6 +184,76 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                             widget.setText(str(round(current_numb + (100 - sum_all), 2)))
                             break
         return wrap
+
+    def add_material(self):
+        if not self.add_material_window:
+            self.add_material_window = AddMaterial(self)
+        self.setEnabled(False)
+        self.add_material_window.show()
+
+    def update_materials(self):
+        self.list_of_item_names = {material: get_all_material_of_one_type(material, self.db_name)
+                                   for material in self.types_of_items}
+        if self.material_to_add:
+
+            for index, combobox in enumerate(self.material_comboboxes_a):
+                if self.material_to_add[0] == self.material_a_types[index].currentText():
+                    combobox.addItem(self.material_to_add[1])
+
+            for index, combobox in enumerate(self.material_comboboxes_b):
+                if self.material_to_add[0] == self.material_b_types[index].currentText():
+                    combobox.addItems(self.material_to_add[1])
+
+
+    @staticmethod
+    def isfloat(value):
+      try:
+        float(value)
+        return True
+      except ValueError:
+        return False
+
+
+class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
+    def __init__(self, main_window: MainWindow):
+        super(AddMaterial, self).__init__()
+        self.setupUi(self)
+        self.main_window = main_window
+        self.db_name = DB_NAME
+        self.save_but.clicked.connect(self.add_material)
+        self.mat_type.addItems(self.main_window.types_of_items)
+
+    def add_material(self):
+
+        mat_type = self.mat_type.currentText()
+        name = self.mat_name.text().replace(' ', '')
+        try:
+            activity = float(self.mat_EW.text().replace(',', '.'))
+        except Exception as e:
+            # TODO уведомить, что проблемы с EW
+            activity = None
+            pass
+        tg_inf = self.tg_inf_type.currentText()
+        a = self.koef_a.text()
+        b = self.koef_b.text()
+
+        add_material(self.db_name, mat_type, name, activity if activity else None,
+                     tg_inf, a if a else None, b if b else None)
+
+        self.main_window.material_to_add = (mat_type, name)
+
+        self.close()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.main_window.setEnabled(True)
+        self.main_window.update_materials()
+        a0.accept()
+
+
+
+
+
+
 
 
 
