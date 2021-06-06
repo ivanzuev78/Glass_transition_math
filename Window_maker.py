@@ -50,6 +50,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.normalise_A.clicked.connect(self.normalise_func('A'))
         self.normalise_B.clicked.connect(self.normalise_func('B'))
 
+        self.hide_top('A')
+        self.hide_top('B')
+
 
     def debug(self):
         self.debug_string.setText('Good')
@@ -77,7 +80,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 self.final_a.deleteLater()
             self.final_a = final_label
 
-        if komponent == 'B':
+        elif komponent == 'B':
             items_type = self.material_b_types
             items = self.material_comboboxes_b
             items_lines = self.material_percent_lines_b
@@ -86,6 +89,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 self.final_b.deleteLater()
             self.final_b = final_label
 
+        self.show_top(komponent)
 
         material_combobox = QComboBox()
         material_combobox.addItems(self.list_of_item_names['None'])
@@ -143,6 +147,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                     self.final_a = final
                 else:
                     self.final_b = final
+            else:
+                self.hide_top(komponent)
 
     def add_A_line(self):
         self.add_line('A')
@@ -204,14 +210,33 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 if self.material_to_add[0] == self.material_b_types[index].currentText():
                     combobox.addItems(self.material_to_add[1])
 
+    def hide_top(self, komponent):
+        if komponent == "A":
+            self.label_3.hide()
+            self.label_5.hide()
+            self.normalise_A.hide()
+        if komponent == "B":
+            self.label_4.hide()
+            self.label_6.hide()
+            self.normalise_B.hide()
+
+    def show_top(self, komponent):
+        if komponent == "A":
+            self.label_3.show()
+            self.label_5.show()
+            self.normalise_A.show()
+        if komponent == "B":
+            self.label_4.show()
+            self.label_6.show()
+            self.normalise_B.show()
 
     @staticmethod
     def isfloat(value):
-      try:
-        float(value)
-        return True
-      except ValueError:
-        return False
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
 
 
 class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
@@ -247,6 +272,7 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.main_window.setEnabled(True)
         self.main_window.update_materials()
+        self.main_window.add_material_window = None
         a0.accept()
 
 

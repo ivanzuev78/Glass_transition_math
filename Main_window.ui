@@ -10,6 +10,11 @@
     <height>624</height>
    </rect>
   </property>
+  <property name="font">
+   <font>
+    <pointsize>12</pointsize>
+   </font>
+  </property>
   <property name="windowTitle">
    <string>Стеклосчиталка</string>
   </property>
@@ -19,7 +24,7 @@
      <rect>
       <x>30</x>
       <y>20</y>
-      <width>101</width>
+      <width>131</width>
       <height>30</height>
      </rect>
     </property>
@@ -29,7 +34,7 @@
      </font>
     </property>
     <property name="text">
-     <string>Основа</string>
+     <string>Компонент А</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_2">
@@ -47,13 +52,13 @@
      </font>
     </property>
     <property name="text">
-     <string>Отвердитель</string>
+     <string>Компонент Б</string>
     </property>
    </widget>
    <widget class="QPushButton" name="add_A_but">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>180</x>
       <y>20</y>
       <width>30</width>
       <height>30</height>
@@ -93,7 +98,7 @@
    <widget class="QPushButton" name="del_A_but">
     <property name="geometry">
      <rect>
-      <x>160</x>
+      <x>220</x>
       <y>20</y>
       <width>30</width>
       <height>30</height>
@@ -175,7 +180,7 @@
    <widget class="QPushButton" name="debug_but">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>620</x>
       <y>60</y>
       <width>75</width>
       <height>23</height>
@@ -188,7 +193,7 @@
    <widget class="QLabel" name="debug_string">
     <property name="geometry">
      <rect>
-      <x>110</x>
+      <x>700</x>
       <y>60</y>
       <width>101</width>
       <height>21</height>
@@ -216,7 +221,7 @@
      <rect>
       <x>620</x>
       <y>20</y>
-      <width>121</width>
+      <width>151</width>
       <height>31</height>
      </rect>
     </property>
@@ -227,11 +232,16 @@
    <widget class="QPushButton" name="normalise_A">
     <property name="geometry">
      <rect>
-      <x>200</x>
+      <x>210</x>
       <y>140</y>
       <width>81</width>
       <height>21</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>Нормировать</string>
@@ -240,14 +250,71 @@
    <widget class="QPushButton" name="normalise_B">
     <property name="geometry">
      <rect>
-      <x>520</x>
+      <x>530</x>
       <y>140</y>
       <width>81</width>
       <height>21</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+     </font>
+    </property>
     <property name="text">
      <string>Нормировать</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>140</y>
+      <width>47</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Тип</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>350</x>
+      <y>140</y>
+      <width>47</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Тип</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>95</x>
+      <y>140</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Компонент</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>415</x>
+      <y>140</y>
+      <width>111</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Компонент</string>
     </property>
    </widget>
   </widget>

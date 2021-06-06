@@ -51,7 +51,7 @@ def get_tg_df(db_name: str) -> pd.DataFrame:
     return df_tg_base
 
 
-def add_material(db_name: str, table: str, name: str, activity: float = None,
+def add_material(db_name: str, table: str, name: str, activity: float = 0,
                  tg_inf_type: str = None, a: float = None, b: float = None) -> None:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
