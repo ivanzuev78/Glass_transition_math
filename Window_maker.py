@@ -15,6 +15,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         self.db_name = DB_NAME
         self.add_material_window = None
+        self.add_tg_window = None
         self.material_to_add = None
         self.widgetList = []
 
@@ -51,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.add_raw.clicked.connect(self.add_material)
         self.normalise_A.clicked.connect(self.normalise_func("A"))
         self.normalise_B.clicked.connect(self.normalise_func("B"))
+        self.add_tg_but.clicked.connect(self.add_tg)
 
         self.hide_top("A")
         self.hide_top("B")
@@ -234,6 +236,12 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.setEnabled(False)
         self.add_material_window.show()
 
+    def add_tg(self):
+        if not self.add_tg_window:
+            self.add_tg_window = AddTg(self)
+        self.setEnabled(False)
+        self.add_tg_window.show()
+
     def update_materials(self):
         self.list_of_item_names = {
             material: get_all_material_of_one_type(material, self.db_name)
@@ -350,6 +358,41 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
         self.main_window.update_materials()
         self.main_window.add_material_window = None
         a0.accept()
+
+class AddTg(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg.ui")[0]):
+    def __init__(self, main_window: MainWindow):
+        super(AddTg, self).__init__()
+        self.setupUi(self)
+        self.main_window = main_window
+        self.db_name = DB_NAME
+
+        self.epoxy_comboBox.addItems(self.main_window.list_of_item_names['Epoxy'])
+        self.amine_comboBox.addItems(self.main_window.list_of_item_names['Amine'])
+
+        self.save_button.clicked.connect(self.add_tg)
+
+    def add_tg(self):
+        epoxy = self.epoxy_comboBox.currentText()
+        amine = self.amine_comboBox.currentText()
+        try:
+            tg = float(self.tg_lineEdit.text())
+        except Exception as e:
+            self.error_lab.setText('Введите число')
+            print(e)
+            return None
+        # TODO добавить проверку наличия этой пары значений и при наличии спросить про замену
+        add_tg_base(epoxy, amine, tg, self.db_name)
+        self.close()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.main_window.setEnabled(True)
+        a0.accept()
+
+
+
+
+
+
 
 
 if __name__ == "__main__":

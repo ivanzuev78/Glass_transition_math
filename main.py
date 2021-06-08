@@ -5,7 +5,7 @@ import pandas as pd
 Epoxy_name = ['KER-828', 'LaprBD', 'YDPN-638']
 Epoxy = np.array([0.8, 0.2, 0])
 Amine_name = ['IPDA', 'MXDA', 'PACM']
-Amine = np.array([0.5, 0.5, 0])
+Amine = np.array([0.5, 0.4, 0.1])
 
 # Amin = np.array([1,2,3])
 # c = np.outer(Epoxy, Amine)
