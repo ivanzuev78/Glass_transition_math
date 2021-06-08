@@ -22,8 +22,8 @@ def get_all_material_types(db_name: str) -> List[str]:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    all = [i[0] for i in cursor.fetchall() if i[0] not in ('Tg', 'Tg_influence')]
-    all.insert(0, all.pop(all.index('None')))
+    all = [i[0] for i in cursor.fetchall() if i[0] not in ("Tg", "Tg_influence")]
+    all.insert(0, all.pop(all.index("None")))
     return all
 
 
@@ -38,11 +38,11 @@ def get_all_material_of_one_type(material_type: str, db_name: str) -> List[str]:
 def get_tg_df(db_name: str) -> pd.DataFrame:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
-    cursor.execute('SELECT Name FROM Epoxy')
+    cursor.execute("SELECT Name FROM Epoxy")
     epoxy_name = [name[0] for name in cursor.fetchall()]
-    cursor.execute('SELECT Name FROM Amine')
+    cursor.execute("SELECT Name FROM Amine")
     amine_name = [name[0] for name in cursor.fetchall()]
-    cursor.execute('SELECT * FROM Tg')
+    cursor.execute("SELECT * FROM Tg")
     all_tg = cursor.fetchall()
     df_tg_base = pd.DataFrame(index=epoxy_name, columns=amine_name)
     for tg in all_tg:
@@ -54,7 +54,7 @@ def get_tg_df(db_name: str) -> pd.DataFrame:
 def add_material(db_name: str, table: str, name: str, activity: float = 0) -> None:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
-    #INSERT INTO Product (type, model, maker)  VALUES ('PC', 1157, 'B')
+    # INSERT INTO Product (type, model, maker)  VALUES ('PC', 1157, 'B')
     try:
         command = f"INSERT INTO {table} VALUES ('{name}', {activity})"
         cursor.execute(command)
@@ -90,31 +90,3 @@ def all_tg_from_df(tg_df: pd.DataFrame) -> List[List]:
             if data[2] is not np.nan:
                 all_tg.append(data)
     return all_tg
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

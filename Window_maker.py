@@ -88,32 +88,32 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         numb: Union[str, float]
         for widget in items_lines:
             numb = widget.text().replace(",", ".")
-            if len(numb.split('+')) > 1:
-                splited_numb = numb.split('+')
+            if len(numb.split("+")) > 1:
+                splited_numb = numb.split("+")
                 if all([i for i in map(self.isfloat, splited_numb)]):
                     numb = sum(map(float, splited_numb))
                 elif self.isfloat(splited_numb[0]):
                     numb = float(splited_numb[0])
-            elif len(numb.split('-')) > 1:
-                splited_numb = numb.split('-')
+            elif len(numb.split("-")) > 1:
+                splited_numb = numb.split("-")
                 if all([i for i in map(self.isfloat, splited_numb)]):
                     numb = float(splited_numb[0]) - float(splited_numb[1])
                 elif self.isfloat(splited_numb[0]):
                     numb = float(splited_numb[0])
-            elif len(numb.split('*')) > 1:
-                splited_numb = numb.split('*')
+            elif len(numb.split("*")) > 1:
+                splited_numb = numb.split("*")
                 if all([i for i in map(self.isfloat, splited_numb)]):
                     numb = float(splited_numb[0]) * float(splited_numb[1])
                 elif self.isfloat(splited_numb[0]):
                     numb = float(splited_numb[0])
-            elif len(numb.split('/')) > 1:
-                splited_numb = numb.split('/')
+            elif len(numb.split("/")) > 1:
+                splited_numb = numb.split("/")
                 if all([i for i in map(self.isfloat, splited_numb)]):
                     numb = float(splited_numb[0]) / float(splited_numb[1])
                 elif self.isfloat(splited_numb[0]):
                     numb = float(splited_numb[0])
-            elif len(numb.split('\\')) > 1:
-                splited_numb = numb.split('\\')
+            elif len(numb.split("\\")) > 1:
+                splited_numb = numb.split("\\")
                 if all([i for i in map(self.isfloat, splited_numb)]):
                     numb = float(splited_numb[0]) / float(splited_numb[1])
                 elif self.isfloat(splited_numb[0]):
@@ -131,7 +131,10 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         final_label = QLabel("Итого")
         final_label_numb = QLabel("0.00")
         final_label_numb.setTextInteractionFlags(
-            QtCore.Qt.LinksAccessibleByMouse | QtCore.Qt.TextSelectableByKeyboard | QtCore.Qt.TextSelectableByMouse)
+            QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
 
         if komponent == "A":
             items_type = self.material_a_types
@@ -174,7 +177,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         line.setText("0.00")
         line.editingFinished.connect(lambda: self.to_float(komponent))
         line.editingFinished.connect(lambda: self.count_sum(komponent))
-
 
         items_type.append(materia_typel_combobox)
         items.append(material_combobox)
@@ -234,19 +236,16 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 final = QLabel("Итого")
                 final_numb_label = QLabel()
                 row_count = grid.count()
-                grid.addWidget(
-                    final, row_count + 1, 1, alignment=QtCore.Qt.AlignRight
-                )
-                grid.addWidget(
-                    final_numb_label, row_count + 1, 2)
+                grid.addWidget(final, row_count + 1, 1, alignment=QtCore.Qt.AlignRight)
+                grid.addWidget(final_numb_label, row_count + 1, 2)
                 if komponent == "A":
                     self.final_a = final
                     self.final_a_numb_label = final_numb_label
-                    self.count_sum('A')
+                    self.count_sum("A")
                 else:
                     self.final_b = final
                     self.final_b_numb_label = final_numb_label
-                    self.count_sum('B')
+                    self.count_sum("B")
             else:
                 self.hide_top(komponent)
 
@@ -276,7 +275,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 sum_all += float(widget.text())
             if sum_all:
                 for widget in items_lines:
-                    widget.setText(f"{round(float(widget.text()) / sum_all * 100, 2):.{2}f}")
+                    widget.setText(
+                        f"{round(float(widget.text()) / sum_all * 100, 2):.{2}f}"
+                    )
                 sum_all = 0
                 sum_all_without_last = 0
                 for widget in items_lines:
@@ -293,6 +294,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                             )
                             break
             self.count_sum(komponent)
+
         return wrap
 
     # Вызывает окно для добавления сырья
@@ -381,20 +383,18 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         total_sum = 0
         for widget in item_lines:
             try:
-                numb = float(widget.text().replace(',', '.'))
+                numb = float(widget.text().replace(",", "."))
             except Exception:
                 numb = 0
-                widget.setText('Error!')
+                widget.setText("Error!")
             total_sum += numb
 
         total_sum = f"{total_sum:.{2}f}"
 
         if komponent == "A":
-            self.final_a_numb_label.setText(f'{total_sum}')
+            self.final_a_numb_label.setText(f"{total_sum}")
         elif komponent == "B":
-            self.final_b_numb_label.setText(f'{total_sum}')
-
-
+            self.final_b_numb_label.setText(f"{total_sum}")
 
 
 class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
@@ -407,7 +407,6 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
         self.save_but.clicked.connect(self.add_material)
         self.cancel_but.clicked.connect(self.close)
         self.mat_type.addItems(self.main_window.types_of_items)
-
 
     def add_material(self):
         mat_type = self.mat_type.currentText()
@@ -445,8 +444,8 @@ class AddTg(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg.ui")[0]):
         self.main_window = main_window
         self.db_name = DB_NAME
 
-        self.epoxy_comboBox.addItems(self.main_window.list_of_item_names['Epoxy'])
-        self.amine_comboBox.addItems(self.main_window.list_of_item_names['Amine'])
+        self.epoxy_comboBox.addItems(self.main_window.list_of_item_names["Epoxy"])
+        self.amine_comboBox.addItems(self.main_window.list_of_item_names["Amine"])
 
         self.save_but.clicked.connect(self.add_tg)
         self.cancel_but.clicked.connect(self.close)
@@ -457,7 +456,7 @@ class AddTg(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg.ui")[0]):
         try:
             tg = float(self.tg_lineEdit.text())
         except Exception as e:
-            self.error_lab.setText('Введите число')
+            self.error_lab.setText("Введите число")
             print(e)
             return None
         # TODO добавить проверку наличия этой пары значений и при наличии спросить про замену
@@ -478,9 +477,13 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
         self.db_name = DB_NAME
 
         self.material_type_combobox.addItems(self.main_window.types_of_items)
-        self.material_type_combobox.currentIndexChanged.connect(self.change_type_of_material)
+        self.material_type_combobox.currentIndexChanged.connect(
+            self.change_type_of_material
+        )
         self.material_combobox.addItems(
-            self.main_window.list_of_item_names[self.material_type_combobox.currentText()]
+            self.main_window.list_of_item_names[
+                self.material_type_combobox.currentText()
+            ]
         )
         self.cancel_but.clicked.connect(self.close)
         # TODO добавить логику сохранения и подключить кнопку
@@ -488,7 +491,9 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
     def change_type_of_material(self):
         self.material_combobox.clear()
         self.material_combobox.addItems(
-            self.main_window.list_of_item_names[self.material_type_combobox.currentText()]
+            self.main_window.list_of_item_names[
+                self.material_type_combobox.currentText()
+            ]
         )
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
