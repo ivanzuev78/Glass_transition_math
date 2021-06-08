@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>381</width>
-    <height>306</height>
+    <width>377</width>
+    <height>166</height>
    </rect>
   </property>
   <property name="font">
@@ -103,122 +103,11 @@
      <string>EW</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_4">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>100</y>
-      <width>121</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>Влияние на Tg</string>
-    </property>
-   </widget>
-   <widget class="QComboBox" name="tg_inf_type">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>108</y>
-      <width>91</width>
-      <height>25</height>
-     </rect>
-    </property>
-    <item>
-     <property name="text">
-      <string>None</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Line</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Exp</string>
-     </property>
-    </item>
-   </widget>
-   <widget class="QLabel" name="label_5">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>140</y>
-      <width>101</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-     </font>
-    </property>
-    <property name="layoutDirection">
-     <enum>Qt::LeftToRight</enum>
-    </property>
-    <property name="text">
-     <string>a</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_6">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>170</y>
-      <width>101</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-     </font>
-    </property>
-    <property name="layoutDirection">
-     <enum>Qt::LeftToRight</enum>
-    </property>
-    <property name="text">
-     <string>b</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="koef_a">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>140</y>
-      <width>91</width>
-      <height>20</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="koef_b">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>170</y>
-      <width>91</width>
-      <height>20</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QPushButton" name="save_but">
     <property name="geometry">
      <rect>
       <x>130</x>
-      <y>210</y>
+      <y>110</y>
       <width>101</width>
       <height>23</height>
      </rect>
@@ -231,7 +120,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>210</y>
+      <y>110</y>
       <width>101</width>
       <height>23</height>
      </rect>

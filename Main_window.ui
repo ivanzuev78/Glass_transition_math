@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1010</width>
-    <height>624</height>
+    <height>592</height>
    </rect>
   </property>
   <property name="font">
@@ -180,7 +180,7 @@
    <widget class="QPushButton" name="debug_but">
     <property name="geometry">
      <rect>
-      <x>620</x>
+      <x>640</x>
       <y>180</y>
       <width>75</width>
       <height>23</height>
@@ -193,7 +193,7 @@
    <widget class="QLabel" name="debug_string">
     <property name="geometry">
      <rect>
-      <x>700</x>
+      <x>720</x>
       <y>180</y>
       <width>101</width>
       <height>21</height>
@@ -219,7 +219,7 @@
    <widget class="QPushButton" name="add_raw">
     <property name="geometry">
      <rect>
-      <x>620</x>
+      <x>640</x>
       <y>20</y>
       <width>151</width>
       <height>31</height>
@@ -316,11 +316,14 @@
     <property name="text">
      <string>Компонент</string>
     </property>
+    <property name="textFormat">
+     <enum>Qt::AutoText</enum>
+    </property>
    </widget>
    <widget class="QPushButton" name="add_tg_but">
     <property name="geometry">
      <rect>
-      <x>620</x>
+      <x>640</x>
       <y>60</y>
       <width>151</width>
       <height>31</height>
@@ -328,6 +331,20 @@
     </property>
     <property name="text">
      <string>Добавить стекло</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="add_tg_inf_but">
+    <property name="geometry">
+     <rect>
+      <x>640</x>
+      <y>100</y>
+      <width>151</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Добавить влияние
+ вещества на стекло</string>
     </property>
    </widget>
   </widget>

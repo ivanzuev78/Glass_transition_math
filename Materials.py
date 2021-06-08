@@ -22,7 +22,7 @@ def get_all_material_types(db_name: str) -> List[str]:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    all = [i[0] for i in cursor.fetchall() if i[0] != 'Tg']
+    all = [i[0] for i in cursor.fetchall() if i[0] not in ('Tg', 'Tg_influence')]
     all.insert(0, all.pop(all.index('None')))
     return all
 
@@ -51,13 +51,12 @@ def get_tg_df(db_name: str) -> pd.DataFrame:
     return df_tg_base
 
 
-def add_material(db_name: str, table: str, name: str, activity: float = 0,
-                 tg_inf_type: str = None, a: float = None, b: float = None) -> None:
+def add_material(db_name: str, table: str, name: str, activity: float = 0) -> None:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     #INSERT INTO Product (type, model, maker)  VALUES ('PC', 1157, 'B')
     try:
-        command = f"INSERT INTO {table} VALUES ('{name}', {activity}, '{tg_inf_type}', '{a}', '{b}')"
+        command = f"INSERT INTO {table} VALUES ('{name}', {activity})"
         cursor.execute(command)
         connection.commit()
     except sqlite3.IntegrityError as e:
