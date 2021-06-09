@@ -68,10 +68,9 @@ def add_material(db_name: str, table: str, name: str, activity: float = 0) -> No
 
 
 def add_tg_base(epoxy: str, amine: str, tg: float, db_name) -> None:
-
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
     try:
-        connection = sqlite3.connect(db_name)
-        cursor = connection.cursor()
         command = f"INSERT INTO Tg VALUES ('{epoxy}', '{amine}', {tg})"
         cursor.execute(command)
         connection.commit()

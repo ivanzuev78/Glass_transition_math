@@ -75,6 +75,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.hide_top("B")
 
     def debug(self):
+        self.count_class()
         self.debug_string.setText("Good")
 
     # Приводит все проценты в рецептуре к типу float и считает +-*/ если есть в строке
@@ -395,6 +396,29 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.final_a_numb_label.setText(f"{total_sum}")
         elif komponent == "B":
             self.final_b_numb_label.setText(f"{total_sum}")
+
+
+
+    def count_class(self):
+        resin_names = []
+        resin_values = []
+        for index, widget in enumerate(self.material_comboboxes_a):
+            if self.material_a_types[index].currentText() == 'Epoxy':
+                resin_names.append(widget.currentText())
+                resin_values.append(float(self.material_percent_lines_a[index].text()))
+
+
+        print(resin_names)
+        print(resin_values)
+
+
+
+
+
+
+
+
+
 
 
 class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):

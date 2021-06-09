@@ -12,6 +12,8 @@ Amine = np.array([0.5, 0.4, 0.1])
 #
 # print(Epoxy, Amine, c, sep='\n')
 
+def normalize(array: np.array):
+    return array / sum(array)
 
 df = pd.DataFrame(
     np.outer(Epoxy, Amine),
