@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.hide_top("B")
 
     def debug(self):
-        self.count_class()
+        self.count_glass()
         self.debug_string.setText("Good")
 
     # Приводит все проценты в рецептуре к типу float и считает +-*/ если есть в строке
@@ -399,7 +399,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
 
 
-    def count_class(self):
+    def count_glass(self):
         resin_names = []
         resin_values = []
         for index, widget in enumerate(self.material_comboboxes_a):
@@ -410,6 +410,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         print(resin_names)
         print(resin_values)
+        print(normalize(np.array(resin_values)))
+
 
 
 

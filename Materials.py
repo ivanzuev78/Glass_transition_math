@@ -89,3 +89,7 @@ def all_tg_from_df(tg_df: pd.DataFrame) -> List[List]:
             if data[2] is not np.nan:
                 all_tg.append(data)
     return all_tg
+
+
+def normalize(array: np.array):
+    return array / sum(array)
