@@ -400,25 +400,70 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
 
     def count_glass(self):
+        # Получаем все названия и % эпоксидки в Компоненте А
         resin_names = []
         resin_values = []
         for index, widget in enumerate(self.material_comboboxes_a):
             if self.material_a_types[index].currentText() == 'Epoxy':
                 resin_names.append(widget.currentText())
                 resin_values.append(float(self.material_percent_lines_a[index].text()))
+        resin_values = normalize(np.array(resin_values))
+
+        # Получаем все названия и % эпоксидки в Компоненте Б
+        amine_names = []
+        amine_values = []
+        for index, widget in enumerate(self.material_comboboxes_b):
+            if self.material_b_types[index].currentText() == 'Amine':
+                amine_names.append(widget.currentText())
+                amine_values.append(float(self.material_percent_lines_b[index].text()))
+        amine_values = normalize(np.array(amine_values))
+
+        # Получаем матрицу процентов пар
+        percent_matrix = np.outer(resin_values, amine_values)
+
+        # Получаем датафрейм процентов пар
+        df_percent_matrix = pd.DataFrame(
+            percent_matrix,
+            index=resin_names,
+            columns=amine_names,
+        )
+
+        current_pairs = [(resin, amine) for resin in resin_names for amine in amine_names]
+        # print(pairs)
+
+        tg_df = get_tg_df('material.db')
+
+        # Получаем все пары, которые не имеют стекла
+        all_pairs_na = []
+        for name in tg_df:
+            a = tg_df[tg_df[name].isna()]
+            par = [(resin, name) for resin in list(a.index)]
+            all_pairs_na += par
+
+        current_pairs_without_tg = [pair for pair in current_pairs if pair in all_pairs_na]
+
+        # print(sovpadenie)
+
+        # дропаем неиспользуемые колонки стеклования
+        for name in tg_df:
+            if name not in amine_names:
+                tg_df = tg_df.drop(name, 1)
+
+        for name in tg_df.index:
+            if name not in resin_names:
+                tg_df = tg_df.drop(name)
+
+        tg_df = tg_df[list(df_percent_matrix.columns.values)]
+        tg_df = tg_df.T
+        tg_df = tg_df[list(df_percent_matrix.index)].T
+
+        print(df_percent_matrix)
+        print(tg_df)
 
 
-        print(resin_names)
-        print(resin_values)
-        print(normalize(np.array(resin_values)))
-
-
-
-
-
-
-
-
+        total_tg = np.array(tg_df) * percent_matrix
+        total_tg = round(total_tg.sum(), 1)
+        print(total_tg)
 
 
 
