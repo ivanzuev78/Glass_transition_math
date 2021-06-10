@@ -93,3 +93,16 @@ def all_tg_from_df(tg_df: pd.DataFrame) -> List[List]:
 
 def normalize(array: np.array):
     return array / sum(array)
+
+
+def get_ew_by_name(material, mat_type, db_name):
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+    if mat_type == 'Epoxy':
+        return cursor.execute(f"SELECT EEW FROM Epoxy WHERE name == '{material}'").fetchall()[0][0]
+    if mat_type == 'Amine':
+        return cursor.execute(f"SELECT AHEW FROM Amine WHERE name == '{material}'").fetchall()[0][0]
+
+
+# print(get_ew_by_name('MXDA', 'Amine', 'material.db'))
+

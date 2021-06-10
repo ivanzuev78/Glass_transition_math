@@ -21,6 +21,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.material_window = None
         self.tg_window = None
         self.tg_influence_window = None
+        self.tg_view_window = None
+
 
         # Строка вещества, которое было добавлено.
         # Нужно для добавления в выпадающий список в рецептуре не меняя его
@@ -69,6 +71,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.normalise_B.clicked.connect(self.normalise_func("B"))
         self.add_tg_but.clicked.connect(self.add_tg_window)
         self.add_tg_inf_but.clicked.connect(self.add_tg_inf_window)
+        self.tg_view_but.clicked.connect(self.show_tg_table)
 
         # Прячем верхушки рецептур, пока нет строк
         self.hide_top("A")
@@ -322,6 +325,13 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.hide()
         self.tg_influence_window.show()
 
+    def add_tg_view(self):
+        if not self.tg_view_window:
+            self.tg_view_window = TgViewWindow(self)
+        self.setEnabled(False)
+        self.hide()
+        self.tg_view_window.show()
+
     # Добавляет добавленный материал в выпадающий список в рецептурах, не меняя текущее значение
     def update_materials(self):
         self.list_of_item_names = {
@@ -340,7 +350,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                     self.material_to_add[0]
                     == self.material_b_types[index].currentText()
                 ):
-                    combobox.addItems(self.material_to_add[1])
+                    combobox.addItem(self.material_to_add[1])
 
     # Прячет шапку рецептуры, когда нет компонентов
     def hide_top(self, komponent: str):
@@ -397,7 +407,30 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         elif komponent == "B":
             self.final_b_numb_label.setText(f"{total_sum}")
 
+    def show_tg_table(self):
+        df = get_tg_df(self.db_name)
+        headers = df.columns.values.tolist()
+        rows = df.index.tolist()
 
+        table = QTableWidget()
+        table.sizeHint()
+        table.adjustSize()
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(rows))
+        table. setVerticalHeaderLabels(rows)
+        # layout = QGridLayout()
+        # layout.addWidget(table)
+        # layout.geometry()
+        # self.layout().addWidget(table)
+
+        for i, row in enumerate(df.iterrows()):
+            # Добавление строки
+            for j in range(table.columnCount()):
+                table.setItem(i, j, QTableWidgetItem(str(row[1][j])))
+        table.show()
+        self.table = table
+        pass
 
     def count_glass(self):
         # Получаем все названия и % эпоксидки в Компоненте А
@@ -407,16 +440,27 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             if self.material_a_types[index].currentText() == 'Epoxy':
                 resin_names.append(widget.currentText())
                 resin_values.append(float(self.material_percent_lines_a[index].text()))
-        resin_values = normalize(np.array(resin_values))
+        resin_eew = np.array([i for i in map(get_ew_by_name, resin_names, ['Epoxy' for _ in range(len(resin_names))],
+                                    [self.db_name for _ in range(len(resin_names))])])
 
-        # Получаем все названия и % эпоксидки в Компоненте Б
+        resin_values = normalize(resin_values / resin_eew)
+
+        print(resin_values)
+
+        # Получаем все названия и % аминов в Компоненте Б
         amine_names = []
         amine_values = []
         for index, widget in enumerate(self.material_comboboxes_b):
             if self.material_b_types[index].currentText() == 'Amine':
                 amine_names.append(widget.currentText())
                 amine_values.append(float(self.material_percent_lines_b[index].text()))
-        amine_values = normalize(np.array(amine_values))
+        # amine_values = normalize(np.array(amine_values))
+
+        amine_ahew = np.array([i for i in map(get_ew_by_name, amine_names, ['Amine' for _ in range(len(amine_names))],
+                                    [self.db_name for _ in range(len(amine_names))])])
+        amine_values = normalize(amine_values / amine_ahew)
+
+        print(amine_values)
 
         # Получаем матрицу процентов пар
         percent_matrix = np.outer(resin_values, amine_values)
@@ -444,7 +488,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         # print(sovpadenie)
 
-        # дропаем неиспользуемые колонки стеклования
+        # дропаем неиспользуемые колонки и строки стеклования
         for name in tg_df:
             if name not in amine_names:
                 tg_df = tg_df.drop(name, 1)
@@ -453,19 +497,18 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             if name not in resin_names:
                 tg_df = tg_df.drop(name)
 
-        tg_df = tg_df[list(df_percent_matrix.columns.values)]
+        # Сортируем колонки и строки в соответствии с матрицей процентов
+        tg_df = tg_df[df_percent_matrix.columns.values.tolist()]
         tg_df = tg_df.T
-        tg_df = tg_df[list(df_percent_matrix.index)].T
-
-        print(df_percent_matrix)
-        print(tg_df)
-
+        tg_df = tg_df[df_percent_matrix.index.tolist()].T
 
         total_tg = np.array(tg_df) * percent_matrix
         total_tg = round(total_tg.sum(), 1)
+        print(tg_df)
+        print(df_percent_matrix)
+
+
         print(total_tg)
-
-
 
 
 class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
@@ -571,6 +614,46 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
         self.main_window.setEnabled(True)
         self.main_window.show()
         a0.accept()
+
+
+class TgViewWindow(QtWidgets.QMainWindow, uic.loadUiType("glass_view.ui")[0]):
+    def __init__(self, main_window: MainWindow):
+        super(TgViewWindow, self).__init__()
+        self.setupUi(self)
+        self.main_window = main_window
+        self.db_name = DB_NAME
+        self.fill_table()
+
+
+    def fill_table(self):
+
+        df = get_tg_df(self.db_name)
+        headers = df.columns.values.tolist()
+        rows = df.index.tolist()
+
+        table = QTableWidget()
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(len(rows))
+        table. setVerticalHeaderLabels(rows)
+        layout = QGridLayout()
+        layout.addWidget(table)
+        layout.geometry()
+        # self.layout().addWidget(table)
+
+
+        for i, row in enumerate(df.iterrows()):
+            # Добавление строки
+            for j in range(table.columnCount()):
+                table.setItem(i, j, QTableWidgetItem(str(row[1][j])))
+        table.show()
+        pass
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.main_window.setEnabled(True)
+        self.main_window.show()
+        a0.accept()
+
 
 
 if __name__ == "__main__":
