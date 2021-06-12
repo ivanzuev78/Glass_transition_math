@@ -1,11 +1,12 @@
 import sys
 from typing import Union
+from collections import defaultdict
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import *
 
-from math import inf
+from math import inf, fabs
 from Materials import *
 from Sintez_windows import SintezWindow
 
@@ -444,13 +445,13 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         if value >= 1:
             numb_a = round(value, 2)
             numb_b = 1
+            self.mass_ratio_label.setText(f"Соотношение по массе\n{numb_a} : {numb_b}")
         elif 0 < value < 1:
             numb_a = 1
             numb_b = round(1 / value, 2)
+            self.mass_ratio_label.setText(f"Соотношение по массе\n{numb_a} : {numb_b}")
         else:
             self.mass_ratio_label.setText(f"Продукты не реагируют")
-            return None
-        self.mass_ratio_label.setText(f"Соотношение по массе\n{numb_a} : {numb_b}")
 
 
     # Вызывает окно для добавления температуры стеклования
@@ -562,16 +563,16 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 widget.setText("Error!")
             total_sum += numb
 
-        if 99.9999 < total_sum < 100.0001:
-            total_sum = 100
+        # if 99.9999 < total_sum < 100.0001:
+        #     total_sum = 100
         # total_sum_str = f"{total_sum:.{2}f}"
 
         if komponent == "A" and self.final_a_numb_label:
             self.sum_a = total_sum
-            self.final_a_numb_label.setText(f"{total_sum}")
+            self.final_a_numb_label.setText(f"{round(total_sum, 2)}")
         elif komponent == "B" and self.final_b_numb_label:
             self.sum_b = total_sum
-            self.final_b_numb_label.setText(f"{total_sum}")
+            self.final_b_numb_label.setText(f"{round(total_sum, 2)}")
 
     def show_tg_table(self):
         df = get_tg_df(self.db_name)
@@ -723,72 +724,185 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         return self.__b_ew
 
     def count_glass(self):
-        # self.normalise_func("A")()
-        # self.normalise_func("B")()
+        # Вспомогательная функция, которая учитывает ступенчатый синтез
+        def count_reaction_in_komponent(names_list, eq_list, pair_react):
+
+            # TODO Реализовать интерфейс для выбора взаимодействующий веществ + проверка, что все прореагировали
+            # pair_react = [('KER-828', 'ИФДА'), ('KER-828', 'MXDA')]
+            # на первом месте тот, кто прореагирует полностью
+            # если наоборот, то поменять нужно
+            # pair_react = [(i[1], i[0]) for i in pair_react]
+
+            if not pair_react:
+                return eq_list, []
+            dict_react_index = defaultdict(list)
+            pair_react_index = [(names_list.index(epoxy), names_list.index(amine)) for epoxy, amine in pair_react]
+            dict_react_eq = defaultdict(list)
+
+            # Здесь количество эквивалентов прореагировавших пар
+            result_eq_table = []
+
+            for epoxy, amine in pair_react_index:
+                dict_react_index[epoxy].append(amine)
+                dict_react_eq[epoxy].append(eq_list[amine])
+
+            for epoxy in dict_react_eq:
+                dict_react_eq[epoxy] = [amine / sum(dict_react_eq[epoxy]) for amine in dict_react_eq[epoxy]]
+
+            for epoxy_index in dict_react_index:
+                for amine_index, amine_percent in zip(dict_react_index[epoxy_index], dict_react_eq[epoxy_index]):
+                    eq_reacted = (names_list[epoxy_index], names_list[amine_index], eq_list[epoxy_index]*amine_percent)
+                    eq_list[amine_index] += eq_list[epoxy_index]*amine_percent
+                    result_eq_table.append(eq_reacted)
+                eq_list[epoxy_index] = 0
+
+            return eq_list, result_eq_table
+
+        if not (self.a_ew and self.ew_b):
+            # TODO прописать, что нет одного из компонентов в строку со стеклом
+            print('hahaha')
+            return None
+
+        if self.a_ew * self.ew_b > 0:
+            print('hahaha2')
+            # TODO прописать, что продукты не реагируют в строку со стеклом
+            return None
 
         # Получаем все названия и % эпоксидки в Компоненте А
-        resin_names = []
-        resin_values = []
+        a_types = []
+        a_names = []
+        a_values = []
+        a_eq = []
         for index, widget in enumerate(self.material_comboboxes_a):
-            if self.material_a_types[index].currentText() == "Epoxy":
-                resin_names.append(widget.currentText())
-                resin_values.append(float(self.material_percent_lines_a[index].text()))
-        resin_eew = np.array(
-            [
-                i
-                for i in map(
-                    get_ew_by_name,
-                    resin_names,
-                    ["Epoxy" for _ in range(len(resin_names))],
-                    [self.db_name for _ in range(len(resin_names))],
-                )
-            ]
-        )
-        resin_values = np.array(resin_values) / 100
+            mat_type = self.material_a_types[index].currentText()
+            mat_name = widget.currentText()
+            percent = float(self.material_percent_lines_a[index].text()) / 100
+            ew = get_ew_by_name(mat_name, mat_type, self.db_name)
+            if ew:
+                eq = percent / ew * self.mass_ratio
+                if mat_type == 'Amine':
+                    eq = -eq
+            else:
+                eq = 0
+            a_types.append(mat_type)
+            a_names.append(mat_name)
+            a_values.append(percent)
+            a_eq.append(eq)
 
-        # resin_values = normalize(resin_values / resin_eew)
-
-
-        # Получаем все названия и % аминов в Компоненте Б
-        amine_names = []
-        amine_values = []
+        # Получаем все названия и % эпоксидки в Компоненте B
+        b_types = []
+        b_names = []
+        b_values = []
+        b_eq = []
         for index, widget in enumerate(self.material_comboboxes_b):
-            if self.material_b_types[index].currentText() == "Amine":
-                amine_names.append(widget.currentText())
-                amine_values.append(float(self.material_percent_lines_b[index].text()))
-        # amine_values = normalize(np.array(amine_values))
+            mat_type = self.material_b_types[index].currentText()
+            mat_name = widget.currentText()
+            percent = float(self.material_percent_lines_b[index].text()) / 100
+            ew = get_ew_by_name(mat_name, mat_type, self.db_name)
+            if ew:
+                eq = percent / ew
+                if mat_type == 'Amine':
+                    eq = -eq
+            else:
+                eq = 0
+            b_types.append(mat_type)
+            b_names.append(mat_name)
+            b_values.append(percent)
+            b_eq.append(eq)
 
-        amine_ahew = np.array(
-            [
-                i
-                for i in map(
-                    get_ew_by_name,
-                    amine_names,
-                    ["Amine" for _ in range(len(amine_names))],
-                    [self.db_name for _ in range(len(amine_names))],
-                )
-            ]
-        )
+        total_eq = fabs(sum(a_eq))
+        print('total_eq', total_eq)
 
-        amine_values = np.array(amine_values) / 100
-        # amine_values = normalize(amine_values / amine_ahew)
+        # TODO необходимо передать списки с
+        a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, [('KER-828', 'ИФДА')])
+        b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, [])
 
-        print(amine_values)
+        a_names_only_react = []
+        a_eq_only_react = []
+        a_type = None
+        if sum(a_eq) > 0:
+            a_type = 'Epoxy'
+            for mat_type, name, eq in zip(a_types, a_names, a_eq):
+                if mat_type == 'Epoxy':
+                    a_names_only_react.append(name)
+                    a_eq_only_react.append(eq)
+        elif sum(a_eq) < 0:
+            a_type = 'Amine'
+            for mat_type, name, eq in zip(a_types, a_names, a_eq):
+                if mat_type == 'Amine':
+                    a_names_only_react.append(name)
+                    a_eq_only_react.append(eq)
+
+        print('a_names_only_react', a_names_only_react)
+        print('a_eq_only_react', a_eq_only_react)
+        print('a_type', a_type)
+
+
+        b_names_only_react = []
+        b_eq_only_react = []
+        b_type = None
+        if sum(b_eq) > 0:
+            b_type = 'Epoxy'
+            for mat_type, name, eq in zip(b_types, b_names, b_eq):
+                if mat_type == 'Epoxy':
+                    b_names_only_react.append(name)
+                    b_eq_only_react.append(eq)
+        elif sum(b_eq) < 0:
+            b_type = 'Amine'
+            for mat_type, name, eq in zip(b_types, b_names, b_eq):
+                if mat_type == 'Amine':
+                    b_names_only_react.append(name)
+                    b_eq_only_react.append(eq)
+
+        print('b_names_only_react', b_names_only_react)
+        print('b_eq_only_react', b_eq_only_react)
+        print('b_type', b_type)
+
+        if a_type == b_type:
+            return None
+
+        a_eq_only_react_percent = normalize(np.array(a_eq_only_react))
+        b_eq_only_react_percent = normalize(np.array(b_eq_only_react))
+
+        print('a_eq_only_react_percent', a_eq_only_react_percent)
+        print('b_eq_only_react_percent', b_eq_only_react_percent)
 
         # Получаем матрицу процентов пар
-        percent_matrix = np.outer(resin_values, amine_values)
+        percent_matrix = np.outer(a_eq_only_react_percent, b_eq_only_react_percent)
+
+        print('percent_matrix', percent_matrix)
+
+        eq_matrix = percent_matrix * total_eq
+        print('eq_matrix sum',eq_matrix.sum())
 
         # Получаем датафрейм процентов пар
         df_percent_matrix = pd.DataFrame(
-            percent_matrix,
-            index=resin_names,
-            columns=amine_names,
+            eq_matrix,
+            index=a_names_only_react,
+            columns=b_names_only_react,
         )
 
-        current_pairs = [
-            (resin, amine) for resin in resin_names for amine in amine_names
-        ]
-        # print(pairs)
+        print()
+
+        print(df_percent_matrix)
+        for pair in a_result_eq_table + b_result_eq_table:
+            if pair[0] in df_percent_matrix.columns:
+                df_percent_matrix[pair[0]][pair[1]] += pair[2]
+            if pair[1] in df_percent_matrix.columns:
+                df_percent_matrix[pair[1]][pair[0]] += pair[2]
+
+        normalized_matrix = normalize(np.array(df_percent_matrix))
+        print(df_percent_matrix)
+
+        print('-----------------')
+        normalized_matrix_df = pd.DataFrame(
+            normalized_matrix,
+            index=a_names_only_react,
+            columns=b_names_only_react,
+        )
+        print(normalized_matrix_df)
+        print(normalized_matrix.sum())
+
 
         tg_df = get_tg_df("material.db")
 
@@ -799,26 +913,35 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             par = [(resin, name) for resin in list(a.index)]
             all_pairs_na += par
 
+        current_pairs = [
+            (resin, amine) for resin in a_names_only_react for amine in b_names_only_react
+        ]
+
         current_pairs_without_tg = [
             pair for pair in current_pairs if pair in all_pairs_na
         ]
-
+        # TODO реализовать обработку отсутствующих пар стёкол
         # print(sovpadenie)
 
         # дропаем неиспользуемые колонки и строки стеклования
         for name in tg_df:
-            if name not in amine_names:
+            if name not in b_names_only_react + a_names_only_react:
                 tg_df = tg_df.drop(name, 1)
         for name in tg_df.index:
-            if name not in resin_names:
+            if name not in a_names_only_react + b_names_only_react:
                 tg_df = tg_df.drop(name)
+
+        if a_type == 'Amine':
+            tg_df = tg_df.T
         # Сортируем колонки и строки в соответствии с матрицей процентов
+
         tg_df = tg_df[df_percent_matrix.columns.values.tolist()]
         tg_df = tg_df.T
         tg_df = tg_df[df_percent_matrix.index.tolist()].T
 
-        total_tg = np.array(tg_df) * percent_matrix
+        total_tg = np.array(tg_df) * normalized_matrix
         total_tg = round(total_tg.sum(), 1)
+
         self.current_tg = total_tg
 
 
