@@ -813,7 +813,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         total_eq = fabs(sum(a_eq))
         print('total_eq', total_eq)
 
-        # TODO необходимо передать списки с
+        # TODO необходимо передать списки со взаимодействиями
         a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, [('KER-828', 'ИФДА')])
         b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, [])
 
