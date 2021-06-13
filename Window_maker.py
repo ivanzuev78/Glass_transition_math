@@ -36,6 +36,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.a_receipt_window: Union[SintezWindow, None] = None
         self.b_receipt_window: Union[SintezWindow, None] = None
 
+        # TODO добавить сброс при изменении компонентов
         self.pair_react_window = None
 
 
