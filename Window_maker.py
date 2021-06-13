@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import *
 
 from math import inf, fabs
 from Materials import *
-from Sintez_windows import SintezWindow
+from Sintez_windows import SintezWindow, ChoosePairReactWindow
 
 DB_NAME = "material.db"
 
@@ -35,6 +35,10 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         self.a_receipt_window: Union[SintezWindow, None] = None
         self.b_receipt_window: Union[SintezWindow, None] = None
+
+        self.pair_react_window = None
+
+
         # Строка вещества, которое было добавлено.
         # Нужно для добавления в выпадающий список в рецептуре не меняя его
         self.material_to_add = None
@@ -101,6 +105,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
     def debug(self):
         self.count_glass()
         # self.enable_recept("A")
+        # self.add_choose_pair_react_window()
         self.debug_string.setText("Good")
 
     @property
@@ -120,16 +125,13 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                     self.a_receipt_window = SintezWindow(self, "A")
                 self.a_receipt_window.show()
                 self.disable_recept("A")
-                self.a_receipt_window.show()
             elif komponent == "B":
                 if not self.b_receipt_window:
                     self.b_receipt_window = SintezWindow(self, "B")
                 self.b_receipt_window.show()
                 self.disable_recept("B")
-                self.b_receipt_window.show()
             else:
                 return None
-
 
         return wrapper
 
@@ -434,6 +436,37 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 return None
         self.mass_ratio = 0
 
+    def add_choose_pair_react_window(self):
+
+        self.pair_react_window = ChoosePairReactWindow(self, self.get_all_pairs_react('A'),
+                                                       self.get_all_pairs_react('B'))
+        self.pair_react_window.show()
+
+    def get_all_pairs_react(self, komponent):
+        if komponent == "A":
+            material_types = self.material_a_types
+            material_comboboxes = self.material_comboboxes_a
+        elif komponent == "B":
+            material_types = self.material_b_types
+            material_comboboxes = self.material_comboboxes_b
+        else:
+            return None
+
+        epoxies = []
+        amines = []
+        for mat_type, name in zip(material_types, material_comboboxes):
+
+            mat_type = mat_type.currentText()
+            name = name.currentText()
+            if mat_type == 'Epoxy':
+                epoxies.append(name)
+            elif mat_type == 'Amine':
+                amines.append(name)
+
+        all_pairs = [(epoxy, amine) for epoxy in epoxies for amine in amines]
+
+        return all_pairs
+
 
     @property
     def mass_ratio(self):
@@ -452,7 +485,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.mass_ratio_label.setText(f"Соотношение по массе\n{numb_a} : {numb_b}")
         else:
             self.mass_ratio_label.setText(f"Продукты не реагируют")
-
 
     # Вызывает окно для добавления температуры стеклования
     def add_tg_window(self):
@@ -696,6 +728,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.__a_ew = value
         if self.a_receipt_window:
             self.a_receipt_window.EW = value
+        self.count_mass_ratio()
 
     @a_ew.getter
     def a_ew(self):
@@ -718,6 +751,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.__b_ew = value
         if self.b_receipt_window:
             self.b_receipt_window.EW = value
+        self.count_mass_ratio()
 
     @ew_b.getter
     def ew_b(self):
@@ -747,7 +781,10 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 dict_react_eq[epoxy].append(eq_list[amine])
 
             for epoxy in dict_react_eq:
-                dict_react_eq[epoxy] = [amine / sum(dict_react_eq[epoxy]) for amine in dict_react_eq[epoxy]]
+                if sum(dict_react_eq[epoxy]) == 0:
+                    dict_react_eq[epoxy] = [0 for amine in dict_react_eq[epoxy]]
+                else:
+                    dict_react_eq[epoxy] = [amine / sum(dict_react_eq[epoxy]) for amine in dict_react_eq[epoxy]]
 
             for epoxy_index in dict_react_index:
                 for amine_index, amine_percent in zip(dict_react_index[epoxy_index], dict_react_eq[epoxy_index]):
@@ -759,12 +796,13 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             return eq_list, result_eq_table
 
         if not (self.a_ew and self.ew_b):
+            self.tg_label.setText('Стеклование отсутствует')
             # TODO прописать, что нет одного из компонентов в строку со стеклом
-            print('hahaha')
+
             return None
 
         if self.a_ew * self.ew_b > 0:
-            print('hahaha2')
+            self.tg_label.setText('Стеклование отсутствует')
             # TODO прописать, что продукты не реагируют в строку со стеклом
             return None
 
@@ -813,9 +851,24 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         total_eq = fabs(sum(a_eq))
         print('total_eq', total_eq)
 
+        if not self.pair_react_window:
+            self.pair_react_window = ChoosePairReactWindow(self, self.get_all_pairs_react('A'),
+                                                             self.get_all_pairs_react('B'))
+
+        a = self.pair_react_window.get_react_pairs('A')
+        b = self.pair_react_window.get_react_pairs('B')
+        if sum(a_eq) > 0:
+            a = [(i[1], i[0]) for i in a]
+        if sum(b_eq) > 0:
+            b = [(i[1], i[0]) for i in b]
+
+        print('a_eq до обработки', a_eq)
         # TODO необходимо передать списки со взаимодействиями
-        a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, [('KER-828', 'ИФДА')])
-        b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, [])
+        a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, a)
+        b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, b)
+        print('a_eq после обработки', a_eq)
+        print('a_result_eq_table', a_result_eq_table)
+        print('b_result_eq_table', b_result_eq_table)
 
         a_names_only_react = []
         a_eq_only_react = []
@@ -873,32 +926,57 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         print('percent_matrix', percent_matrix)
 
         eq_matrix = percent_matrix * total_eq
-        print('eq_matrix sum',eq_matrix.sum())
+        print('eq_matrix sum', eq_matrix.sum())
 
         # Получаем датафрейм процентов пар
         df_percent_matrix = pd.DataFrame(
             eq_matrix,
             index=a_names_only_react,
             columns=b_names_only_react,
+
         )
 
-        print()
+
+        if a_type == 'Amine':
+            df_percent_matrix = df_percent_matrix.T
+
+            for pair in a_result_eq_table:
+                if pair[0] not in df_percent_matrix.index.tolist():
+                    df_percent_matrix.loc[pair[0]] = [0 for _ in range(len(df_percent_matrix.columns.values.tolist()))]
+                    df_percent_matrix[pair[1]][pair[0]] += pair[2]
+
+        else:
+            for pair in a_result_eq_table:
+                if pair[0] not in df_percent_matrix.columns.values.tolist():
+                    df_percent_matrix[pair[0]] = [0 for _ in range(len(df_percent_matrix.index.tolist()))]
+                    df_percent_matrix[pair[0]][pair[1]] += pair[2]
+
+        if b_type == 'Amine':
+
+            for pair in b_result_eq_table:
+                if pair[0] not in df_percent_matrix.index.tolist():
+                    df_percent_matrix.loc[pair[0]] = [0 for _ in range(len(df_percent_matrix.columns.values.tolist()))]
+                    df_percent_matrix[pair[1]][pair[0]] += pair[2]
+
+        else:
+            for pair in b_result_eq_table:
+                if pair[0] not in df_percent_matrix.columns.values.tolist():
+                    df_percent_matrix[pair[0]] = [0 for _ in range(len(df_percent_matrix.index.tolist()))]
+                    df_percent_matrix[pair[0]][pair[1]] += pair[2]
 
         print(df_percent_matrix)
-        for pair in a_result_eq_table + b_result_eq_table:
-            if pair[0] in df_percent_matrix.columns:
-                df_percent_matrix[pair[0]][pair[1]] += pair[2]
-            if pair[1] in df_percent_matrix.columns:
-                df_percent_matrix[pair[1]][pair[0]] += pair[2]
+
+        epoxy_names_list = df_percent_matrix.index.tolist()
+        amine_names_list = df_percent_matrix.columns.values.tolist()
 
         normalized_matrix = normalize(np.array(df_percent_matrix))
-        print(df_percent_matrix)
+
 
         print('-----------------')
         normalized_matrix_df = pd.DataFrame(
             normalized_matrix,
-            index=a_names_only_react,
-            columns=b_names_only_react,
+            index=epoxy_names_list,
+            columns=amine_names_list,
         )
         print(normalized_matrix_df)
         print(normalized_matrix.sum())
@@ -925,14 +1003,14 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         # дропаем неиспользуемые колонки и строки стеклования
         for name in tg_df:
-            if name not in b_names_only_react + a_names_only_react:
+            if name not in amine_names_list + epoxy_names_list:
                 tg_df = tg_df.drop(name, 1)
         for name in tg_df.index:
-            if name not in a_names_only_react + b_names_only_react:
+            if name not in epoxy_names_list + amine_names_list:
                 tg_df = tg_df.drop(name)
 
-        if a_type == 'Amine':
-            tg_df = tg_df.T
+        # if a_type == 'Amine':
+        #     tg_df = tg_df.T
         # Сортируем колонки и строки в соответствии с матрицей процентов
 
         tg_df = tg_df[df_percent_matrix.columns.values.tolist()]
