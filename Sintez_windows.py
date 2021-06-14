@@ -2,7 +2,15 @@ import os
 import sys
 from math import inf
 from PyQt5 import uic, QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QFileDialog, QComboBox, QLineEdit, QSpacerItem, QLabel, QCheckBox, QGridLayout
+from PyQt5.QtWidgets import (
+    QFileDialog,
+    QComboBox,
+    QLineEdit,
+    QSpacerItem,
+    QLabel,
+    QCheckBox,
+    QGridLayout,
+)
 from itertools import cycle
 import openpyxl as opx
 
@@ -13,7 +21,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
         self.setupUi(self)
         self.main_window = main_window
         self.komponent = komponent
-
         self.horizontalSlider = {}
         self.line_percent = {}
         self.line_EW = {}
@@ -253,9 +260,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
     #     else:
     #         self.EW = 0
 
-    def percent_changed(self):
-        pass
-
     def try_to_change(self, numb_of_line, source):
         def wrapper():
             if self.slider_is_pushed[numb_of_line]:
@@ -387,8 +391,11 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
                     self.previousPercents[line] = self.percents[line]
 
                 # self.count_EW()
-                self.main_window.set_percents_from_recept_window(self.komponent,
-                                                                 [self.percents[i] for i in range(len(self.percents))])
+                self.main_window.set_percents_from_recept_window(
+                    self.komponent,
+                    [self.percents[i] for i in range(len(self.percents))],
+                )
+
         return wrapper
 
     def set_percents(self, current_line=-1):
@@ -408,7 +415,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
         self.close()
 
 
-class ChoosePairReactWindow(QtWidgets.QMainWindow, uic.loadUiType("choose_pair_react.ui")[0]):
+class ChoosePairReactWindow(
+    QtWidgets.QMainWindow, uic.loadUiType("choose_pair_react.ui")[0]
+):
     def __init__(self, main_window: "MainWindow", all_pairs_a, all_pairs_b):
         super(ChoosePairReactWindow, self).__init__()
         self.setupUi(self)
@@ -432,9 +441,11 @@ class ChoosePairReactWindow(QtWidgets.QMainWindow, uic.loadUiType("choose_pair_r
             self.gridLayout_b.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
 
     @staticmethod
-    def add_line(pair: tuple, layout: QGridLayout, labels_list: list, checkboxes_list: list):
+    def add_line(
+        pair: tuple, layout: QGridLayout, labels_list: list, checkboxes_list: list
+    ):
         label = QLabel()
-        label.setText(f'{pair[0]} + {pair[1]}')
+        label.setText(f"{pair[0]} + {pair[1]}")
         labels_list.append(label)
         checkbox = QCheckBox()
         checkbox.setChecked(True)
@@ -447,30 +458,29 @@ class ChoosePairReactWindow(QtWidgets.QMainWindow, uic.loadUiType("choose_pair_r
         layout.addWidget(label, row_count + 1, 1)
 
     def get_react_pairs(self, komponent):
-        if komponent == 'A':
+        if komponent == "A":
             checkboxes_list = self.checkboxes_a
             all_pairs = self.all_pairs_a
             self.pairs_to_react_a = []
             pairs_to_react = self.pairs_to_react_a
-        elif komponent == 'B':
+        elif komponent == "B":
             checkboxes_list = self.checkboxes_b
             all_pairs = self.all_pairs_b
             self.pairs_to_react_b = []
             pairs_to_react = self.pairs_to_react_b
         else:
             return None
-
         for checkbox, pair in zip(checkboxes_list, all_pairs):
             if checkbox.isChecked():
                 pairs_to_react.append(pair)
-
         return pairs_to_react
 
-
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-
+        if not all(
+            chbox.isChecked() for chbox in self.checkboxes_b + self.checkboxes_a
+        ):
+            self.main_window.sintez_pair_label.setText("Ступенчатый синтез")
         a0.accept()
-
 
 
 if __name__ == "__main__":
