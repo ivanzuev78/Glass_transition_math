@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>839</width>
-    <height>599</height>
+    <width>1015</width>
+    <height>638</height>
    </rect>
   </property>
   <property name="font">
@@ -181,7 +181,7 @@
     <property name="geometry">
      <rect>
       <x>650</x>
-      <y>340</y>
+      <y>470</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -194,7 +194,7 @@
     <property name="geometry">
      <rect>
       <x>730</x>
-      <y>340</y>
+      <y>470</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -503,6 +503,32 @@
     </property>
     <property name="text">
      <string>Стеклование</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="sintez_editor_but">
+    <property name="geometry">
+     <rect>
+      <x>660</x>
+      <y>290</y>
+      <width>151</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Редактор синтеза</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="sintez_pair_label">
+    <property name="geometry">
+     <rect>
+      <x>820</x>
+      <y>300</y>
+      <width>141</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>По умолчанию</string>
     </property>
    </widget>
   </widget>
