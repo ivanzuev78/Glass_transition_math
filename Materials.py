@@ -107,5 +107,23 @@ def get_ew_by_name(material, mat_type, db_name):
             f"SELECT AHEW FROM Amine WHERE name == '{material}'"
         ).fetchall()[0][0]
 
+def get_tg_influence(mat_name, percent, db_name):
+    # TODO get_tg_influence
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+    command = "SELECT Name FROM Epoxy"
+    cursor.execute(command)
+    connection.close()
+
+def add_tg_influence(mat_name, epoxy, amine, k0, k1, k2, k3, k4, k5, ke, kexp, x_min, x_max, db_name):
+    connection = sqlite3.connect(db_name)
+    cursor = connection.cursor()
+    command = f"INSERT INTO Tg_influence  VALUES ('{mat_name}', '{epoxy}', '{amine}', '{x_min}', '{x_max}', " \
+              f"'{k0}', '{ke}', '{kexp}', '{k1}', '{k2}', '{k3}', '{k4}', '{k5}')"
+    cursor.execute(command)
+    connection.commit()
+    connection.close()
+
+
 
 # print(get_ew_by_name('MXDA', 'Amine', 'material.db'))

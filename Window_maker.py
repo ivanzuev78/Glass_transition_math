@@ -1196,7 +1196,7 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
         self.setupUi(self)
         self.main_window = main_window
         self.db_name = DB_NAME
-
+        # Настраиваем комбобоксы для влияющего вещества
         self.material_type_combobox.addItems(self.main_window.types_of_items)
         self.material_type_combobox.currentIndexChanged.connect(
             self.change_type_of_material
@@ -1206,7 +1206,15 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
                 self.material_type_combobox.currentText()
             ]
         )
+        # Настраиваем комбобоксы для систем, на которые идёт влияние
+        self.material_combobox_epoxy.addItems(self.main_window.list_of_item_names['Epoxy'])
+        self.material_combobox_amine.addItems(self.main_window.list_of_item_names['Amine'])
+        self.radioButton_all.toggled.connect(self.checkbox_changer('all'))
+        self.radioButton_pair.toggled.connect(self.checkbox_changer('pair'))
+        self.radioButton_all.setChecked(True)
         self.cancel_but.clicked.connect(self.close)
+        self.save_but.clicked.connect(self.save_to_db)
+
         # TODO добавить логику сохранения и подключить кнопку
 
     def change_type_of_material(self):
@@ -1216,6 +1224,50 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
                 self.material_type_combobox.currentText()
             ]
         )
+
+    def checkbox_changer(self, chb_type):
+        def wrapper():
+            if chb_type == 'all':
+                self.material_combobox_epoxy.setEnabled(False)
+                self.material_combobox_amine.setEnabled(False)
+            elif chb_type == 'pair':
+                self.material_combobox_epoxy.setEnabled(True)
+                self.material_combobox_amine.setEnabled(True)
+        return wrapper
+
+    def save_to_db(self):
+        try:
+            k0 = float(self.k0_qline.text().replace(",", "."))
+            k1 = float(self.k1_qline.text().replace(",", "."))
+            k2 = float(self.k2_qline.text().replace(",", "."))
+            k3 = float(self.k3_qline.text().replace(",", "."))
+            k4 = float(self.k4_qline.text().replace(",", "."))
+            k5 = float(self.k5_qline.text().replace(",", "."))
+            ke = float(self.ke_qline.text().replace(",", "."))
+            kexp = float(self.kexp_qline.text().replace(",", "."))
+            x_min = float(self.xmin_qline.text().replace(",", "."))
+            x_max = float(self.xmax_qline.text().replace(",", "."))
+
+            mat_name = self.material_combobox.currentText()
+            if self.radioButton_all.isChecked():
+                epoxy = None
+                amine = None
+            else:
+                epoxy = self.material_combobox_epoxy.currentText()
+                amine = self.material_combobox_amine.currentText()
+
+        except Exception as e:
+            print('Ошибка в считывании параметров:', e)
+            return None
+
+        try:
+            add_tg_influence(mat_name, epoxy, amine, k0, k1, k2, k3, k4, k5, ke, kexp, x_min, x_max, self.db_name)
+        except Exception as e:
+            print('Ошибка при записи в базу данных:', e)
+            return None
+
+        self.close()
+
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.main_window.setEnabled(True)
