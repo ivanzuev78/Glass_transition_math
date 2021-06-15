@@ -112,6 +112,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.count_final_receipt()
         self.debug_string.setText("Good")
 
+
+
+
     def count_all_parameters(self):
         self.get_all_pairs_react("A")
         self.get_all_pairs_react("B")
@@ -431,7 +434,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         ):
             percent = float(percent.text()) * self.mass_ratio
             total += percent
-            receipt[name.currentText()] = percent
+            receipt[name.currentText()] += percent
             print(name.currentText(), percent)
 
         for name, percent in zip(
@@ -439,7 +442,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         ):
             percent = float(percent.text())
             total += percent
-            receipt[name.currentText()] = percent
+            receipt[name.currentText()] += percent
             print(name.currentText(), percent)
 
         for i in receipt:
