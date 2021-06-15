@@ -116,8 +116,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
 
     def count_all_parameters(self):
-        self.get_all_pairs_react("A")
-        self.get_all_pairs_react("B")
         self.count_sum("A")
         self.count_sum("B")
         self.count_ew("A")
@@ -421,6 +419,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
             self.current_tg = total_tg
         except Exception as e:
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             print(e)
             self.tg_label.setText("Где-то там ошибка")
 
@@ -445,6 +444,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             receipt[name.currentText()] += percent
             print(name.currentText(), percent)
 
+        print(total)
         for i in receipt:
             receipt[i] = receipt[i] / total
 
@@ -690,7 +690,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         else:
             return None
 
-        self.reset_choose_pair_react_window()
+
 
         if items:
             items.pop(-1).deleteLater()
@@ -714,6 +714,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                     self.count_sum("B")
             else:
                 self.hide_top(komponent)
+
+        self.reset_choose_pair_react_window()
 
     def del_a_line(self):
         self.del_line("A")
@@ -808,16 +810,12 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
     def reset_choose_pair_react_window(self):
 
-        if (
-            self.get_all_pairs_react("A") != self.pair_react_list_a
-            or self.get_all_pairs_react("B") != self.pair_react_list_b
-        ):
-            self.pair_react_window = ChoosePairReactWindow(
-                self, self.get_all_pairs_react("A"), self.get_all_pairs_react("B")
-            )
-            self.sintez_pair_label.setText("Простой синтез")
-            self.pair_react_list_a = self.get_all_pairs_react("A")
-            self.pair_react_list_b = self.get_all_pairs_react("B")
+        self.pair_react_window = ChoosePairReactWindow(
+            self, self.get_all_pairs_react("A"), self.get_all_pairs_react("B")
+        )
+        self.sintez_pair_label.setText("Простой синтез")
+        self.pair_react_list_a = self.get_all_pairs_react("A")
+        self.pair_react_list_b = self.get_all_pairs_react("B")
 
     @property
     def mass_ratio(self):
