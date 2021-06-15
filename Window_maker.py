@@ -77,6 +77,15 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             for material in self.types_of_items
         }
 
+        # Доля избытка. Число от 0. Расчёт: % + % * extra_ratio -> % * (extra_ratio + 1)
+        self.extra_ratio = 0.1
+        self.extra_ratio_komponent = "A"
+
+        # Конечная рецептура покрытия
+        self.final_receipt = None
+        # Конечные избытки, пригодные для расчёта поправок
+        self.extra_material = None
+
         # QSpacerItem в gridLayout для подпирания строк снизу
         self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
         self.gridLayout_b.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
@@ -111,9 +120,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         # self.add_choose_pair_react_window()
         self.count_final_receipt()
         self.debug_string.setText("Good")
-
-
-
 
     def count_all_parameters(self):
         self.count_sum("A")
@@ -160,7 +166,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
             for epoxy_index in dict_react_index:
                 for amine_index, amine_percent in zip(
-                    dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
+                        dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
                 ):
                     eq_reacted = (
                         names_list[epoxy_index],
@@ -424,31 +430,50 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.tg_label.setText("Где-то там ошибка")
 
     def count_final_receipt(self):
-        receipt = defaultdict(float)
-
+        final_receipt = defaultdict(float)
+        # Избыток
+        extra_material = defaultdict(float)
         total = 0
 
-        for name, percent in zip(
-            self.material_comboboxes_a, self.material_percent_lines_a
-        ):
+        for mat_type, name, percent in zip(self.material_a_types,
+                                           self.material_comboboxes_a,
+                                           self.material_percent_lines_a
+                                           ):
+            name = name.currentText()
             percent = float(percent.text()) * self.mass_ratio
             total += percent
-            receipt[name.currentText()] += percent
-            print(name.currentText(), percent)
+            final_receipt[name] += percent
 
-        for name, percent in zip(
-            self.material_comboboxes_b, self.material_percent_lines_b
-        ):
+            if self.extra_ratio != 0 and self.extra_ratio_komponent == 'A':
+                extra_percent = percent * self.extra_ratio
+                extra_material[name] += extra_percent
+                final_receipt[name] += extra_percent
+                total += extra_percent
+
+        for mat_type, name, percent in zip(self.material_b_types,
+                                           self.material_comboboxes_b,
+                                           self.material_percent_lines_b
+                                           ):
+            name = name.currentText()
             percent = float(percent.text())
             total += percent
-            receipt[name.currentText()] += percent
-            print(name.currentText(), percent)
+            final_receipt[name] += percent
 
-        print(total)
-        for i in receipt:
-            receipt[i] = receipt[i] / total
+            if self.extra_ratio != 0 and self.extra_ratio_komponent == 'B':
+                extra_percent = percent * self.extra_ratio
+                extra_material[name] += extra_percent
+                final_receipt[name] += extra_percent
+                total += extra_percent
 
-        print(*[[i, receipt[i]] for i in receipt], sep="\n")
+        for name in final_receipt:
+            if name in extra_material:
+                extra_material[name] = extra_material[name] / total
+            final_receipt[name] = final_receipt[name] / total
+            if name not in self.list_of_item_names['Amine'] + self.list_of_item_names['Epoxy']:
+                extra_material[name] = final_receipt[name]
+
+        self.final_receipt = final_receipt
+        self.extra_material = extra_material
 
     def add_receipt_window(self, komponent):
         def wrapper():
@@ -479,35 +504,35 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         for widget in items_lines:
             numb = widget.text().replace(",", ".")
             if len(numb.split("+")) > 1:
-                splited_numb = numb.split("+")
-                if all([i for i in map(self.isfloat, splited_numb)]):
-                    numb = sum(map(float, splited_numb))
-                elif self.isfloat(splited_numb[0]):
-                    numb = float(splited_numb[0])
+                split_numb = numb.split("+")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = sum(map(float, split_numb))
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
             elif len(numb.split("-")) > 1:
-                splited_numb = numb.split("-")
-                if all([i for i in map(self.isfloat, splited_numb)]):
-                    numb = float(splited_numb[0]) - float(splited_numb[1])
-                elif self.isfloat(splited_numb[0]):
-                    numb = float(splited_numb[0])
+                split_numb = numb.split("-")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) - float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
             elif len(numb.split("*")) > 1:
-                splited_numb = numb.split("*")
-                if all([i for i in map(self.isfloat, splited_numb)]):
-                    numb = float(splited_numb[0]) * float(splited_numb[1])
-                elif self.isfloat(splited_numb[0]):
-                    numb = float(splited_numb[0])
+                split_numb = numb.split("*")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) * float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
             elif len(numb.split("/")) > 1:
-                splited_numb = numb.split("/")
-                if all([i for i in map(self.isfloat, splited_numb)]):
-                    numb = float(splited_numb[0]) / float(splited_numb[1])
-                elif self.isfloat(splited_numb[0]):
-                    numb = float(splited_numb[0])
+                split_numb = numb.split("/")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) / float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
             elif len(numb.split("\\")) > 1:
-                splited_numb = numb.split("\\")
-                if all([i for i in map(self.isfloat, splited_numb)]):
-                    numb = float(splited_numb[0]) / float(splited_numb[1])
-                elif self.isfloat(splited_numb[0]):
-                    numb = float(splited_numb[0])
+                split_numb = numb.split("\\")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) / float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
 
             if not self.isfloat(numb):
                 numb = 0
@@ -690,8 +715,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         else:
             return None
 
-
-
         if items:
             items.pop(-1).deleteLater()
             items_lines.pop(-1).deleteLater()
@@ -867,14 +890,14 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         if self.material_to_add:
             for index, combobox in enumerate(self.material_comboboxes_a):
                 if (
-                    self.material_to_add[0]
-                    == self.material_a_types[index].currentText()
+                        self.material_to_add[0]
+                        == self.material_a_types[index].currentText()
                 ):
                     combobox.addItem(self.material_to_add[1])
             for index, combobox in enumerate(self.material_comboboxes_b):
                 if (
-                    self.material_to_add[0]
-                    == self.material_b_types[index].currentText()
+                        self.material_to_add[0]
+                        == self.material_b_types[index].currentText()
                 ):
                     combobox.addItem(self.material_to_add[1])
 
@@ -916,8 +939,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.label_6.show()
             self.normalise_B.show()
             self.label_lock_b.show()
-
-
 
     # Считает сумму компонентов в рецептуре
     def count_sum(self, komponent: str):
@@ -1002,22 +1023,22 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             [
                 i
                 for i in map(
-                    get_ew_by_name,
-                    resin_names,
-                    ["Epoxy" for _ in range(len(resin_names))],
-                    [self.db_name for _ in range(len(resin_names))],
-                )
+                get_ew_by_name,
+                resin_names,
+                ["Epoxy" for _ in range(len(resin_names))],
+                [self.db_name for _ in range(len(resin_names))],
+            )
             ]
         )
         amine_ahew = np.array(
             [
                 i
                 for i in map(
-                    get_ew_by_name,
-                    amine_names,
-                    ["Amine" for _ in range(len(amine_names))],
-                    [self.db_name for _ in range(len(amine_names))],
-                )
+                get_ew_by_name,
+                amine_names,
+                ["Amine" for _ in range(len(amine_names))],
+                [self.db_name for _ in range(len(amine_names))],
+            )
             ]
         )
 
@@ -1115,8 +1136,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             return True
         except ValueError:
             return False
-
-
 
 
 class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
@@ -1234,6 +1253,7 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
             elif chb_type == 'pair':
                 self.material_combobox_epoxy.setEnabled(True)
                 self.material_combobox_amine.setEnabled(True)
+
         return wrapper
 
     def save_to_db(self):
@@ -1268,7 +1288,6 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
             return None
 
         self.close()
-
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.main_window.setEnabled(True)
