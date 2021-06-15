@@ -435,10 +435,10 @@ class ChoosePairReactWindow(
     def fill_window(self):
         for pair in self.all_pairs_a:
             self.add_line(pair, self.gridLayout_a, self.labels_a, self.checkboxes_a)
-            self.gridLayout_a.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
+        self.gridLayout_a.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
         for pair in self.all_pairs_b:
             self.add_line(pair, self.gridLayout_b, self.labels_b, self.checkboxes_b)
-            self.gridLayout_b.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
+        self.gridLayout_b.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
 
     @staticmethod
     def add_line(
