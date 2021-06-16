@@ -1,5 +1,5 @@
 import sys
-from typing import Union
+from typing import Union, Callable
 from collections import defaultdict
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
@@ -78,13 +78,15 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         }
 
         # Доля избытка. Число от 0. Расчёт: % + % * extra_ratio -> % * (extra_ratio + 1)
-        self.extra_ratio = 0.1
+        self.extra_ratio = 0
         self.extra_ratio_komponent = "A"
+        self.radioButton_A.toggled.connect(self.extra_radiobutton_changer("A"))
+        self.radioButton_B.toggled.connect(self.extra_radiobutton_changer("B"))
 
         # Конечная рецептура покрытия
-        self.final_receipt = None
+        self.final_receipt = []
         # Конечные избытки, пригодные для расчёта поправок
-        self.extra_material = None
+        self.extra_material = []
 
         # QSpacerItem в gridLayout для подпирания строк снизу
         self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
@@ -105,14 +107,82 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
         self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
         self.sintez_editor_but.clicked.connect(self.add_choose_pair_react_window)
+        self.extra_ratio_line.editingFinished.connect(self.update_extra_labels)
 
         pixmap = QPixmap("lock.png")
         self.label_lock_a.setPixmap(pixmap)
         self.label_lock_b.setPixmap(pixmap)
 
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("update.png"))
+        self.pushButton.setIcon(icon)
+
         # Прячем верхушки рецептур, пока нет строк
         self.hide_top("A")
         self.hide_top("B")
+
+    def extra_radiobutton_changer(self, mat_type: str) -> Callable:
+        def wrapper():
+            self.extra_ratio_komponent = mat_type
+            self.update_extra_labels()
+        return wrapper
+
+    def update_extra_labels(self) -> None:
+        try:
+            line_text = self.extra_ratio_line.text().replace(',', '.')
+            if self.isfloat(line_text) and any([self.radioButton_A.isChecked, self.radioButton_B.isChecked]):
+                self.extra_ratio = float(line_text) / 100
+
+                if self.extra_ratio_komponent == "A":
+                    text = 'Компонент A\n'
+                    if self.a_ew:
+                        ew = self.a_ew * (self.extra_ratio + 1)
+                    else:
+                        ew = 0
+                elif self.extra_ratio_komponent == "B":
+                    text = 'Компонент Б\n'
+                    if self.a_ew:
+                        ew = self.ew_b * (self.extra_ratio + 1)
+                    else:
+                        ew = 0
+                else:
+                    return None
+
+                if ew > 0:
+                    text_2 = "EEW  " + str(round(ew, 2))
+                elif ew == 0:
+                    text_2 = "No EW"
+                else:
+                    text_2 = "AHEW  " + str(-round(ew, 2))
+
+                self.extra_ew_label.setText(text + text_2)
+
+                if self.extra_ratio_komponent == "A":
+                    ew_a = ew
+                    ew_b = self.ew_b
+                elif self.extra_ratio_komponent == "B":
+                    ew_a = self.a_ew
+                    ew_b = ew
+                else:
+                    return None
+
+                mass_ratio = - ew_a / ew_b
+
+                if mass_ratio >= 1:
+                    numb_a = round(mass_ratio, 2)
+                    numb_b = 1
+                    self.mass_ratio_label_2.setText(f"Соотношение по массе\nс избытком\n{numb_a} : {numb_b}")
+                elif 0 < mass_ratio < 1:
+                    numb_a = 1
+                    numb_b = round(1 / mass_ratio, 2)
+                    self.mass_ratio_label_2.setText(f"Соотношение по массе\nс избытком\n{numb_a} : {numb_b}")
+                else:
+                    self.mass_ratio_label_2.setText(f"Продукты не реагируют")
+        except Exception as e:
+            print(e)
+
+    def count_extra_parameters(self):
+        pass
 
     def debug(self):
         self.count_glass()
@@ -129,6 +199,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.count_ew("B")
         self.count_mass_ratio()
         self.count_glass()
+        self.update_extra_labels()
 
     def count_glass(self):
         # Вспомогательная функция, которая учитывает ступенчатый синтез
@@ -436,13 +507,18 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         extra_material = defaultdict(float)
         total = 0
 
+        if self.mass_ratio != 0:
+            mass_ratio = self.mass_ratio
+        else:
+            mass_ratio = 1
+
         for mat_type, name, percent in zip(
             self.material_a_types,
             self.material_comboboxes_a,
             self.material_percent_lines_a,
         ):
             name = name.currentText()
-            percent = float(percent.text()) * self.mass_ratio
+            percent = float(percent.text()) * mass_ratio
             total += percent
             final_receipt[name] += percent
 
@@ -467,6 +543,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 extra_material[name] += extra_percent
                 final_receipt[name] += extra_percent
                 total += extra_percent
+
+        if total == 0:
+            return None
 
         for name in final_receipt:
             if name in extra_material:
@@ -805,7 +884,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
     def count_mass_ratio(self):
         a = self.a_ew
         b = self.ew_b
-        print(a, b)
         if a and b:
             if a * b < 0:
                 self.mass_ratio = -a / b
@@ -864,11 +942,11 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         if value >= 1:
             numb_a = round(value, 2)
             numb_b = 1
-            self.mass_ratio_label.setText(f"Соотношение по массе\n{numb_a} : {numb_b}")
+            self.mass_ratio_label.setText(f"Соотношение по массе\n    {numb_a} : {numb_b}")
         elif 0 < value < 1:
             numb_a = 1
             numb_b = round(1 / value, 2)
-            self.mass_ratio_label.setText(f"Соотношение по массе\n{numb_a} : {numb_b}")
+            self.mass_ratio_label.setText(f"Соотношение по массе\n    {numb_a} : {numb_b}")
         else:
             self.mass_ratio_label.setText(f"Продукты не реагируют")
 
@@ -934,11 +1012,13 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.label_5.hide()
             self.normalise_A.hide()
             self.label_lock_a.hide()
+            self.a_ew = 0
         if komponent == "B":
             self.label_4.hide()
             self.label_6.hide()
             self.normalise_B.hide()
             self.label_lock_b.hide()
+            self.ew_b = 0
 
     # Отображает шапку рецептуры, когда есть компоненты
     def show_top(self, komponent: str):
