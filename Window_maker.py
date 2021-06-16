@@ -119,6 +119,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         # self.enable_recept("A")
         # self.add_choose_pair_react_window()
         self.count_final_receipt()
+        self.count_tg_inf()
         self.debug_string.setText("Good")
 
     def count_all_parameters(self):
@@ -166,7 +167,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
             for epoxy_index in dict_react_index:
                 for amine_index, amine_percent in zip(
-                        dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
+                    dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
                 ):
                     eq_reacted = (
                         names_list[epoxy_index],
@@ -425,7 +426,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
             self.current_tg = total_tg
         except Exception as e:
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             print(e)
             self.tg_label.setText("Где-то там ошибка")
 
@@ -435,31 +436,33 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         extra_material = defaultdict(float)
         total = 0
 
-        for mat_type, name, percent in zip(self.material_a_types,
-                                           self.material_comboboxes_a,
-                                           self.material_percent_lines_a
-                                           ):
+        for mat_type, name, percent in zip(
+            self.material_a_types,
+            self.material_comboboxes_a,
+            self.material_percent_lines_a,
+        ):
             name = name.currentText()
             percent = float(percent.text()) * self.mass_ratio
             total += percent
             final_receipt[name] += percent
 
-            if self.extra_ratio != 0 and self.extra_ratio_komponent == 'A':
+            if self.extra_ratio != 0 and self.extra_ratio_komponent == "A":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
                 final_receipt[name] += extra_percent
                 total += extra_percent
 
-        for mat_type, name, percent in zip(self.material_b_types,
-                                           self.material_comboboxes_b,
-                                           self.material_percent_lines_b
-                                           ):
+        for mat_type, name, percent in zip(
+            self.material_b_types,
+            self.material_comboboxes_b,
+            self.material_percent_lines_b,
+        ):
             name = name.currentText()
             percent = float(percent.text())
             total += percent
             final_receipt[name] += percent
 
-            if self.extra_ratio != 0 and self.extra_ratio_komponent == 'B':
+            if self.extra_ratio != 0 and self.extra_ratio_komponent == "B":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
                 final_receipt[name] += extra_percent
@@ -469,11 +472,22 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             if name in extra_material:
                 extra_material[name] = extra_material[name] / total
             final_receipt[name] = final_receipt[name] / total
-            if name not in self.list_of_item_names['Amine'] + self.list_of_item_names['Epoxy']:
+            if (
+                name
+                not in self.list_of_item_names["Amine"]
+                + self.list_of_item_names["Epoxy"]
+            ):
                 extra_material[name] = final_receipt[name]
 
         self.final_receipt = final_receipt
         self.extra_material = extra_material
+
+    def count_tg_inf(self):
+        for name in self.extra_material:
+            print(name, self.extra_material[name])
+            print(get_tg_influence(name, self.db_name))
+
+        pass
 
     def add_receipt_window(self, komponent):
         def wrapper():
@@ -890,14 +904,14 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         if self.material_to_add:
             for index, combobox in enumerate(self.material_comboboxes_a):
                 if (
-                        self.material_to_add[0]
-                        == self.material_a_types[index].currentText()
+                    self.material_to_add[0]
+                    == self.material_a_types[index].currentText()
                 ):
                     combobox.addItem(self.material_to_add[1])
             for index, combobox in enumerate(self.material_comboboxes_b):
                 if (
-                        self.material_to_add[0]
-                        == self.material_b_types[index].currentText()
+                    self.material_to_add[0]
+                    == self.material_b_types[index].currentText()
                 ):
                     combobox.addItem(self.material_to_add[1])
 
@@ -1023,22 +1037,22 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             [
                 i
                 for i in map(
-                get_ew_by_name,
-                resin_names,
-                ["Epoxy" for _ in range(len(resin_names))],
-                [self.db_name for _ in range(len(resin_names))],
-            )
+                    get_ew_by_name,
+                    resin_names,
+                    ["Epoxy" for _ in range(len(resin_names))],
+                    [self.db_name for _ in range(len(resin_names))],
+                )
             ]
         )
         amine_ahew = np.array(
             [
                 i
                 for i in map(
-                get_ew_by_name,
-                amine_names,
-                ["Amine" for _ in range(len(amine_names))],
-                [self.db_name for _ in range(len(amine_names))],
-            )
+                    get_ew_by_name,
+                    amine_names,
+                    ["Amine" for _ in range(len(amine_names))],
+                    [self.db_name for _ in range(len(amine_names))],
+                )
             ]
         )
 
@@ -1227,10 +1241,14 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
             ]
         )
         # Настраиваем комбобоксы для систем, на которые идёт влияние
-        self.material_combobox_epoxy.addItems(self.main_window.list_of_item_names['Epoxy'])
-        self.material_combobox_amine.addItems(self.main_window.list_of_item_names['Amine'])
-        self.radioButton_all.toggled.connect(self.checkbox_changer('all'))
-        self.radioButton_pair.toggled.connect(self.checkbox_changer('pair'))
+        self.material_combobox_epoxy.addItems(
+            self.main_window.list_of_item_names["Epoxy"]
+        )
+        self.material_combobox_amine.addItems(
+            self.main_window.list_of_item_names["Amine"]
+        )
+        self.radioButton_all.toggled.connect(self.checkbox_changer("all"))
+        self.radioButton_pair.toggled.connect(self.checkbox_changer("pair"))
         self.radioButton_all.setChecked(True)
         self.cancel_but.clicked.connect(self.close)
         self.save_but.clicked.connect(self.save_to_db)
@@ -1247,10 +1265,10 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
 
     def checkbox_changer(self, chb_type):
         def wrapper():
-            if chb_type == 'all':
+            if chb_type == "all":
                 self.material_combobox_epoxy.setEnabled(False)
                 self.material_combobox_amine.setEnabled(False)
-            elif chb_type == 'pair':
+            elif chb_type == "pair":
                 self.material_combobox_epoxy.setEnabled(True)
                 self.material_combobox_amine.setEnabled(True)
 
@@ -1258,6 +1276,7 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
 
     def save_to_db(self):
         try:
+            # TODO Добавить обработку параметров при чтении. Возможно, смотреть на интервалы, что бы не накладывались.
             k0 = float(self.k0_qline.text().replace(",", "."))
             k1 = float(self.k1_qline.text().replace(",", "."))
             k2 = float(self.k2_qline.text().replace(",", "."))
@@ -1271,20 +1290,35 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
 
             mat_name = self.material_combobox.currentText()
             if self.radioButton_all.isChecked():
-                epoxy = None
-                amine = None
+                epoxy = "None"
+                amine = "None"
             else:
                 epoxy = self.material_combobox_epoxy.currentText()
                 amine = self.material_combobox_amine.currentText()
 
         except Exception as e:
-            print('Ошибка в считывании параметров:', e)
+            print("Ошибка в считывании параметров:", e)
             return None
 
         try:
-            add_tg_influence(mat_name, epoxy, amine, k0, k1, k2, k3, k4, k5, ke, kexp, x_min, x_max, self.db_name)
+            add_tg_influence(
+                mat_name,
+                epoxy,
+                amine,
+                k0,
+                k1,
+                k2,
+                k3,
+                k4,
+                k5,
+                ke,
+                kexp,
+                x_min,
+                x_max,
+                self.db_name,
+            )
         except Exception as e:
-            print('Ошибка при записи в базу данных:', e)
+            print("Ошибка при записи в базу данных:", e)
             return None
 
         self.close()
