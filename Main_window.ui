@@ -611,13 +611,13 @@ c избытком</string>
      <string>Здесь EW с избытком</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
+   <widget class="QPushButton" name="update_but">
     <property name="geometry">
      <rect>
-      <x>810</x>
-      <y>370</y>
-      <width>71</width>
-      <height>61</height>
+      <x>450</x>
+      <y>20</y>
+      <width>41</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="text">

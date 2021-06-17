@@ -1,4 +1,5 @@
 import sys
+from copy import copy
 from typing import Union, Callable
 from collections import defaultdict
 
@@ -21,8 +22,10 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.db_name = DB_NAME
 
         self.__current_tg = None
+        self.current_tg_no_correction = None
         self.__a_ew = None
         self.__b_ew = None
+        self.df_pairs_percents = None
         self.__mass_ratio = None
         self.sum_a = 0
         self.sum_b = 0
@@ -40,6 +43,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.pair_react_window = None
         self.pair_react_list_a = []
         self.pair_react_list_b = []
+        self.receipt_types = defaultdict(dict)
 
         # Строка вещества, которое было добавлено.
         # Нужно для добавления в выпадающий список в рецептуре не меняя его
@@ -109,6 +113,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
         self.sintez_editor_but.clicked.connect(self.add_choose_pair_react_window)
         self.extra_ratio_line.editingFinished.connect(self.update_extra_labels)
+        self.update_but.clicked.connect(self.update_but_func)
 
         pixmap = QPixmap("lock.png")
         self.label_lock_a.setPixmap(pixmap)
@@ -116,7 +121,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("update.png"))
-        self.pushButton.setIcon(icon)
+        self.update_but.setIcon(icon)
 
         # Прячем верхушки рецептур, пока нет строк
         self.hide_top("A")
@@ -133,7 +138,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         try:
             line_text = self.extra_ratio_line.text().replace(",", ".")
             if self.isfloat(line_text) and any(
-                [self.radioButton_A.isChecked, self.radioButton_B.isChecked]
+                    [self.radioButton_A.isChecked, self.radioButton_B.isChecked]
             ):
                 self.extra_ratio = float(line_text) / 100
 
@@ -200,9 +205,14 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.count_tg_inf()
         self.debug_string.setText("Good")
 
+    def update_but_func(self):
+        print(self.df_pairs_percents)
+        self.count_final_receipt()
+        self.count_tg_inf()
+
     def count_all_parameters(self):
-        self.count_sum("A")
-        self.count_sum("B")
+        # self.count_sum("A")
+        # self.count_sum("B")
         self.count_ew("A")
         self.count_ew("B")
         self.count_mass_ratio()
@@ -246,7 +256,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
             for epoxy_index in dict_react_index:
                 for amine_index, amine_percent in zip(
-                    dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
+                        dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
                 ):
                     eq_reacted = (
                         names_list[epoxy_index],
@@ -260,6 +270,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             return eq_list, result_eq_table
 
         try:
+
             if not (self.a_ew and self.ew_b):
                 self.tg_label.setText("Стеклование отсутствует")
                 # TODO прописать, что нет одного из компонентов в строку со стеклом
@@ -321,24 +332,16 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                     self, self.get_all_pairs_react("A"), self.get_all_pairs_react("B")
                 )
 
-            a = self.pair_react_window.get_react_pairs("A")
-            b = self.pair_react_window.get_react_pairs("B")
+            pairs_a = self.pair_react_window.get_react_pairs("A")
+            pairs_b = self.pair_react_window.get_react_pairs("B")
             if sum(a_eq) > 0:
-                a = [(i[1], i[0]) for i in a]
+                pairs_a = [(i[1], i[0]) for i in pairs_a]
             if sum(b_eq) > 0:
-                b = [(i[1], i[0]) for i in b]
+                pairs_b = [(i[1], i[0]) for i in pairs_b]
 
-            print("a_eq до обработки", a_eq)
-            print("b_eq до обработки", b_eq)
-            print(b)
             # TODO необходимо передать списки со взаимодействиями
-            a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, a)
-            b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, b)
-            print()
-            print("a_eq после обработки", a_eq)
-            print("b_eq после обработки", b_eq)
-            print("a_result_eq_table", a_result_eq_table)
-            print("b_result_eq_table", b_result_eq_table)
+            a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, pairs_a)
+            b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, pairs_b)
 
             a_names_only_react = []
             a_eq_only_react = []
@@ -356,10 +359,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                         a_names_only_react.append(name)
                         a_eq_only_react.append(eq)
 
-            print("a_names_only_react", a_names_only_react)
-            print("a_eq_only_react", a_eq_only_react)
-            print("a_type", a_type)
-
             b_names_only_react = []
             b_eq_only_react = []
             b_type = None
@@ -376,100 +375,87 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                         b_names_only_react.append(name)
                         b_eq_only_react.append(eq)
 
-            print("b_names_only_react", b_names_only_react)
-            print("b_eq_only_react", b_eq_only_react)
-            print("b_type", b_type)
-
             if a_type == b_type:
                 return None
 
             a_eq_only_react_percent = normalize(np.array(a_eq_only_react))
             b_eq_only_react_percent = normalize(np.array(b_eq_only_react))
 
-            print("a_eq_only_react_percent", a_eq_only_react_percent)
-            print("b_eq_only_react_percent", b_eq_only_react_percent)
-
             # Получаем матрицу процентов пар
             percent_matrix = np.outer(a_eq_only_react_percent, b_eq_only_react_percent)
 
-            print("percent_matrix", percent_matrix)
-
             eq_matrix = percent_matrix * total_eq
-            print("eq_matrix sum", eq_matrix.sum())
 
             # Получаем датафрейм процентов пар
-            df_percent_matrix = pd.DataFrame(
+            df_eq_matrix = pd.DataFrame(
                 eq_matrix,
                 index=a_names_only_react,
                 columns=b_names_only_react,
             )
 
             if a_type == "Amine":
-                df_percent_matrix = df_percent_matrix.T
+                df_eq_matrix = df_eq_matrix.T
 
                 for pair in a_result_eq_table:
-                    if pair[0] not in df_percent_matrix.index.tolist():
-                        df_percent_matrix.loc[pair[0]] = [
+                    if pair[0] not in df_eq_matrix.index.tolist():
+                        df_eq_matrix.loc[pair[0]] = [
                             0
                             for _ in range(
-                                len(df_percent_matrix.columns.values.tolist())
+                                len(df_eq_matrix.columns.values.tolist())
                             )
                         ]
-                    df_percent_matrix[pair[1]][pair[0]] += pair[2]
+                    df_eq_matrix[pair[1]][pair[0]] += pair[2]
 
             else:
                 for pair in a_result_eq_table:
-                    if pair[0] not in df_percent_matrix.columns.values.tolist():
-                        df_percent_matrix[pair[0]] = [
-                            0 for _ in range(len(df_percent_matrix.index.tolist()))
+                    if pair[0] not in df_eq_matrix.columns.values.tolist():
+                        df_eq_matrix[pair[0]] = [
+                            0 for _ in range(len(df_eq_matrix.index.tolist()))
                         ]
-                    df_percent_matrix[pair[0]][pair[1]] += pair[2]
+                    df_eq_matrix[pair[0]][pair[1]] += pair[2]
 
             if b_type == "Amine":
 
                 for pair in b_result_eq_table:
-                    if pair[0] not in df_percent_matrix.index.tolist():
-                        df_percent_matrix.loc[pair[0]] = [
+                    if pair[0] not in df_eq_matrix.index.tolist():
+                        df_eq_matrix.loc[pair[0]] = [
                             0
                             for _ in range(
-                                len(df_percent_matrix.columns.values.tolist())
+                                len(df_eq_matrix.columns.values.tolist())
                             )
                         ]
-                    print("!!!", df_percent_matrix[pair[1]][pair[0]], "|", pair[2])
+                    print("!!!", df_eq_matrix[pair[1]][pair[0]], "|", pair[2])
                     print()
-                    df_percent_matrix[pair[1]][pair[0]] += pair[2]
-                    print("!!!", df_percent_matrix[pair[1]][pair[0]])
+                    df_eq_matrix[pair[1]][pair[0]] += pair[2]
+                    print("!!!", df_eq_matrix[pair[1]][pair[0]])
             else:
                 for pair in b_result_eq_table:
-                    if pair[0] not in df_percent_matrix.columns.values.tolist():
-                        df_percent_matrix[pair[0]] = [
-                            0 for _ in range(len(df_percent_matrix.index.tolist()))
+                    if pair[0] not in df_eq_matrix.columns.values.tolist():
+                        df_eq_matrix[pair[0]] = [
+                            0 for _ in range(len(df_eq_matrix.index.tolist()))
                         ]
-                    df_percent_matrix[pair[0]][pair[1]] += pair[2]
+                    df_eq_matrix[pair[0]][pair[1]] += pair[2]
 
-            print(df_percent_matrix)
+            print('--->', df_eq_matrix)
 
-            epoxy_names_list = df_percent_matrix.index.tolist()
-            amine_names_list = df_percent_matrix.columns.values.tolist()
+            epoxy_names_list = df_eq_matrix.index.tolist()
+            amine_names_list = df_eq_matrix.columns.values.tolist()
 
-            normalized_matrix = normalize(np.array(df_percent_matrix))
+            normalized_matrix = normalize(np.array(df_eq_matrix))
 
             print("-----------------")
-            normalized_matrix_df = pd.DataFrame(
-                normalized_matrix,
-                index=epoxy_names_list,
-                columns=amine_names_list,
-            )
-            print(normalized_matrix_df)
-            print(normalized_matrix.sum())
+            percent_df = normalize_df(df_eq_matrix)
+
+            print('--->', percent_df)
+            print(sum(percent_df.sum()))
 
             tg_df = get_tg_df("material.db")
 
             # Получаем все пары, которые не имеют стекла
             all_pairs_na = []
             for name in tg_df:
-                a = tg_df[tg_df[name].isna()]
-                par = [(resin, name) for resin in list(a.index)]
+                pairs_a = tg_df[tg_df[name].isna()]
+                par = [(resin, name) for resin in list(pairs_a.index)]
                 all_pairs_na += par
 
             current_pairs = [
@@ -492,18 +478,15 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 if name not in epoxy_names_list + amine_names_list:
                     tg_df = tg_df.drop(name)
 
-            # if a_type == 'Amine':
-            #     tg_df = tg_df.T
-            # Сортируем колонки и строки в соответствии с матрицей процентов
-
-            tg_df = tg_df[df_percent_matrix.columns.values.tolist()]
+            tg_df = tg_df[df_eq_matrix.columns.values.tolist()]
             tg_df = tg_df.T
-            tg_df = tg_df[df_percent_matrix.index.tolist()].T
+            tg_df = tg_df[df_eq_matrix.index.tolist()].T
 
-            total_tg = np.array(tg_df) * normalized_matrix
-            total_tg = round(total_tg.sum(), 1)
-
-            self.current_tg = total_tg
+            total_tg = tg_df * percent_df
+            total_tg = round(sum(total_tg.sum()), 1)
+            print(total_tg)
+            self.current_tg_no_correction = total_tg
+            self.df_pairs_percents = percent_df
         except Exception as e:
             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             print(e)
@@ -514,7 +497,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         final_receipt_no_extra = defaultdict(float)
         # Избыток
         extra_material = defaultdict(float)
-
+        receipt_types = defaultdict(str)
         total_with_extra = 0
         total_no_extra = 0
 
@@ -524,9 +507,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             mass_ratio = 1
 
         for mat_type, name, percent in zip(
-            self.material_a_types,
-            self.material_comboboxes_a,
-            self.material_percent_lines_a,
+                self.material_a_types,
+                self.material_comboboxes_a,
+                self.material_percent_lines_a,
         ):
             name = name.currentText()
             percent = float(percent.text()) * mass_ratio
@@ -534,6 +517,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             total_no_extra += percent
             final_receipt_no_extra[name] += percent
             final_receipt_with_extra[name] += percent
+            receipt_types[name] = mat_type.currentText()
 
             if self.extra_ratio != 0 and self.extra_ratio_komponent == "A":
                 extra_percent = percent * self.extra_ratio
@@ -542,9 +526,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 total_with_extra += extra_percent
 
         for mat_type, name, percent in zip(
-            self.material_b_types,
-            self.material_comboboxes_b,
-            self.material_percent_lines_b,
+                self.material_b_types,
+                self.material_comboboxes_b,
+                self.material_percent_lines_b,
         ):
             name = name.currentText()
             percent = float(percent.text())
@@ -552,6 +536,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             total_no_extra += percent
             final_receipt_no_extra[name] += percent
             final_receipt_with_extra[name] += percent
+            receipt_types[name] = mat_type.currentText()
 
             if self.extra_ratio != 0 and self.extra_ratio_komponent == "B":
                 extra_percent = percent * self.extra_ratio
@@ -568,27 +553,60 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             final_receipt_with_extra[name] = final_receipt_with_extra[name] / total_with_extra
 
             if (
-                name
-                not in self.list_of_item_names["Amine"]
-                + self.list_of_item_names["Epoxy"]
+                    name
+                    not in self.list_of_item_names["Amine"]
+                    + self.list_of_item_names["Epoxy"]
             ):
                 extra_material[name] = final_receipt_with_extra[name]
 
         for name in final_receipt_no_extra:
             final_receipt_no_extra[name] = final_receipt_no_extra[name] / total_no_extra
 
-
         self.final_receipt_with_extra = final_receipt_with_extra
         self.final_receipt_no_extra = final_receipt_no_extra
         self.extra_material = extra_material
+        self.receipt_types = receipt_types
+
+    def count_tg_inf(self, extra_flag: bool = False):
+        if extra_flag:
+            for name in self.extra_material:
+                print(name, self.extra_material[name])
+                print(get_tg_influence(name, self.db_name))
+        else:
+            inf_not_exists = defaultdict(list)
+            all_inf_tg = dict()
+
+            for name in self.final_receipt_no_extra:
+                if self.receipt_types[name] not in ('Amine', 'Epoxy'):
+                    percent = self.final_receipt_no_extra[name]
+                    all_inf_mat = get_tg_influence(name, self.db_name)
+                    df_inf_exists = copy(self.df_pairs_percents)
+                    for i in df_inf_exists.columns.values.tolist():
+                        df_inf_exists[i] = 0
+                    print(name, percent)
+                    print(df_inf_exists)
 
 
-    def count_tg_inf(self):
-        for name in self.extra_material:
-            print(name, self.extra_material[name])
-            print(get_tg_influence(name, self.db_name))
+                    for dict_inf in all_inf_mat:
+                        if dict_inf['amine'] in df_inf_exists.columns.values.tolist() \
+                                and dict_inf['epoxy'] in df_inf_exists.index.tolist():
+                            df_inf_exists[dict_inf['amine']][dict_inf['epoxy']] = 1
 
-        pass
+                        else:
+
+                            print('sorry')
+
+                    for amine in df_inf_exists.columns.values.tolist():
+                        for epoxy in df_inf_exists.index.tolist():
+                            if df_inf_exists[amine][epoxy] == 0:
+                                inf_not_exists[name].append((epoxy, amine))
+
+                    all_inf_tg[name] = df_inf_exists
+
+                    print(df_inf_exists)
+                    print(normalize_df(df_inf_exists * self.df_pairs_percents))
+            print(inf_not_exists)
+
 
     def add_receipt_window(self, komponent):
         def wrapper():
@@ -709,7 +727,9 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                                 f"{round(current_numb + (total_sum_left - sum_all), 2):.{2}f}"
                             )
                             break
-            self.count_all_parameters()
+            self.count_sum(komponent)
+
+            # self.count_all_parameters()
 
         return wrap
 
@@ -1008,14 +1028,14 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         if self.material_to_add:
             for index, combobox in enumerate(self.material_comboboxes_a):
                 if (
-                    self.material_to_add[0]
-                    == self.material_a_types[index].currentText()
+                        self.material_to_add[0]
+                        == self.material_a_types[index].currentText()
                 ):
                     combobox.addItem(self.material_to_add[1])
             for index, combobox in enumerate(self.material_comboboxes_b):
                 if (
-                    self.material_to_add[0]
-                    == self.material_b_types[index].currentText()
+                        self.material_to_add[0]
+                        == self.material_b_types[index].currentText()
                 ):
                     combobox.addItem(self.material_to_add[1])
 
@@ -1088,6 +1108,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         elif komponent == "B" and self.final_b_numb_label:
             self.sum_b = total_sum
             self.final_b_numb_label.setText(f"{round(total_sum, 2)}")
+        if round(total_sum, 2) == 100:
+            self.count_all_parameters()
 
     def show_tg_table(self):
         df = get_tg_df(self.db_name)
@@ -1143,22 +1165,22 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             [
                 i
                 for i in map(
-                    get_ew_by_name,
-                    resin_names,
-                    ["Epoxy" for _ in range(len(resin_names))],
-                    [self.db_name for _ in range(len(resin_names))],
-                )
+                get_ew_by_name,
+                resin_names,
+                ["Epoxy" for _ in range(len(resin_names))],
+                [self.db_name for _ in range(len(resin_names))],
+            )
             ]
         )
         amine_ahew = np.array(
             [
                 i
                 for i in map(
-                    get_ew_by_name,
-                    amine_names,
-                    ["Amine" for _ in range(len(amine_names))],
-                    [self.db_name for _ in range(len(amine_names))],
-                )
+                get_ew_by_name,
+                amine_names,
+                ["Amine" for _ in range(len(amine_names))],
+                [self.db_name for _ in range(len(amine_names))],
+            )
             ]
         )
 

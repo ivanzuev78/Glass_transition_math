@@ -95,6 +95,10 @@ def all_tg_from_df(tg_df: pd.DataFrame) -> List[List]:
 def normalize(array: np.array):
     return array / array.sum()
 
+def normalize_df(array: pd.DataFrame):
+    summ = sum(array.sum())
+    return array / summ
+
 
 def get_ew_by_name(material, mat_type, db_name):
     connection = sqlite3.connect(db_name)
@@ -155,7 +159,9 @@ def add_tg_influence(
 # print(get_ew_by_name('MXDA', 'Amine', 'material.db'))
 
 
-def get_influence_func(x_min, x_max, k0, ke, kexp, k1, k2, k3, k4, k5):
+def get_influence_func(x_min, x_max, k0, ke, kexp, k1, k2, k3, k4, k5, db_name):
+
+
     t = np.arange(x_min, x_max, 0.01)
     s = (
         k0
@@ -166,7 +172,6 @@ def get_influence_func(x_min, x_max, k0, ke, kexp, k1, k2, k3, k4, k5):
         + k5 * t ** 5
         + ke * exp(kexp * t)
     )
-    s = s
 
     return t, s
 
