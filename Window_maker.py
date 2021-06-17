@@ -84,7 +84,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.radioButton_B.toggled.connect(self.extra_radiobutton_changer("B"))
 
         # Конечная рецептура покрытия
-        self.final_receipt = []
+        self.final_receipt_with_extra = []
+        self.final_receipt_no_extra = []
         # Конечные избытки, пригодные для расчёта поправок
         self.extra_material = []
 
@@ -125,22 +126,25 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         def wrapper():
             self.extra_ratio_komponent = mat_type
             self.update_extra_labels()
+
         return wrapper
 
     def update_extra_labels(self) -> None:
         try:
-            line_text = self.extra_ratio_line.text().replace(',', '.')
-            if self.isfloat(line_text) and any([self.radioButton_A.isChecked, self.radioButton_B.isChecked]):
+            line_text = self.extra_ratio_line.text().replace(",", ".")
+            if self.isfloat(line_text) and any(
+                [self.radioButton_A.isChecked, self.radioButton_B.isChecked]
+            ):
                 self.extra_ratio = float(line_text) / 100
 
                 if self.extra_ratio_komponent == "A":
-                    text = 'Компонент A\n'
+                    text = "Компонент A\n"
                     if self.a_ew:
                         ew = self.a_ew * (self.extra_ratio + 1)
                     else:
                         ew = 0
                 elif self.extra_ratio_komponent == "B":
-                    text = 'Компонент Б\n'
+                    text = "Компонент Б\n"
                     if self.a_ew:
                         ew = self.ew_b * (self.extra_ratio + 1)
                     else:
@@ -166,16 +170,20 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 else:
                     return None
 
-                mass_ratio = - ew_a / ew_b
+                mass_ratio = -ew_a / ew_b
 
                 if mass_ratio >= 1:
                     numb_a = round(mass_ratio, 2)
                     numb_b = 1
-                    self.mass_ratio_label_2.setText(f"Соотношение по массе\nс избытком\n{numb_a} : {numb_b}")
+                    self.mass_ratio_label_2.setText(
+                        f"Соотношение по массе\nс избытком\n{numb_a} : {numb_b}"
+                    )
                 elif 0 < mass_ratio < 1:
                     numb_a = 1
                     numb_b = round(1 / mass_ratio, 2)
-                    self.mass_ratio_label_2.setText(f"Соотношение по массе\nс избытком\n{numb_a} : {numb_b}")
+                    self.mass_ratio_label_2.setText(
+                        f"Соотношение по массе\nс избытком\n{numb_a} : {numb_b}"
+                    )
                 else:
                     self.mass_ratio_label_2.setText(f"Продукты не реагируют")
         except Exception as e:
@@ -502,10 +510,13 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.tg_label.setText("Где-то там ошибка")
 
     def count_final_receipt(self):
-        final_receipt = defaultdict(float)
+        final_receipt_with_extra = defaultdict(float)
+        final_receipt_no_extra = defaultdict(float)
         # Избыток
         extra_material = defaultdict(float)
-        total = 0
+
+        total_with_extra = 0
+        total_no_extra = 0
 
         if self.mass_ratio != 0:
             mass_ratio = self.mass_ratio
@@ -519,14 +530,16 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         ):
             name = name.currentText()
             percent = float(percent.text()) * mass_ratio
-            total += percent
-            final_receipt[name] += percent
+            total_with_extra += percent
+            total_no_extra += percent
+            final_receipt_no_extra[name] += percent
+            final_receipt_with_extra[name] += percent
 
             if self.extra_ratio != 0 and self.extra_ratio_komponent == "A":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
-                final_receipt[name] += extra_percent
-                total += extra_percent
+                final_receipt_with_extra[name] += extra_percent
+                total_with_extra += extra_percent
 
         for mat_type, name, percent in zip(
             self.material_b_types,
@@ -535,31 +548,40 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         ):
             name = name.currentText()
             percent = float(percent.text())
-            total += percent
-            final_receipt[name] += percent
+            total_with_extra += percent
+            total_no_extra += percent
+            final_receipt_no_extra[name] += percent
+            final_receipt_with_extra[name] += percent
 
             if self.extra_ratio != 0 and self.extra_ratio_komponent == "B":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
-                final_receipt[name] += extra_percent
-                total += extra_percent
+                final_receipt_with_extra[name] += extra_percent
+                total_with_extra += extra_percent
 
-        if total == 0:
+        if total_with_extra == 0:
             return None
 
-        for name in final_receipt:
+        for name in final_receipt_with_extra:
             if name in extra_material:
-                extra_material[name] = extra_material[name] / total
-            final_receipt[name] = final_receipt[name] / total
+                extra_material[name] = extra_material[name] / total_with_extra
+            final_receipt_with_extra[name] = final_receipt_with_extra[name] / total_with_extra
+
             if (
                 name
                 not in self.list_of_item_names["Amine"]
                 + self.list_of_item_names["Epoxy"]
             ):
-                extra_material[name] = final_receipt[name]
+                extra_material[name] = final_receipt_with_extra[name]
 
-        self.final_receipt = final_receipt
+        for name in final_receipt_no_extra:
+            final_receipt_no_extra[name] = final_receipt_no_extra[name] / total_no_extra
+
+
+        self.final_receipt_with_extra = final_receipt_with_extra
+        self.final_receipt_no_extra = final_receipt_no_extra
         self.extra_material = extra_material
+
 
     def count_tg_inf(self):
         for name in self.extra_material:
@@ -942,11 +964,15 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         if value >= 1:
             numb_a = round(value, 2)
             numb_b = 1
-            self.mass_ratio_label.setText(f"Соотношение по массе\n    {numb_a} : {numb_b}")
+            self.mass_ratio_label.setText(
+                f"Соотношение по массе\n    {numb_a} : {numb_b}"
+            )
         elif 0 < value < 1:
             numb_a = 1
             numb_b = round(1 / value, 2)
-            self.mass_ratio_label.setText(f"Соотношение по массе\n    {numb_a} : {numb_b}")
+            self.mass_ratio_label.setText(
+                f"Соотношение по массе\n    {numb_a} : {numb_b}"
+            )
         else:
             self.mass_ratio_label.setText(f"Продукты не реагируют")
 
