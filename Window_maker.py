@@ -88,10 +88,10 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.radioButton_B.toggled.connect(self.extra_radiobutton_changer("B"))
 
         # Конечная рецептура покрытия
-        self.final_receipt_with_extra = []
-        self.final_receipt_no_extra = []
+        self.final_receipt_with_extra = defaultdict(float)
+        self.final_receipt_no_extra = defaultdict(float)
         # Конечные избытки, пригодные для расчёта поправок
-        self.extra_material = []
+        self.extra_material = defaultdict(float)
 
         # QSpacerItem в gridLayout для подпирания строк снизу
         self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
@@ -325,7 +325,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 b_eq.append(eq)
 
             total_eq = fabs(sum(a_eq))
-            print("total_eq", total_eq)
 
             if not self.pair_react_window:
                 self.pair_react_window = ChoosePairReactWindow(
@@ -436,8 +435,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                         ]
                     df_eq_matrix[pair[0]][pair[1]] += pair[2]
 
-            print('--->', df_eq_matrix)
-
             epoxy_names_list = df_eq_matrix.index.tolist()
             amine_names_list = df_eq_matrix.columns.values.tolist()
 
@@ -447,7 +444,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             percent_df = normalize_df(df_eq_matrix)
 
             print('--->', percent_df)
-            print(sum(percent_df.sum()))
 
             tg_df = get_tg_df("material.db")
 
@@ -481,6 +477,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             tg_df = tg_df[df_eq_matrix.columns.values.tolist()]
             tg_df = tg_df.T
             tg_df = tg_df[df_eq_matrix.index.tolist()].T
+
+            print(tg_df)
 
             total_tg = tg_df * percent_df
             total_tg = round(sum(total_tg.sum()), 1)
@@ -568,45 +566,67 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.receipt_types = receipt_types
 
     def count_tg_inf(self, extra_flag: bool = False):
+        # Списки влияний, которые отсутствуют
+        inf_not_exists = defaultdict(list)
+        # Булева матрица наличиия нужных влияний
+        all_inf_tg = dict()
+        # Все влияния веществ в необработанном виде
+        all_inf_mat = dict()
+        all_inf_corrections = dict()
         if extra_flag:
-            for name in self.extra_material:
-                print(name, self.extra_material[name])
-                print(get_tg_influence(name, self.db_name))
-        else:
-            inf_not_exists = defaultdict(list)
-            all_inf_tg = dict()
+            receipt = self.extra_material
 
+        else:
+            receipt = defaultdict(float)
             for name in self.final_receipt_no_extra:
                 if self.receipt_types[name] not in ('Amine', 'Epoxy'):
-                    percent = self.final_receipt_no_extra[name]
-                    all_inf_mat = get_tg_influence(name, self.db_name)
-                    df_inf_exists = copy(self.df_pairs_percents)
-                    for i in df_inf_exists.columns.values.tolist():
-                        df_inf_exists[i] = 0
-                    print(name, percent)
-                    print(df_inf_exists)
+                    receipt[name] = self.final_receipt_no_extra[name]
+
+        for name in receipt:
+            all_inf_mat[name] = get_tg_influence(name, self.db_name)
+            df_inf_exists = copy(self.df_pairs_percents)
+            for i in df_inf_exists.columns.values.tolist():
+                df_inf_exists[i] = 0.0
+            df_current_correction = copy(df_inf_exists)
+
+            for dict_inf in all_inf_mat[name]:
+                if dict_inf['amine'] in df_inf_exists.columns.values.tolist() \
+                        and dict_inf['epoxy'] in df_inf_exists.index.tolist():
+                    df_inf_exists[dict_inf['amine']][dict_inf['epoxy']] = 1.0
+                    influence = get_influence_func(
+                        dict_inf["x_min"],
+                        dict_inf["x_max"],
+                        dict_inf["k0"],
+                        dict_inf["ke"],
+                        dict_inf["kexp"],
+                        dict_inf["k1"],
+                        dict_inf["k2"],
+                        dict_inf["k3"],
+                        dict_inf["k4"],
+                        dict_inf["k5"],
+
+                    )(receipt[name] * 100)
+                    print(influence)
+                    df_current_correction[dict_inf['amine']][dict_inf['epoxy']] = influence
 
 
-                    for dict_inf in all_inf_mat:
-                        if dict_inf['amine'] in df_inf_exists.columns.values.tolist() \
-                                and dict_inf['epoxy'] in df_inf_exists.index.tolist():
-                            df_inf_exists[dict_inf['amine']][dict_inf['epoxy']] = 1
+                elif dict_inf['amine'] == 'None' and dict_inf['epoxy'] == 'None':
+                    # TODO использовать это в выборе влияния
+                    pass
+            print(name, df_current_correction)
+            for amine in df_inf_exists.columns.values.tolist():
+                for epoxy in df_inf_exists.index.tolist():
+                    if df_inf_exists[amine][epoxy] == 0:
+                        inf_not_exists[name].append((epoxy, amine))
+            all_inf_tg[name] = df_inf_exists
 
-                        else:
 
-                            print('sorry')
+            total_tg_inf = normalize_df(df_inf_exists * self.df_pairs_percents) * df_current_correction
+            print('поправка', sum(total_tg_inf.sum()))
+            self.current_tg = round(self.current_tg_no_correction + sum(total_tg_inf.sum()), 1)
 
-                    for amine in df_inf_exists.columns.values.tolist():
-                        for epoxy in df_inf_exists.index.tolist():
-                            if df_inf_exists[amine][epoxy] == 0:
-                                inf_not_exists[name].append((epoxy, amine))
 
-                    all_inf_tg[name] = df_inf_exists
-
-                    print(df_inf_exists)
-                    print(normalize_df(df_inf_exists * self.df_pairs_percents))
             print(inf_not_exists)
-
 
     def add_receipt_window(self, komponent):
         def wrapper():

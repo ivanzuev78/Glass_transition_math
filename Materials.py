@@ -159,21 +159,28 @@ def add_tg_influence(
 # print(get_ew_by_name('MXDA', 'Amine', 'material.db'))
 
 
-def get_influence_func(x_min, x_max, k0, ke, kexp, k1, k2, k3, k4, k5, db_name):
-
-
-    t = np.arange(x_min, x_max, 0.01)
-    s = (
-        k0
-        + k1 * t
-        + k2 * t ** 2
-        + k3 * t ** 3
-        + k4 * t ** 4
-        + k5 * t ** 5
-        + ke * exp(kexp * t)
-    )
-
-    return t, s
+def get_influence_func(x_min, x_max, k0, ke, kexp, k1, k2, k3, k4, k5):
+    def function(*args):
+        x = np.arange(x_min, x_max, 0.00001)
+        f = (
+                k0
+                + k1 * x
+                + k2 * x ** 2
+                + k3 * x ** 3
+                + k4 * x ** 4
+                + k5 * x ** 5
+                + ke * exp(kexp * x)
+        )
+        if args:
+            if len(args) == 1:
+                print(int(round(args[0], 5) * 100000))
+                print(f[int(round(args[0], 5) * 100000)])
+                return f[int(round(args[0], 5) * 100000)]
+            else:
+                return [f[int(round(numb, 5) * 100000)] for numb in args]
+        else:
+            return x, f
+    return function
 
 
 if __name__ == "__main__":
@@ -182,7 +189,8 @@ if __name__ == "__main__":
 
     a = get_tg_influence("Бензиловый спирт", "material.db")
     a_1 = a[0]
-    x, y = get_influence_func(
+    x = np.arange(a_1["x_min"], a_1["x_max"], 0.01)
+    y = get_influence_func(
         a_1["x_min"],
         a_1["x_max"],
         a_1["k0"],
@@ -193,7 +201,8 @@ if __name__ == "__main__":
         a_1["k3"],
         a_1["k4"],
         a_1["k5"],
-    )
+
+    )()
     print(
         a_1["x_min"],
         a_1["x_max"],
