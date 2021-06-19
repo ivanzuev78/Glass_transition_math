@@ -391,7 +391,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
                     self.previousPercents[line] = self.percents[line]
 
                 # self.count_EW()
-                self.main_window.set_percents_from_recept_window(
+                self.main_window.set_percents_from_receipt_window(
                     self.komponent,
                     [self.percents[i] for i in range(len(self.percents))],
                 )
@@ -411,7 +411,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
         if self.komponent == "B":
             self.main_window.b_receipt_window = None
 
-        self.main_window.enable_recept(self.komponent)
+        self.main_window.enable_receipt(self.komponent)
         self.close()
 
 

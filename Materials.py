@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+from functools import cache
 from typing import List
 
 import numpy as np
@@ -95,6 +96,7 @@ def all_tg_from_df(tg_df: pd.DataFrame) -> List[List]:
 def normalize(array: np.array):
     return array / array.sum()
 
+
 def normalize_df(array: pd.DataFrame):
     summ = sum(array.sum())
     return array / summ
@@ -159,27 +161,19 @@ def add_tg_influence(
 # print(get_ew_by_name('MXDA', 'Amine', 'material.db'))
 
 
-def get_influence_func(x_min, x_max, k0, ke, kexp, k1, k2, k3, k4, k5):
-    def function(*args):
-        x = np.arange(x_min, x_max, 0.00001)
-        f = (
-                k0
-                + k1 * x
-                + k2 * x ** 2
-                + k3 * x ** 3
-                + k4 * x ** 4
-                + k5 * x ** 5
-                + ke * exp(kexp * x)
+def get_influence_func(k0, ke, kexp, k1, k2, k3, k4, k5):
+    @cache
+    def function(value):
+        return (
+            k0
+            + k1 * value
+            + k2 * value ** 2
+            + k3 * value ** 3
+            + k4 * value ** 4
+            + k5 * value ** 5
+            + ke * exp(kexp * value)
         )
-        if args:
-            if len(args) == 1:
-                print(int(round(args[0], 5) * 100000))
-                print(f[int(round(args[0], 5) * 100000)])
-                return f[int(round(args[0], 5) * 100000)]
-            else:
-                return [f[int(round(numb, 5) * 100000)] for numb in args]
-        else:
-            return x, f
+
     return function
 
 
@@ -191,8 +185,6 @@ if __name__ == "__main__":
     a_1 = a[0]
     x = np.arange(a_1["x_min"], a_1["x_max"], 0.01)
     y = get_influence_func(
-        a_1["x_min"],
-        a_1["x_max"],
         a_1["k0"],
         a_1["ke"],
         a_1["kexp"],
@@ -201,7 +193,6 @@ if __name__ == "__main__":
         a_1["k3"],
         a_1["k4"],
         a_1["k5"],
-
     )()
     print(
         a_1["x_min"],
