@@ -668,7 +668,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         amine_equivalents = amine_values / amine_ahew
         epoxy_equivalents = resin_values / resin_eew
-        delta_ew = (epoxy_equivalents.sum() - amine_equivalents.sum())
+        delta_ew = epoxy_equivalents.sum() - amine_equivalents.sum()
         if delta_ew == 0:
             ew = 0
         else:
@@ -1269,11 +1269,21 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
     def create_material_influence_funcs(self):
         for name in self.final_receipt_no_extra:
-            self.material_influence_funcs[name] = TgMaterialInfluence(name, self.list_of_item_names['Epoxy'],
-                                                                      self.list_of_item_names['Amine'], self.db_name)
-            print('----------------------------------------')
-            print(name, *self.material_influence_funcs[name](self.final_receipt_no_extra[name]))
-            print(name, self.material_influence_funcs[name][self.final_receipt_no_extra[name]])
+            self.material_influence_funcs[name] = TgMaterialInfluence(
+                name,
+                self.list_of_item_names["Epoxy"],
+                self.list_of_item_names["Amine"],
+                self.db_name,
+            )
+            print("----------------------------------------")
+            print(
+                name,
+                *self.material_influence_funcs[name](self.final_receipt_no_extra[name]),
+            )
+            print(
+                name,
+                self.material_influence_funcs[name][self.final_receipt_no_extra[name]],
+            )
 
     # Различные property ----------------------------------------------------------------------------------------
     @property
@@ -1600,33 +1610,32 @@ class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("final_receipt.ui
             label_name.setText(name)
             label_percent = QLabel()
             label_percent.setTextInteractionFlags(
-            QtCore.Qt.LinksAccessibleByMouse
-            | QtCore.Qt.TextSelectableByKeyboard
-            | QtCore.Qt.TextSelectableByMouse
-        )
+                QtCore.Qt.LinksAccessibleByMouse
+                | QtCore.Qt.TextSelectableByKeyboard
+                | QtCore.Qt.TextSelectableByMouse
+            )
             label_percent.setFixedWidth(60)
-            label_percent.setText(str(round(self.main_window.final_receipt_no_extra[name] * 100, 4)))
+            label_percent.setText(
+                str(round(self.main_window.final_receipt_no_extra[name] * 100, 4))
+            )
             self.gridLayout.addWidget(label_name, row, 0)
             self.gridLayout.addWidget(label_percent, row, 1)
-
 
         for row, name in enumerate(self.main_window.final_receipt_with_extra):
             label_name = QLabel()
             label_name.setText(name)
             label_percent = QLabel()
             label_percent.setTextInteractionFlags(
-            QtCore.Qt.LinksAccessibleByMouse
-            | QtCore.Qt.TextSelectableByKeyboard
-            | QtCore.Qt.TextSelectableByMouse
-        )
+                QtCore.Qt.LinksAccessibleByMouse
+                | QtCore.Qt.TextSelectableByKeyboard
+                | QtCore.Qt.TextSelectableByMouse
+            )
             label_percent.setFixedWidth(60)
-            label_percent.setText(str(round(self.main_window.final_receipt_with_extra[name] * 100, 4)))
+            label_percent.setText(
+                str(round(self.main_window.final_receipt_with_extra[name] * 100, 4))
+            )
             self.gridLayout_2.addWidget(label_name, row, 0)
             self.gridLayout_2.addWidget(label_percent, row, 1)
-
-
-
-
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.main_window.setEnabled(True)
