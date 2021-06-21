@@ -1,0 +1,36 @@
+QPushButton{
+   background-color: #CBDBFF;
+    border-radius: 6px;
+    border-color: #000000;
+    border: 1px solid #586072;
+    padding: 1px;
+    font: 9
+
+}
+QPushButton:hover {
+    color: black;
+    background-color: #00F000;
+}
+
+
+QPushButton:pressed {
+background-color: #AFC2ED;
+}
+
+$split$
+
+QComboBox {
+   background-color: #CBDBFF;
+    border-radius: 2px;
+    border-color: #000000;
+    border: 1px solid #586072;
+
+
+
+QComboBox::down-arrow:pressed {
+    position: relative;
+    top: 1px; left: 1px;
+}
+
+
+}

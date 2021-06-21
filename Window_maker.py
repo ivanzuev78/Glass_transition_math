@@ -4,7 +4,8 @@ from typing import Union, Callable
 from collections import defaultdict
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtCore import QSize, QEvent
+from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import *
 
 from math import inf, fabs
@@ -19,6 +20,12 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
+
+        oImage = QImage("fon.jpg")
+        # sImage = oImage.scaled(QSize(self.window_height, self.window_width))
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
 
         self.db_name = DB_NAME
 
@@ -39,6 +46,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.tg_window = None
         self.tg_influence_window = None
         self.tg_view_window = None
+        self.final_receipt_window = None
 
         self.a_receipt_window: Union[SintezWindow, None] = None
         self.b_receipt_window: Union[SintezWindow, None] = None
@@ -120,6 +128,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.sintez_editor_but.clicked.connect(self.add_choose_pair_react_window)
         self.extra_ratio_line.editingFinished.connect(self.update_extra_labels)
         self.update_but.clicked.connect(self.update_but_func)
+        self.coating_receipt_but.clicked.connect(self.create_final_receipt_window)
 
         pixmap = QPixmap("lock.png")
         self.label_lock_a.setPixmap(pixmap)
@@ -132,6 +141,58 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         # Прячем верхушки рецептур, пока нет строк
         self.hide_top("A")
         self.hide_top("B")
+        self.button_list = [
+            self.a_recept_but, self.b_recept_but, self.add_A_but, self.add_B_but,
+            self.add_raw, self.add_tg_but, self.add_tg_inf_but,
+            self.b_recept_but, self.coating_receipt_but, self.debug_but, self.del_A_but, self.del_B_but,
+            self.fail_correction_but, self.normalise_A, self.normalise_B, self.sintez_editor_but, self.tg_view_but,
+            self.update_but
+        ]
+        self.font_size = 10
+        # self.fail_correction_but.installEventFilter(self)
+
+        with open("style.css", "r") as f:
+            self.style, self.style_combobox = f.read().split('$split$')
+        self.set_buttom_stylies()
+
+
+    def set_buttom_stylies(self):
+
+        for widget in self.button_list:
+            widget.setStyleSheet(self.style)
+            # widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
+
+    def enlarge_font(self):
+        self.font_size += 1
+        for widget in self.button_list:
+            widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
+        self.set_buttom_stylies()
+
+    def reduce_font(self):
+        self.font_size -= 1
+        for widget in self.button_list:
+            widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
+        self.set_buttom_stylies()
+
+    def eventFilter(self, object, event):
+        if event.type() == QEvent.Enter:
+            object.setStyleSheet(self.style)
+        elif event.type() == QEvent.Leave:
+            object.setStyleSheet("""
+            QPushButton{
+               background-color: #CBDBFF;
+                border-radius: 6px;
+                border-color: #000000;
+                border: 1px solid #586072;
+                padding: 1px;
+            }
+            QPushButton:pressed {
+            background-color: #AFC2ED;
+
+            }
+
+            """)
+        return False
 
     def reset_settings(self) -> None:
         pass
@@ -161,23 +222,28 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         self.count_all_parameters()
 
+    def create_final_receipt_window(self):
+        self.count_final_receipt()
+        self.final_receipt_window = FinalReceiptWindow(self)
+
     # Кнопочки ------------------------------------------------------------------------------------------------
     def debug(self) -> None:
         # self.count_glass()
         # self.enable_recept("A")
         # self.add_choose_pair_react_window()
-        # self.count_final_receipt()
+        #
         # self.count_tg_inf()
-        # self.set_test_receipt()
+        self.set_test_receipt()
         # self.create_material_influence_funcs()
-        self.final_receipt_window = FinalReceiptWindow(self)
+        #
+        # self.reduce_font()
         self.debug_string.setText("Good")
 
     def update_but_func(self) -> None:
 
         self.count_final_receipt()
         self.count_tg_inf()
-
+        self.enlarge_font()
     # Считающие функции ----------------------------------------------------------------------------------------
 
     def count_all_parameters(self) -> None:
@@ -723,9 +789,12 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         self.show_top(komponent)
 
+
         material_combobox = QComboBox()
         material_combobox.addItems(self.list_of_item_names["None"])
         material_combobox.setFixedWidth(120)
+        material_combobox.setFixedHeight(20)
+        material_combobox.setStyleSheet(self.style_combobox)
 
         materia_typel_combobox = QComboBox()
         materia_typel_combobox.addItems(self.types_of_items)
@@ -736,6 +805,10 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         materia_typel_combobox.currentIndexChanged.connect(
             self.reset_choose_pair_react_window
         )
+        materia_typel_combobox.setFixedHeight(20)
+
+        materia_typel_combobox.setStyleSheet(self.style_combobox)
+
         material_combobox.currentIndexChanged.connect(
             self.reset_choose_pair_react_window
         )
