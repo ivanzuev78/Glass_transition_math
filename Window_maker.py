@@ -157,7 +157,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                            self.debug_string, self.lineEdit_name_a, self.lineEdit_name_b]
         self.all_big_labels = [self.label, self.label_2]
         self.font_size = 10
-        self.font_size_big = 17
+        self.font_size_big = 15
 
         # self.fail_correction_but.installEventFilter(self)
 
