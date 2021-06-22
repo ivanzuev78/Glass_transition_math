@@ -128,6 +128,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.sintez_editor_but.clicked.connect(self.add_choose_pair_react_window)
         self.extra_ratio_line.editingFinished.connect(self.update_extra_labels)
         self.update_but.clicked.connect(self.update_but_func)
+        self.font_down_but.clicked.connect(self.reduce_font)
+        self.font_up_but.clicked.connect(self.enlarge_font)
         self.coating_receipt_but.clicked.connect(self.create_final_receipt_window)
 
         pixmap = QPixmap("lock.png")
@@ -142,13 +144,16 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.hide_top("A")
         self.hide_top("B")
         self.button_list = [
-            self.a_recept_but, self.b_recept_but, self.add_A_but, self.add_B_but,
+            self.a_recept_but, self.b_recept_but,
             self.add_raw, self.add_tg_but, self.add_tg_inf_but,
-            self.b_recept_but, self.coating_receipt_but, self.debug_but, self.del_A_but, self.del_B_but,
+            self.b_recept_but, self.coating_receipt_but, self.debug_but,
             self.fail_correction_but, self.normalise_A, self.normalise_B, self.sintez_editor_but, self.tg_view_but,
-            self.update_but
+            self.update_but, self.font_up_but, self.font_down_but
         ]
+        self.big_button_list = [self.add_A_but, self.add_B_but, self.del_A_but, self.del_B_but,]
         self.font_size = 10
+        self.font_size_big = 17
+
         # self.fail_correction_but.installEventFilter(self)
 
         with open("style.css", "r") as f:
@@ -156,23 +161,35 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.set_buttom_stylies()
 
 
+
+
     def set_buttom_stylies(self):
 
-        for widget in self.button_list:
+        for widget in self.button_list + self.big_button_list:
             widget.setStyleSheet(self.style)
-            # widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
 
     def enlarge_font(self):
         self.font_size += 1
+        self.font_size_big += 1
         for widget in self.button_list:
             widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
-        self.set_buttom_stylies()
+        for widget in self.big_button_list:
+            font = QtGui.QFont("MS Shell Dlg 2", self.font_size_big)
+            font.setBold(True)
+            widget.setFont(font)
+
+        # self.set_buttom_stylies()
 
     def reduce_font(self):
         self.font_size -= 1
+        self.font_size_big -= 1
         for widget in self.button_list:
             widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
-        self.set_buttom_stylies()
+        for widget in self.big_button_list:
+            font = QtGui.QFont("MS Shell Dlg 2", self.font_size_big)
+            font.setBold(True)
+            widget.setFont(font)
+        # self.set_buttom_stylies()
 
     def eventFilter(self, object, event):
         if event.type() == QEvent.Enter:

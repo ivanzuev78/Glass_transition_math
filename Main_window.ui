@@ -7,11 +7,12 @@
     <x>0</x>
     <y>0</y>
     <width>1103</width>
-    <height>520</height>
+    <height>529</height>
    </rect>
   </property>
   <property name="font">
    <font>
+    <family>Times New Roman</family>
     <pointsize>10</pointsize>
    </font>
   </property>
@@ -66,6 +67,7 @@
     </property>
     <property name="font">
      <font>
+      <family>MS Shell Dlg 2</family>
       <pointsize>17</pointsize>
       <weight>75</weight>
       <bold>true</bold>
@@ -86,6 +88,7 @@
     </property>
     <property name="font">
      <font>
+      <family>MS Shell Dlg 2</family>
       <pointsize>17</pointsize>
       <weight>75</weight>
       <bold>true</bold>
@@ -106,6 +109,7 @@
     </property>
     <property name="font">
      <font>
+      <family>MS Shell Dlg 2</family>
       <pointsize>17</pointsize>
       <weight>75</weight>
       <bold>true</bold>
@@ -126,6 +130,7 @@
     </property>
     <property name="font">
      <font>
+      <family>MS Shell Dlg 2</family>
       <pointsize>17</pointsize>
       <weight>75</weight>
       <bold>true</bold>
@@ -390,7 +395,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>20</y>
+      <y>40</y>
       <width>231</width>
       <height>41</height>
      </rect>
@@ -496,7 +501,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>60</y>
+      <y>80</y>
       <width>231</width>
       <height>16</height>
      </rect>
@@ -675,6 +680,46 @@ c избытком</string>
     <property name="text">
      <string>Отсутствующие
 корректировки</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="font_down_but">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>0</y>
+      <width>30</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>A🠇</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="font_up_but">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>30</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>A🠅</string>
     </property>
    </widget>
   </widget>
