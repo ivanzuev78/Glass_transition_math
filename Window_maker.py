@@ -850,6 +850,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         line = QLineEdit()
         line.setText("0.00")
+        line.setFixedWidth(65)
         line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
         line.editingFinished.connect(lambda: self.to_float(komponent))
         line.editingFinished.connect(lambda: self.count_sum(komponent))
