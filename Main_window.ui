@@ -25,13 +25,13 @@
      <rect>
       <x>180</x>
       <y>20</y>
-      <width>131</width>
+      <width>151</width>
       <height>30</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>16</pointsize>
+      <pointsize>17</pointsize>
      </font>
     </property>
     <property name="text">
@@ -43,13 +43,13 @@
      <rect>
       <x>500</x>
       <y>20</y>
-      <width>200</width>
+      <width>151</width>
       <height>30</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>16</pointsize>
+      <pointsize>17</pointsize>
      </font>
     </property>
     <property name="text">
@@ -404,7 +404,7 @@
      <string>Соотношение по массе</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit">
+   <widget class="QLineEdit" name="lineEdit_name_a">
     <property name="geometry">
      <rect>
       <x>180</x>
@@ -426,7 +426,7 @@
      <string>Название рецептуры</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit_2">
+   <widget class="QLineEdit" name="lineEdit_name_b">
     <property name="geometry">
      <rect>
       <x>500</x>
@@ -544,6 +544,11 @@
       <width>81</width>
       <height>17</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>A</string>

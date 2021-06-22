@@ -148,9 +148,14 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.add_raw, self.add_tg_but, self.add_tg_inf_but,
             self.b_recept_but, self.coating_receipt_but, self.debug_but,
             self.fail_correction_but, self.normalise_A, self.normalise_B, self.sintez_editor_but, self.tg_view_but,
-            self.update_but, self.font_up_but, self.font_down_but
+            self.update_but, self.font_up_but, self.font_down_but, self.radioButton_A, self.radioButton_B
         ]
-        self.big_button_list = [self.add_A_but, self.add_B_but, self.del_A_but, self.del_B_but,]
+        self.big_button_list = [self.add_A_but, self.add_B_but, self.del_A_but, self.del_B_but]
+        self.all_labels = [self.mass_ratio_label, self.tg_label, self.mass_ratio_label_2,
+                           self.label_3, self.label_4, self.label_5, self.label_6,
+                           self.label_7, self.eew_label, self.ahew_label, self.extra_ew_label, self.sintez_pair_label,
+                           self.debug_string, self.lineEdit_name_a, self.lineEdit_name_b]
+        self.all_big_labels = [self.label, self.label_2]
         self.font_size = 10
         self.font_size_big = 17
 
@@ -168,27 +173,39 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         for widget in self.button_list + self.big_button_list:
             widget.setStyleSheet(self.style)
 
+    def set_font(self):
+        font = QtGui.QFont("Times New Roman", self.font_size)
+        big_bold_font = QtGui.QFont("MS Shell Dlg 2", self.font_size_big)
+        big_bold_font.setBold(True)
+        big_font = QtGui.QFont("Times New Roman", self.font_size_big)
+        for widget in self.button_list + self.all_labels + self.material_a_types + self.material_b_types + \
+                      self.material_comboboxes_a + \
+                      self.material_comboboxes_b + self.material_percent_lines_a + self.material_percent_lines_b:
+            widget.setFont(font)
+        if self.final_a:
+            self.final_a.setFont(font)
+            self.final_a_numb_label.setFont(font)
+        if self.final_b:
+            self.final_b.setFont(font)
+            self.final_b_numb_label.setFont(font)
+
+        for widget in self.big_button_list:
+            widget.setFont(big_bold_font)
+
+        for widget in self.all_big_labels:
+            widget.setFont(big_font)
+
     def enlarge_font(self):
         self.font_size += 1
         self.font_size_big += 1
-        for widget in self.button_list:
-            widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
-        for widget in self.big_button_list:
-            font = QtGui.QFont("MS Shell Dlg 2", self.font_size_big)
-            font.setBold(True)
-            widget.setFont(font)
+        self.set_font()
 
         # self.set_buttom_stylies()
 
     def reduce_font(self):
         self.font_size -= 1
         self.font_size_big -= 1
-        for widget in self.button_list:
-            widget.setFont(QtGui.QFont("Times New Roman", self.font_size))
-        for widget in self.big_button_list:
-            font = QtGui.QFont("MS Shell Dlg 2", self.font_size_big)
-            font.setBold(True)
-            widget.setFont(font)
+        self.set_font()
         # self.set_buttom_stylies()
 
     def eventFilter(self, object, event):
@@ -812,6 +829,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         material_combobox.setFixedWidth(120)
         material_combobox.setFixedHeight(20)
         material_combobox.setStyleSheet(self.style_combobox)
+        material_combobox.setFont((QtGui.QFont("Times New Roman", self.font_size)))
 
         materia_typel_combobox = QComboBox()
         materia_typel_combobox.addItems(self.types_of_items)
@@ -823,7 +841,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.reset_choose_pair_react_window
         )
         materia_typel_combobox.setFixedHeight(20)
-
+        materia_typel_combobox.setFont(QtGui.QFont("Times New Roman", self.font_size))
         materia_typel_combobox.setStyleSheet(self.style_combobox)
 
         material_combobox.currentIndexChanged.connect(
@@ -832,6 +850,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         line = QLineEdit()
         line.setText("0.00")
+        line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
         line.editingFinished.connect(lambda: self.to_float(komponent))
         line.editingFinished.connect(lambda: self.count_sum(komponent))
         row_count = grid.count()
