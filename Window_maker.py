@@ -144,17 +144,48 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.hide_top("A")
         self.hide_top("B")
         self.button_list = [
-            self.a_recept_but, self.b_recept_but,
-            self.add_raw, self.add_tg_but, self.add_tg_inf_but,
-            self.b_recept_but, self.coating_receipt_but, self.debug_but,
-            self.fail_correction_but, self.normalise_A, self.normalise_B, self.sintez_editor_but, self.tg_view_but,
-            self.update_but, self.font_up_but, self.font_down_but, self.radioButton_A, self.radioButton_B
+            self.a_recept_but,
+            self.b_recept_but,
+            self.add_raw,
+            self.add_tg_but,
+            self.add_tg_inf_but,
+            self.b_recept_but,
+            self.coating_receipt_but,
+            self.debug_but,
+            self.fail_correction_but,
+            self.normalise_A,
+            self.normalise_B,
+            self.sintez_editor_but,
+            self.tg_view_but,
+            self.update_but,
+            self.font_up_but,
+            self.font_down_but,
+            self.radioButton_A,
+            self.radioButton_B,
         ]
-        self.big_button_list = [self.add_A_but, self.add_B_but, self.del_A_but, self.del_B_but]
-        self.all_labels = [self.mass_ratio_label, self.tg_label, self.mass_ratio_label_2,
-                           self.label_3, self.label_4, self.label_5, self.label_6,
-                           self.label_7, self.eew_label, self.ahew_label, self.extra_ew_label, self.sintez_pair_label,
-                           self.debug_string, self.lineEdit_name_a, self.lineEdit_name_b]
+        self.big_button_list = [
+            self.add_A_but,
+            self.add_B_but,
+            self.del_A_but,
+            self.del_B_but,
+        ]
+        self.all_labels = [
+            self.mass_ratio_label,
+            self.tg_label,
+            self.mass_ratio_label_2,
+            self.label_3,
+            self.label_4,
+            self.label_5,
+            self.label_6,
+            self.label_7,
+            self.eew_label,
+            self.ahew_label,
+            self.extra_ew_label,
+            self.sintez_pair_label,
+            self.debug_string,
+            self.lineEdit_name_a,
+            self.lineEdit_name_b,
+        ]
         self.all_big_labels = [self.label, self.label_2]
         self.font_size = 10
         self.font_size_big = 15
@@ -162,11 +193,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         # self.fail_correction_but.installEventFilter(self)
 
         with open("style.css", "r") as f:
-            self.style, self.style_combobox = f.read().split('$split$')
+            self.style, self.style_combobox = f.read().split("$split$")
         self.set_buttom_stylies()
-
-
-
 
     def set_buttom_stylies(self):
 
@@ -178,9 +206,16 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         big_bold_font = QtGui.QFont("MS Shell Dlg 2", self.font_size_big)
         big_bold_font.setBold(True)
         big_font = QtGui.QFont("Times New Roman", self.font_size_big)
-        for widget in self.button_list + self.all_labels + self.material_a_types + self.material_b_types + \
-                      self.material_comboboxes_a + \
-                      self.material_comboboxes_b + self.material_percent_lines_a + self.material_percent_lines_b:
+        for widget in (
+            self.button_list
+            + self.all_labels
+            + self.material_a_types
+            + self.material_b_types
+            + self.material_comboboxes_a
+            + self.material_comboboxes_b
+            + self.material_percent_lines_a
+            + self.material_percent_lines_b
+        ):
             widget.setFont(font)
         if self.final_a:
             self.final_a.setFont(font)
@@ -212,7 +247,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         if event.type() == QEvent.Enter:
             object.setStyleSheet(self.style)
         elif event.type() == QEvent.Leave:
-            object.setStyleSheet("""
+            object.setStyleSheet(
+                """
             QPushButton{
                background-color: #CBDBFF;
                 border-radius: 6px;
@@ -225,7 +261,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
             }
 
-            """)
+            """
+            )
         return False
 
     def reset_settings(self) -> None:
@@ -278,6 +315,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.count_final_receipt()
         self.count_tg_inf()
         self.enlarge_font()
+
     # Считающие функции ----------------------------------------------------------------------------------------
 
     def count_all_parameters(self) -> None:
@@ -785,7 +823,12 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
     # Добавляет строку сырья в соответствующую рецептуру
     def add_line(self, komponent: str) -> None:
         final_label = QLabel("Итого")
+        final_label.setStyleSheet(self.style)
+        final_label.setFont((QtGui.QFont("Times New Roman", self.font_size)))
         final_label_numb = QLabel("0.00")
+        final_label_numb.setStyleSheet(self.style)
+        final_label_numb.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+
         final_label_numb.setTextInteractionFlags(
             QtCore.Qt.LinksAccessibleByMouse
             | QtCore.Qt.TextSelectableByKeyboard
@@ -822,7 +865,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             return None
 
         self.show_top(komponent)
-
 
         material_combobox = QComboBox()
         material_combobox.addItems(self.list_of_item_names["None"])
@@ -916,18 +958,27 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             lock_check_boxes.pop(-1).deleteLater()
 
             if items:
-                final = QLabel("Итого")
-                final_numb_label = QLabel()
+                final_label = QLabel("Итого")
+                final_label.setStyleSheet(self.style)
+                final_label.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+                final_label_numb = QLabel()
+                final_label_numb.setStyleSheet(self.style)
+                final_label_numb.setFont(
+                    (QtGui.QFont("Times New Roman", self.font_size))
+                )
+
                 row_count = grid.count()
-                grid.addWidget(final, row_count + 1, 1, alignment=QtCore.Qt.AlignRight)
-                grid.addWidget(final_numb_label, row_count + 1, 2)
+                grid.addWidget(
+                    final_label, row_count + 1, 1, alignment=QtCore.Qt.AlignRight
+                )
+                grid.addWidget(final_label_numb, row_count + 1, 2)
                 if komponent == "A":
-                    self.final_a = final
-                    self.final_a_numb_label = final_numb_label
+                    self.final_a = final_label
+                    self.final_a_numb_label = final_label_numb
                     self.count_sum("A")
                 else:
-                    self.final_b = final
-                    self.final_b_numb_label = final_numb_label
+                    self.final_b = final_label
+                    self.final_b_numb_label = final_label_numb
                     self.count_sum("B")
             else:
                 self.hide_top(komponent)
@@ -1500,6 +1551,24 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
         self.save_but.clicked.connect(self.add_material)
         self.cancel_but.clicked.connect(self.close)
         self.mat_type.addItems(self.main_window.types_of_items)
+
+        self.button_list = [ self.save_but, self.cancel_but]
+        oImage = QImage("fon.jpg")
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
+
+
+        with open("style.css", "r") as f:
+            self.style, self.style_combobox = f.read().split("$split$")
+
+        self.mat_type.setStyleSheet(self.style_combobox)
+        self.set_button_stylizes()
+
+    def set_button_stylizes(self):
+
+        for widget in self.button_list:
+            widget.setStyleSheet(self.style)
 
     def add_material(self):
         mat_type = self.mat_type.currentText()
