@@ -1558,7 +1558,6 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)
 
-
         with open("style.css", "r") as f:
             self.style, self.style_combobox = f.read().split("$split$")
 
