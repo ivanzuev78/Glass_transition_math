@@ -16,6 +16,8 @@ from additional_funcs import TgMaterialInfluence
 
 import openpyxl as opx
 
+from load_and_save import save_receipt
+
 DB_NAME = "material.db"
 
 
@@ -202,79 +204,92 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
 
     def save_receipt_to_xl(self):
-        wb = opx.Workbook()
-        ws = wb.active
-        top_labels = ['Тип', "Материал", "Содержание, %", "Навеска, г", "|",
-                      'Тип', "Материал", "Содержание, %", "Навеска, г"]
+        # if self.material_comboboxes_a and self.material_comboboxes_b:
 
-        ws.merge_cells('A1:B1')
+        save_receipt(self.lineEdit_name_a.text(), self.lineEdit_name_b.text(),
+                     [i.currentText() for i in self.material_a_types],
+                     [i.currentText() for i in self.material_b_types],
+                     [i.currentText() for i in self.material_comboboxes_a],
+                     [i.currentText() for i in self.material_comboboxes_b],
+                     [i.text() for i in self.material_percent_lines_a],
+                     [i.text() for i in self.material_percent_lines_b],
+                     [get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
+                      for mat_type, mat in zip(self.material_a_types, self.material_comboboxes_a)],
+                     [get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
+                      for mat_type, mat in zip(self.material_b_types, self.material_comboboxes_b)],
+                     166, 231)
+        # wb = opx.Workbook()
+        # ws = wb.active
+        # top_labels = ['Тип', "Материал", "Содержание, %", "Навеска, г", "|",
+        #               'Тип', "Материал", "Содержание, %", "Навеска, г"]
+        #
+        # ws.merge_cells('A1:B1')
         # ws.merge_cells('C1:D1')
-        ws.merge_cells('F1:G1')
-        ws.merge_cells('H1:I1')
-        ws['A1'] = 'Компонент А'
-        ws['F1'] = 'Компонент Б'
-        ws['C1'] = self.lineEdit_name_a.text()
-        ws['H1'] = self.lineEdit_name_b.text()
-        # Настраиваем ширину столбцов
-        ws.column_dimensions['A'].width = 8
-        ws.column_dimensions['B'].width = 20
-        ws.column_dimensions['C'].width = 14
-        ws.column_dimensions['D'].width = 10
-        ws.column_dimensions['E'].width = 3
-        ws.column_dimensions['F'].width = 8
-        ws.column_dimensions['G'].width = 20
-        ws.column_dimensions['H'].width = 14
-        ws.column_dimensions['I'].width = 10
-
-        ws.append(top_labels)
-
-        append_list = []
-        line_a_exists = True
-        line_b_exists = True
-        line = 0
-        while line_a_exists and line_b_exists:
-            current_row = []
-            if line_a_exists:
-                if line < len(self.material_comboboxes_a):
-                    mat_type = self.material_a_types[line].currentText()
-                    mat = self.material_comboboxes_a[line].currentText()
-                    percent = self.material_percent_lines_a[line].text().replace('.', ',')
-                    current_row += [mat_type, mat, percent, '', '|']
-
-                else:
-                    current_row += ['', 'ИТОГО:', '100,00', '', '|']
-                    line_a_exists = False
-            else:
-                current_row += ['', '', '', '|']
-
-            if line_b_exists:
-                if line < len(self.material_comboboxes_b):
-                    mat_type = self.material_b_types[line].currentText()
-                    mat = self.material_comboboxes_b[line].currentText()
-                    percent = self.material_percent_lines_b[line].text().replace('.', ',')
-                    current_row += [mat_type, mat, percent, '']
-                else:
-                    current_row += ['', 'ИТОГО:', '100,00', '']
-                    line_b_exists = False
-            else:
-                current_row += ['', '', '', '']
-            line += 1
-            append_list.append(current_row)
-
-
-
-
-        for row in append_list:
-            ws.append(row)
-
-        filename = self.lineEdit_name_a.text() + '_' + self.lineEdit_name_b.text()
-        if not filename:
-            filename = 'test.xlsx'
-        else:
-            filename += '.xlsx'
-        wb.save(filename)
-
-        os.startfile(filename)
+        # ws.merge_cells('F1:G1')
+        # ws.merge_cells('H1:I1')
+        # ws['A1'] = 'Компонент А'
+        # ws['F1'] = 'Компонент Б'
+        # ws['C1'] = self.lineEdit_name_a.text()
+        # ws['H1'] = self.lineEdit_name_b.text()
+        #
+        # ws['A2'] = self.eew_label.text()
+        # ws['F2'] = self.ahew_label.text()
+        # # Настраиваем ширину столбцов
+        # ws.column_dimensions['A'].width = 8
+        # ws.column_dimensions['B'].width = 20
+        # ws.column_dimensions['C'].width = 16
+        # ws.column_dimensions['D'].width = 10
+        # ws.column_dimensions['E'].width = 3
+        # ws.column_dimensions['F'].width = 8
+        # ws.column_dimensions['G'].width = 20
+        # ws.column_dimensions['H'].width = 16
+        # ws.column_dimensions['I'].width = 10
+        # ws.append([''])
+        # print(ws.max_row)
+        # ws.append(top_labels)
+        # final_row_a = 4+len(self.material_comboboxes_a)
+        # final_row_b = 4+len(self.material_comboboxes_b)
+        # line_a_exists = True if self.material_comboboxes_a else False
+        # line_b_exists = True if self.material_comboboxes_b else False
+        # line = 0
+        # while line_a_exists or line_b_exists:
+        #     current_row = []
+        #     if line_a_exists:
+        #         if line < len(self.material_comboboxes_a):
+        #             mat_type = self.material_a_types[line].currentText()
+        #             mat = self.material_comboboxes_a[line].currentText()
+        #             percent = float(self.material_percent_lines_a[line].text())
+        #             current_row += [mat_type, mat, percent, f'=C{ws.max_row+1}*D{final_row_a+1}/100', '|']
+        #
+        #         else:
+        #             current_row += ['', 'ИТОГО:', f'=SUM(C5:C{final_row_a})',
+        #                             f'100', '|']
+        #             line_a_exists = False
+        #     else:
+        #         current_row += ['', '', '', '', '|']
+        #
+        #     if line_b_exists:
+        #         if line < len(self.material_comboboxes_b):
+        #             mat_type = self.material_b_types[line].currentText()
+        #             mat = self.material_comboboxes_b[line].currentText()
+        #             percent = float(self.material_percent_lines_b[line].text())
+        #             current_row += [mat_type, mat, percent, f'=H{ws.max_row+1}*I{final_row_b+1}/100']
+        #         else:
+        #             current_row += ['', 'ИТОГО:', f'=SUM(H5:H{final_row_b})', '100']
+        #             line_b_exists = False
+        #     else:
+        #         current_row += ['', '', '', '']
+        #     line += 1
+        #     ws.append(current_row)
+        #
+        # filename = self.lineEdit_name_a.text() + '_' + self.lineEdit_name_b.text()
+        # if not filename:
+        #     filename = 'test.xlsx'
+        # else:
+        #     filename += '.xlsx'
+        # wb.save(filename)
+        #
+        # os.startfile(filename)
 
     def set_buttom_stylies(self):
         for widget in self.button_list + self.big_button_list:
