@@ -1,3 +1,4 @@
+import os
 import sys
 from copy import copy
 from typing import Union, Callable
@@ -8,10 +9,12 @@ from PyQt5.QtCore import QSize, QEvent
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import *
 
-from math import inf, fabs
+from math import fabs
 from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
 from additional_funcs import TgMaterialInfluence
+
+import openpyxl as opx
 
 DB_NAME = "material.db"
 
@@ -196,8 +199,84 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.style, self.style_combobox = f.read().split("$split$")
         self.set_buttom_stylies()
 
-    def set_buttom_stylies(self):
 
+
+    def save_receipt_to_xl(self):
+        wb = opx.Workbook()
+        ws = wb.active
+        top_labels = ['Тип', "Материал", "Содержание, %", "Навеска, г", "|",
+                      'Тип', "Материал", "Содержание, %", "Навеска, г"]
+
+        ws.merge_cells('A1:B1')
+        # ws.merge_cells('C1:D1')
+        ws.merge_cells('F1:G1')
+        ws.merge_cells('H1:I1')
+        ws['A1'] = 'Компонент А'
+        ws['F1'] = 'Компонент Б'
+        ws['C1'] = self.lineEdit_name_a.text()
+        ws['H1'] = self.lineEdit_name_b.text()
+        # Настраиваем ширину столбцов
+        ws.column_dimensions['A'].width = 8
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 14
+        ws.column_dimensions['D'].width = 10
+        ws.column_dimensions['E'].width = 3
+        ws.column_dimensions['F'].width = 8
+        ws.column_dimensions['G'].width = 20
+        ws.column_dimensions['H'].width = 14
+        ws.column_dimensions['I'].width = 10
+
+        ws.append(top_labels)
+
+        append_list = []
+        line_a_exists = True
+        line_b_exists = True
+        line = 0
+        while line_a_exists and line_b_exists:
+            current_row = []
+            if line_a_exists:
+                if line < len(self.material_comboboxes_a):
+                    mat_type = self.material_a_types[line].currentText()
+                    mat = self.material_comboboxes_a[line].currentText()
+                    percent = self.material_percent_lines_a[line].text().replace('.', ',')
+                    current_row += [mat_type, mat, percent, '', '|']
+
+                else:
+                    current_row += ['', 'ИТОГО:', '100,00', '', '|']
+                    line_a_exists = False
+            else:
+                current_row += ['', '', '', '|']
+
+            if line_b_exists:
+                if line < len(self.material_comboboxes_b):
+                    mat_type = self.material_b_types[line].currentText()
+                    mat = self.material_comboboxes_b[line].currentText()
+                    percent = self.material_percent_lines_b[line].text().replace('.', ',')
+                    current_row += [mat_type, mat, percent, '']
+                else:
+                    current_row += ['', 'ИТОГО:', '100,00', '']
+                    line_b_exists = False
+            else:
+                current_row += ['', '', '', '']
+            line += 1
+            append_list.append(current_row)
+
+
+
+
+        for row in append_list:
+            ws.append(row)
+
+        filename = self.lineEdit_name_a.text() + '_' + self.lineEdit_name_b.text()
+        if not filename:
+            filename = 'test.xlsx'
+        else:
+            filename += '.xlsx'
+        wb.save(filename)
+
+        os.startfile(filename)
+
+    def set_buttom_stylies(self):
         for widget in self.button_list + self.big_button_list:
             widget.setStyleSheet(self.style)
 
@@ -311,10 +390,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.debug_string.setText("Good")
 
     def update_but_func(self) -> None:
-
-        self.count_final_receipt()
-        self.count_tg_inf()
-        self.enlarge_font()
+        self.save_receipt_to_xl()
 
     # Считающие функции ----------------------------------------------------------------------------------------
 
