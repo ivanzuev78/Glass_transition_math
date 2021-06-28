@@ -1,7 +1,7 @@
 import os
 import sys
 from copy import copy
-from typing import Union, Callable
+from typing import Union, Callable, Optional, Dict
 from collections import defaultdict
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
@@ -14,7 +14,6 @@ from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
 from additional_funcs import TgMaterialInfluence
 
-import openpyxl as opx
 
 from load_and_save import save_receipt
 
@@ -55,6 +54,10 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
 
         self.a_receipt_window: Union[SintezWindow, None] = None
         self.b_receipt_window: Union[SintezWindow, None] = None
+
+        # Всё для расчёта стеклования
+        self.tg_df: Optional[pd.DataFrame] = None
+        self.all_pairs_na_tg: Optional[dict] = None
 
         # TODO добавить сброс при изменении компонентов
         self.pair_react_window = None
@@ -201,95 +204,35 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             self.style, self.style_combobox = f.read().split("$split$")
         self.set_buttom_stylies()
 
-
-
     def save_receipt_to_xl(self):
         # if self.material_comboboxes_a and self.material_comboboxes_b:
-
-        save_receipt(self.lineEdit_name_a.text(), self.lineEdit_name_b.text(),
-                     [i.currentText() for i in self.material_a_types],
-                     [i.currentText() for i in self.material_b_types],
-                     [i.currentText() for i in self.material_comboboxes_a],
-                     [i.currentText() for i in self.material_comboboxes_b],
-                     [i.text() for i in self.material_percent_lines_a],
-                     [i.text() for i in self.material_percent_lines_b],
-                     [get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
-                      for mat_type, mat in zip(self.material_a_types, self.material_comboboxes_a)],
-                     [get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
-                      for mat_type, mat in zip(self.material_b_types, self.material_comboboxes_b)],
-                     166, 231)
-        # wb = opx.Workbook()
-        # ws = wb.active
-        # top_labels = ['Тип', "Материал", "Содержание, %", "Навеска, г", "|",
-        #               'Тип', "Материал", "Содержание, %", "Навеска, г"]
-        #
-        # ws.merge_cells('A1:B1')
-        # ws.merge_cells('C1:D1')
-        # ws.merge_cells('F1:G1')
-        # ws.merge_cells('H1:I1')
-        # ws['A1'] = 'Компонент А'
-        # ws['F1'] = 'Компонент Б'
-        # ws['C1'] = self.lineEdit_name_a.text()
-        # ws['H1'] = self.lineEdit_name_b.text()
-        #
-        # ws['A2'] = self.eew_label.text()
-        # ws['F2'] = self.ahew_label.text()
-        # # Настраиваем ширину столбцов
-        # ws.column_dimensions['A'].width = 8
-        # ws.column_dimensions['B'].width = 20
-        # ws.column_dimensions['C'].width = 16
-        # ws.column_dimensions['D'].width = 10
-        # ws.column_dimensions['E'].width = 3
-        # ws.column_dimensions['F'].width = 8
-        # ws.column_dimensions['G'].width = 20
-        # ws.column_dimensions['H'].width = 16
-        # ws.column_dimensions['I'].width = 10
-        # ws.append([''])
-        # print(ws.max_row)
-        # ws.append(top_labels)
-        # final_row_a = 4+len(self.material_comboboxes_a)
-        # final_row_b = 4+len(self.material_comboboxes_b)
-        # line_a_exists = True if self.material_comboboxes_a else False
-        # line_b_exists = True if self.material_comboboxes_b else False
-        # line = 0
-        # while line_a_exists or line_b_exists:
-        #     current_row = []
-        #     if line_a_exists:
-        #         if line < len(self.material_comboboxes_a):
-        #             mat_type = self.material_a_types[line].currentText()
-        #             mat = self.material_comboboxes_a[line].currentText()
-        #             percent = float(self.material_percent_lines_a[line].text())
-        #             current_row += [mat_type, mat, percent, f'=C{ws.max_row+1}*D{final_row_a+1}/100', '|']
-        #
-        #         else:
-        #             current_row += ['', 'ИТОГО:', f'=SUM(C5:C{final_row_a})',
-        #                             f'100', '|']
-        #             line_a_exists = False
-        #     else:
-        #         current_row += ['', '', '', '', '|']
-        #
-        #     if line_b_exists:
-        #         if line < len(self.material_comboboxes_b):
-        #             mat_type = self.material_b_types[line].currentText()
-        #             mat = self.material_comboboxes_b[line].currentText()
-        #             percent = float(self.material_percent_lines_b[line].text())
-        #             current_row += [mat_type, mat, percent, f'=H{ws.max_row+1}*I{final_row_b+1}/100']
-        #         else:
-        #             current_row += ['', 'ИТОГО:', f'=SUM(H5:H{final_row_b})', '100']
-        #             line_b_exists = False
-        #     else:
-        #         current_row += ['', '', '', '']
-        #     line += 1
-        #     ws.append(current_row)
-        #
-        # filename = self.lineEdit_name_a.text() + '_' + self.lineEdit_name_b.text()
-        # if not filename:
-        #     filename = 'test.xlsx'
-        # else:
-        #     filename += '.xlsx'
-        # wb.save(filename)
-        #
-        # os.startfile(filename)
+        # TODO подставить сюда массы для расчёта загрузки синтеза
+        mass_a = 666
+        mass_b = 666
+        save_receipt(
+            self.lineEdit_name_a.text(),
+            self.lineEdit_name_b.text(),
+            [i.currentText() for i in self.material_a_types],
+            [i.currentText() for i in self.material_b_types],
+            [i.currentText() for i in self.material_comboboxes_a],
+            [i.currentText() for i in self.material_comboboxes_b],
+            [i.text() for i in self.material_percent_lines_a],
+            [i.text() for i in self.material_percent_lines_b],
+            [
+                get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
+                for mat_type, mat in zip(
+                    self.material_a_types, self.material_comboboxes_a
+                )
+            ],
+            [
+                get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
+                for mat_type, mat in zip(
+                    self.material_b_types, self.material_comboboxes_b
+                )
+            ],
+            mass_a,
+            mass_b,
+        )
 
     def set_buttom_stylies(self):
         for widget in self.button_list + self.big_button_list:
@@ -329,38 +272,14 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.font_size_big += 1
         self.set_font()
 
-        # self.set_buttom_stylies()
-
     def reduce_font(self):
         self.font_size -= 1
         self.font_size_big -= 1
         self.set_font()
         # self.set_buttom_stylies()
 
-    def eventFilter(self, object, event):
-        if event.type() == QEvent.Enter:
-            object.setStyleSheet(self.style)
-        elif event.type() == QEvent.Leave:
-            object.setStyleSheet(
-                """
-            QPushButton{
-               background-color: #CBDBFF;
-                border-radius: 6px;
-                border-color: #000000;
-                border: 1px solid #586072;
-                padding: 1px;
-            }
-            QPushButton:pressed {
-            background-color: #AFC2ED;
-
-            }
-
-            """
-            )
-        return False
-
-    def reset_settings(self) -> None:
-        pass
+    def reset_tg_settings(self) -> None:
+        self.tg_df = None
 
     def count_extra_parameters(self) -> None:
         pass
@@ -382,8 +301,8 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.material_percent_lines_b[0].setText("50.00")
         self.material_percent_lines_b[1].setText("50.00")
 
-        self.normalise_func("A")
-        self.normalise_func("B")
+        self.count_sum("A")
+        self.count_sum("B")
 
         self.count_all_parameters()
 
@@ -637,14 +556,28 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
             epoxy_names_list = df_eq_matrix.index.tolist()
             amine_names_list = df_eq_matrix.columns.values.tolist()
 
-            normalized_matrix = normalize(np.array(df_eq_matrix))
-
             print("-----------------")
             percent_df = normalize_df(df_eq_matrix)
 
-            print("--->", percent_df)
+            # Сохраняем матрицу процентов пар
+            self.df_pairs_percents = copy(percent_df)
+            print("percent_df before droping\n", percent_df)
 
-            tg_df = get_tg_df("material.db")
+            if self.tg_df is None:
+
+                tg_df = get_tg_df(self.db_name)
+
+                # дропаем неиспользуемые колонки и строки стеклования
+                for name in tg_df:
+                    if name not in amine_names_list + epoxy_names_list:
+                        tg_df = tg_df.drop(name, 1)
+                for name in tg_df.index:
+                    if name not in epoxy_names_list + amine_names_list:
+                        tg_df = tg_df.drop(name)
+                self.tg_df = tg_df
+
+            else:
+                tg_df = self.tg_df
 
             # Получаем все пары, которые не имеют стекла
             all_pairs_na = []
@@ -653,37 +586,30 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
                 par = [(resin, name) for resin in list(pairs_a.index)]
                 all_pairs_na += par
 
-            current_pairs = [
-                (resin, amine)
-                for resin in a_names_only_react
-                for amine in b_names_only_react
-            ]
-
-            current_pairs_without_tg = [
-                pair for pair in current_pairs if pair in all_pairs_na
-            ]
             # TODO реализовать обработку отсутствующих пар стёкол
-            # print(sovpadenie)
 
-            # дропаем неиспользуемые колонки и строки стеклования
-            for name in tg_df:
-                if name not in amine_names_list + epoxy_names_list:
-                    tg_df = tg_df.drop(name, 1)
-            for name in tg_df.index:
-                if name not in epoxy_names_list + amine_names_list:
-                    tg_df = tg_df.drop(name)
+            all_pairs_na_dict = {}
+            # Убираем в матрице процентов отсутствующие пары
+            for resin, amine in all_pairs_na:
+                all_pairs_na_dict[(resin, amine)] = percent_df[amine][resin]
+                percent_df[amine][resin] = 0.0
 
-            tg_df = tg_df[df_eq_matrix.columns.values.tolist()]
-            tg_df = tg_df.T
-            tg_df = tg_df[df_eq_matrix.index.tolist()].T
+            self.all_pairs_na_tg = all_pairs_na_dict
+            percent_df = normalize_df(percent_df)
 
-            print(tg_df)
+            # Сотрирует строки и столбцы. В данный момент не актуально
+            # tg_df = tg_df[df_eq_matrix.columns.values.tolist()]
+            # tg_df = tg_df.T
+            # tg_df = tg_df[df_eq_matrix.index.tolist()].T
 
-            total_tg = tg_df * percent_df
-            total_tg = round(sum(total_tg.sum()), 1)
-            print(total_tg)
+            print("self percent_df\n", self.df_pairs_percents)
+            print("local percent_df\n", percent_df)
+
+            total_tg_df = tg_df * percent_df
+            total_tg = round(sum(total_tg_df.sum()), 1)
+
             self.current_tg_no_correction = total_tg
-            self.df_pairs_percents = percent_df
+
         except Exception as e:
             print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
             print(e)
@@ -973,6 +899,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         materia_typel_combobox.currentIndexChanged.connect(
             self.reset_choose_pair_react_window
         )
+        materia_typel_combobox.currentIndexChanged.connect(self.reset_tg_settings)
         materia_typel_combobox.setFixedHeight(20)
         materia_typel_combobox.setFont(QtGui.QFont("Times New Roman", self.font_size))
         materia_typel_combobox.setStyleSheet(self.style_combobox)
@@ -980,6 +907,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         material_combobox.currentIndexChanged.connect(
             self.reset_choose_pair_react_window
         )
+        material_combobox.currentIndexChanged.connect(self.reset_tg_settings)
 
         line = QLineEdit()
         line.setText("0.00")
@@ -1643,7 +1571,7 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
         self.cancel_but.clicked.connect(self.close)
         self.mat_type.addItems(self.main_window.types_of_items)
 
-        self.button_list = [ self.save_but, self.cancel_but]
+        self.button_list = [self.save_but, self.cancel_but]
         oImage = QImage("fon.jpg")
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oImage))

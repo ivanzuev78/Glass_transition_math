@@ -24,17 +24,19 @@ def get_all_material_types(db_name: str) -> List[str]:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-    all = [i[0] for i in cursor.fetchall() if i[0] not in ("Tg", "Tg_influence")]
-    all.insert(0, all.pop(all.index("None")))
-    return all
+    all_material = [
+        i[0] for i in cursor.fetchall() if i[0] not in ("Tg", "Tg_influence")
+    ]
+    all_material.insert(0, all_material.pop(all_material.index("None")))
+    return all_material
 
 
 def get_all_material_of_one_type(material_type: str, db_name: str) -> List[str]:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     cursor.execute(f"SELECT name FROM {material_type}")
-    all = [i[0] for i in cursor.fetchall()]
-    return all
+    all_material = [i[0] for i in cursor.fetchall()]
+    return all_material
 
 
 def get_tg_df(db_name: str) -> pd.DataFrame:
@@ -156,9 +158,6 @@ def add_tg_influence(
     cursor.execute(command)
     connection.commit()
     connection.close()
-
-
-# print(get_ew_by_name('MXDA', 'Amine', 'material.db'))
 
 
 def get_influence_func(k0, ke, kexp, k1, k2, k3, k4, k5):
