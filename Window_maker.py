@@ -5,14 +5,14 @@ from typing import Union, Callable, Optional, Dict
 from collections import defaultdict
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import QSize, QEvent
+from PyQt5.QtCore import QSize, QEvent, QLine
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import *
 
 from math import fabs
 from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
-from additional_funcs import TgMaterialInfluence
+from additional_funcs import TgMaterialInfluence, QHLine
 
 
 from load_and_save import save_receipt
@@ -20,8 +20,8 @@ from load_and_save import save_receipt
 DB_NAME = "material.db"
 
 
-class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
-    def __init__(self):
+class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
+    def __init__(self, db_name=DB_NAME):
         super(MainWindow, self).__init__()
         self.setupUi(self)
 
@@ -31,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)
 
-        self.db_name = DB_NAME
+        self.db_name = db_name
 
         self.__current_tg = None
         self.current_tg_no_correction = None
@@ -140,12 +140,12 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.font_up_but.clicked.connect(self.enlarge_font)
         self.coating_receipt_but.clicked.connect(self.create_final_receipt_window)
 
-        pixmap = QPixmap("lock.png")
+        pixmap = QPixmap("icons/lock.png")
         self.label_lock_a.setPixmap(pixmap)
         self.label_lock_b.setPixmap(pixmap)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("update.png"))
+        icon.addPixmap(QtGui.QPixmap("icons/update.png"))
         self.update_but.setIcon(icon)
 
         # Прячем верхушки рецептур, пока нет строк
@@ -197,8 +197,6 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
         self.all_big_labels = [self.label, self.label_2]
         self.font_size = 10
         self.font_size_big = 15
-
-        # self.fail_correction_but.installEventFilter(self)
 
         with open("style.css", "r") as f:
             self.style, self.style_combobox = f.read().split("$split$")
@@ -1560,7 +1558,7 @@ class MainWindow(QtWidgets.QMainWindow, uic.loadUiType("Main_window.ui")[0]):
     # -----------------------------------------------------------------------------------------------------------
 
 
-class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
+class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]):
     def __init__(self, main_window: MainWindow):
         super(AddMaterial, self).__init__()
         self.setupUi(self)
@@ -1617,7 +1615,7 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("Add_material.ui")[0]):
         a0.accept()
 
 
-class AddTg(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg.ui")[0]):
+class AddTg(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg.ui")[0]):
     def __init__(self, main_window: MainWindow):
         super(AddTg, self).__init__()
         self.setupUi(self)
@@ -1649,7 +1647,7 @@ class AddTg(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg.ui")[0]):
         a0.accept()
 
 
-class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui")[0]):
+class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg_influence.ui")[0]):
     def __init__(self, main_window: MainWindow):
         super(AddTgInfluence, self).__init__()
         self.setupUi(self)
@@ -1755,7 +1753,7 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("Add_Tg_influence.ui"
 
 
 # Не реализовано
-class TgViewWindow(QtWidgets.QMainWindow, uic.loadUiType("glass_view.ui")[0]):
+class TgViewWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/glass_view.ui")[0]):
     def __init__(self, main_window: MainWindow):
         super(TgViewWindow, self).__init__()
         self.setupUi(self)
@@ -1792,52 +1790,57 @@ class TgViewWindow(QtWidgets.QMainWindow, uic.loadUiType("glass_view.ui")[0]):
         a0.accept()
 
 
-class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("final_receipt.ui")[0]):
+class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/final_receipt.ui")[0]):
     def __init__(self, main_window: MainWindow):
         super(FinalReceiptWindow, self).__init__()
         self.setupUi(self)
         self.main_window = main_window
         self.db_name = DB_NAME
+
+        oImage = QImage("fon.jpg")
+        # sImage = oImage.scaled(QSize(self.window_height, self.window_width))
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
+
         self.fill_table()
         self.show()
 
     def fill_table(self):
-        for row, name in enumerate(self.main_window.final_receipt_no_extra):
-            label_name = QLabel()
-            label_name.setText(name)
-            label_percent = QLabel()
-            label_percent.setTextInteractionFlags(
-                QtCore.Qt.LinksAccessibleByMouse
-                | QtCore.Qt.TextSelectableByKeyboard
-                | QtCore.Qt.TextSelectableByMouse
-            )
-            label_percent.setFixedWidth(60)
-            label_percent.setText(
-                str(round(self.main_window.final_receipt_no_extra[name] * 100, 4))
-            )
-            self.gridLayout.addWidget(label_name, row, 0)
-            self.gridLayout.addWidget(label_percent, row, 1)
+        def add_receipt(grid, receipt):
+            # Отрисовываем рецептуру
+            for row, name in enumerate(receipt):
+                label_name = QLabel()
+                label_name.setText(name)
+                label_percent = QLabel()
+                label_percent.setTextInteractionFlags(
+                    QtCore.Qt.LinksAccessibleByMouse
+                    | QtCore.Qt.TextSelectableByKeyboard
+                    | QtCore.Qt.TextSelectableByMouse
+                )
+                label_percent.setFixedWidth(60)
+                label_percent.setText(
+                    str(round(receipt[name] * 100, 4))
+                )
+                grid.addWidget(label_name, row, 0)
+                grid.addWidget(label_percent, row, 1)
 
-        for row, name in enumerate(self.main_window.final_receipt_with_extra):
-            label_name = QLabel()
-            label_name.setText(name)
-            label_percent = QLabel()
-            label_percent.setTextInteractionFlags(
-                QtCore.Qt.LinksAccessibleByMouse
-                | QtCore.Qt.TextSelectableByKeyboard
-                | QtCore.Qt.TextSelectableByMouse
-            )
-            label_percent.setFixedWidth(60)
-            label_percent.setText(
-                str(round(self.main_window.final_receipt_with_extra[name] * 100, 4))
-            )
-            self.gridLayout_2.addWidget(label_name, row, 0)
-            self.gridLayout_2.addWidget(label_percent, row, 1)
+            label = QLabel()
+            label.setText('------------------')
+
+            grid.addWidget(QHLine(), row + 1, 0, row + 1, 2)
+
+
+
+        add_receipt(self.gridLayout, self.main_window.final_receipt_no_extra)
+        add_receipt(self.gridLayout_2, self.main_window.final_receipt_with_extra)
+
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.main_window.setEnabled(True)
         self.main_window.show()
         a0.accept()
+
 
 
 if __name__ == "__main__":
