@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1103</width>
+    <width>1075</width>
     <height>511</height>
    </rect>
   </property>
@@ -396,7 +396,7 @@
      <rect>
       <x>10</x>
       <y>40</y>
-      <width>231</width>
+      <width>161</width>
       <height>41</height>
      </rect>
     </property>
@@ -502,7 +502,7 @@
      <rect>
       <x>10</x>
       <y>80</y>
-      <width>231</width>
+      <width>161</width>
       <height>16</height>
      </rect>
     </property>
@@ -734,7 +734,7 @@ c избытком</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1103</width>
+     <width>1075</width>
      <height>21</height>
     </rect>
    </property>
