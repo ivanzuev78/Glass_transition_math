@@ -15,7 +15,7 @@ from itertools import cycle
 import openpyxl as opx
 
 
-class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
+class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
     def __init__(self, main_window: "MainWindow", komponent):
         super(SintezWindow, self).__init__()
         self.setupUi(self)
@@ -416,7 +416,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("EEWAHEW.ui")[0]):
 
 
 class ChoosePairReactWindow(
-    QtWidgets.QMainWindow, uic.loadUiType("choose_pair_react.ui")[0]
+    QtWidgets.QMainWindow, uic.loadUiType("windows/choose_pair_react.ui")[0]
 ):
     def __init__(self, main_window: "MainWindow", all_pairs_a, all_pairs_b):
         super(ChoosePairReactWindow, self).__init__()

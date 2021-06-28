@@ -4,6 +4,8 @@ from typing import Union
 
 import pandas as pd
 import numpy as np
+from PyQt5.QtWidgets import QFrame
+
 from Materials import get_tg_influence, get_influence_func
 
 
@@ -93,6 +95,12 @@ class TgMaterialInfluence:
         else:
             return 0.0
 
+
+class QHLine(QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
 
 # if __name__ == "__main__":
 #     epoxy_list = ["KER-828", "Лапроксид_БД"]
