@@ -24,13 +24,4 @@ QComboBox {
     border-radius: 2px;
     border-color: #000000;
     border: 1px solid #586072;
-
-
-
-QComboBox::down-arrow:pressed {
-    position: relative;
-    top: 1px; left: 1px;
-}
-
-
 }
