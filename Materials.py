@@ -48,11 +48,11 @@ def get_tg_df(db_name: str) -> pd.DataFrame:
     amine_name = [name[0] for name in cursor.fetchall()]
     cursor.execute("SELECT * FROM Tg")
     all_tg = cursor.fetchall()
-    df_tg_base = pd.DataFrame(index=epoxy_name, columns=amine_name)
+    df_tg_main = pd.DataFrame(index=epoxy_name, columns=amine_name)
     for tg in all_tg:
-        df_tg_base[tg[1]][tg[0]] = tg[2]
+        df_tg_main[tg[1]][tg[0]] = tg[2]
     connection.close()
-    return df_tg_base
+    return df_tg_main
 
 
 def add_material(db_name: str, table: str, name: str, activity: float = 0) -> None:
@@ -71,7 +71,7 @@ def add_material(db_name: str, table: str, name: str, activity: float = 0) -> No
     connection.close()
 
 
-def add_tg_base(epoxy: str, amine: str, tg: float, db_name) -> None:
+def add_tg_main(epoxy: str, amine: str, tg: float, db_name) -> None:
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     try:
