@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1075</width>
-    <height>511</height>
+    <height>576</height>
    </rect>
   </property>
   <property name="font">
@@ -497,17 +497,18 @@
      <string>Рецептура Б</string>
     </property>
    </widget>
-   <widget class="QLabel" name="tg_label">
+   <widget class="QLabel" name="tg_main_label">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>80</y>
       <width>161</width>
-      <height>16</height>
+      <height>41</height>
      </rect>
     </property>
     <property name="text">
-     <string>Стеклование</string>
+     <string>Стеклование базовое
+</string>
     </property>
    </widget>
    <widget class="QPushButton" name="sintez_editor_but">
@@ -540,7 +541,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>200</y>
+      <y>240</y>
       <width>81</width>
       <height>17</height>
      </rect>
@@ -558,7 +559,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>220</y>
+      <y>260</y>
       <width>71</width>
       <height>17</height>
      </rect>
@@ -571,7 +572,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>180</y>
+      <y>220</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -584,7 +585,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>250</y>
+      <y>290</y>
       <width>81</width>
       <height>23</height>
      </rect>
@@ -597,7 +598,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>270</y>
+      <y>310</y>
       <width>141</width>
       <height>81</height>
      </rect>
@@ -612,7 +613,7 @@ c избытком</string>
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>360</y>
+      <y>400</y>
       <width>171</width>
       <height>31</height>
      </rect>
@@ -725,6 +726,34 @@ c избытком</string>
     </property>
     <property name="text">
      <string>A🠅</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="tg_cor_label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>120</y>
+      <width>161</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Стеклование с коррекцией
+</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="tg_extra_label">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>450</y>
+      <width>161</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Стеклование с избытками
+</string>
     </property>
    </widget>
   </widget>
