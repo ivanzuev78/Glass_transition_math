@@ -554,6 +554,9 @@
     <property name="text">
      <string>A</string>
     </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QRadioButton" name="radioButton_B">
     <property name="geometry">
@@ -752,7 +755,7 @@ c избытком</string>
      </rect>
     </property>
     <property name="text">
-     <string>Стеклование с избытками
+     <string>Стеклование с избытком
 </string>
     </property>
    </widget>

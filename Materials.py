@@ -6,6 +6,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from numpy.ma import exp
+from pandas import DataFrame
 
 
 def get_logger(logger_file, name=__file__, encoding="utf-8"):
@@ -95,16 +96,19 @@ def all_tg_from_df(tg_df: pd.DataFrame) -> List[List]:
     return all_tg
 
 
-def normalize(array: np.array):
+def normalize(array: np.array) -> np.array:
     return array / array.sum()
 
 
-def normalize_df(array: pd.DataFrame):
-    summ = sum(array.sum())
-    return array / summ
+def normalize_df(df: DataFrame) -> DataFrame:
+    sum_of_df = sum(df.sum())
+    if sum_of_df == 0:
+        # df.iloc[(df[df.columns].isna())] = 0
+        return df
+    return df / sum_of_df
 
 
-def get_ew_by_name(material, mat_type, db_name):
+def get_ew_by_name(material: str, mat_type: str, db_name: str):
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     if mat_type == "Epoxy":
