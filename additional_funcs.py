@@ -3,6 +3,7 @@ from copy import copy
 from typing import Union, Dict
 
 import pandas as pd
+from PyQt5 import QtCore
 from PyQt5.QtCore import QRect
 from PyQt5.QtGui import QImage, QPalette, QBrush, QColor
 from PyQt5.QtWidgets import QFrame, QTabWidget, QTableWidget, QTableWidgetItem
@@ -89,6 +90,7 @@ class TgMaterialInfluence:
 def create_tab_with_tables(dict_of_df: Dict) -> QTabWidget:
 
     tabWidget = QTabWidget()
+    tabWidget.setWindowTitle('Спектр влияний')
     tabWidget.setMovable(True)
     tabWidget.setGeometry(QRect(0, 0, 281, 251))
     tabWidget.setObjectName("tabWidget")
@@ -175,10 +177,12 @@ def create_tab_with_tables(dict_of_df: Dict) -> QTabWidget:
                 # Продумать условие получше
                 if cell_exists != 0:
                     item = QTableWidgetItem(str(round(cell_percent, 4)))
+                    item.setFlags(QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
                     item.setBackground(QColor('#00F000'))
                     table.setItem(index_epoxy, index_amine, item)
                 else:
                     item = QTableWidgetItem('N/A')
+                    item.setFlags(QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
                     item.setBackground(QColor('red'))
                     table.setItem(index_epoxy, index_amine, item)
 

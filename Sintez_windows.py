@@ -2,6 +2,7 @@ import os
 import sys
 from math import inf
 from PyQt5 import uic, QtWidgets, QtGui, QtCore
+from PyQt5.QtGui import QImage, QPalette, QBrush
 from PyQt5.QtWidgets import (
     QFileDialog,
     QComboBox,
@@ -38,16 +39,19 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         self.gridLayout.addItem(QSpacerItem(1, 1), 1000, 0, 1000, 5)
 
-        self.total_EW_lineEdit = QtWidgets.QLineEdit(self.centralwidget)
-        self.total_EW_lineEdit.setGeometry(QtCore.QRect(100, 60, 200, 20))
-        self.total_EW_lineEdit.setObjectName("total_EW_lineEdit")
+        # self.total_EW_lineEdit = QtWidgets.QLineEdit(self.centralwidget)
+        # self.total_EW_lineEdit.setGeometry(QtCore.QRect(100, 60, 200, 20))
+        # self.total_EW_lineEdit.setObjectName("total_EW_lineEdit")
 
         self.material_types = []
         self.material_comboboxes = []
         self.material_percent_lines = []
 
-        if komponent == "A":
+        self.label.setText('Компонент ' + komponent)
 
+        if komponent == "A":
+            self.setWindowTitle('Редактирование рецептуры Компонента А')
+            self.label.setText('Редактирование рецептуры Компонента А')
             self.main_window_material_comboboxes = (
                 self.main_window.material_comboboxes_a
             )
@@ -57,7 +61,8 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
             )
 
         elif komponent == "B":
-
+            self.setWindowTitle('Редактирование рецептуры Компонента Б')
+            self.label.setText('Редактирование рецептуры Компонента Б')
             self.main_window_material_comboboxes = (
                 self.main_window.material_comboboxes_b
             )
@@ -67,6 +72,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
             )
         else:
             raise TypeError
+
+        with open("style.css", "r") as f:
+            self.style, self.style_combobox = f.read().split("$split$")
 
         self.numb_of_components = len(self.main_window_material_comboboxes)
 
@@ -81,6 +89,13 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 percent,
             )
 
+        oImage = QImage("fon.jpg")
+        # sImage = oImage.scaled(QSize(self.window_height, self.window_width))
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
+
+        self.change_font()
         # self.line = QtWidgets.QFrame(self.centralwidget)
         # self.line.setGeometry(QtCore.QRect(150, 100, 20, 300))
         # self.line.setFrameShape(QtWidgets.QFrame.VLine)
@@ -92,18 +107,30 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         # self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         # self.line_2.setObjectName("line_2")
 
+
+    def change_font(self):
+
+        font = QtGui.QFont("Times New Roman", self.main_window.font_size)
+        big_bold_font = QtGui.QFont("Times New Roman", self.main_window.font_size_big)
+        # big_bold_font.setBold(True)
+        self.label.setFont(big_bold_font)
+        for line_numb in range(len(self.material_types)):
+            self.material_types[line_numb].setFont(font)
+            self.material_comboboxes[line_numb].setFont(font)
+            self.material_percent_lines[line_numb].setFont(font)
+
     @property
     def EW(self):
         return self.__EW
 
     @EW.setter
     def EW(self, value):
-        if value > 0:
-            self.total_EW_lineEdit.setText("EEW  " + str(round(value, 2)))
-        elif value == 0:
-            self.total_EW_lineEdit.setText("No EW")
-        else:
-            self.total_EW_lineEdit.setText("AHEW  " + str(-round(value, 2)))
+        # if value > 0:
+        #     self.total_EW_lineEdit.setText("EEW  " + str(round(value, 2)))
+        # elif value == 0:
+        #     self.total_EW_lineEdit.setText("No EW")
+        # else:
+        #     self.total_EW_lineEdit.setText("AHEW  " + str(-round(value, 2)))
         self.__EW = value
 
     def slider_is_moved(self, numb_of_slider):
@@ -157,6 +184,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         grid = self.gridLayout
         material_combobox = QComboBox()
         materia_type_combobox = QComboBox()
+
+        materia_type_combobox.setStyleSheet(self.style_combobox)
+        material_combobox.setStyleSheet(self.style_combobox)
         # Подтянуть соответствующий индекс
         materia_type_combobox.addItems(self.main_window.types_of_items)
         materia_type_combobox.setCurrentIndex(

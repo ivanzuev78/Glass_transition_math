@@ -11,3 +11,7 @@ df.columns.values.tolist()
 # Все строки списком
 df.index.tolist()
 print(df)
+
+
+# ui to pi
+# pyuic5 test.ui -o testui.py

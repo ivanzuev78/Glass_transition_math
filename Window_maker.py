@@ -7,7 +7,7 @@ from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import *
 
-from math import fabs
+from math import fabs, sqrt
 from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
 from additional_funcs import TgMaterialInfluence, QHLine, create_tab_with_tables, get_existence_df, \
@@ -107,7 +107,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         }
 
         # Доля избытка. Число от 0. Расчёт: % + % * extra_ratio -> % * (extra_ratio + 1)
-        self.extra_ratio = 0
+        self.extra_ratio = None
         self.extra_ratio_komponent = "A"
         self.radioButton_A.toggled.connect(self.extra_radiobutton_changer("A"))
         self.radioButton_B.toggled.connect(self.extra_radiobutton_changer("B"))
@@ -137,7 +137,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
         self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
         self.sintez_editor_but.clicked.connect(self.add_choose_pair_react_window)
-        self.extra_ratio_line.editingFinished.connect(self.update_extra_labels)
+        self.extra_ratio_line.editingFinished.connect(self.count_extra_labels)
         self.update_but.clicked.connect(self.update_but_func)
         self.font_down_but.clicked.connect(self.reduce_font)
         self.font_up_but.clicked.connect(self.enlarge_font)
@@ -208,6 +208,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.style, self.style_combobox = f.read().split("$split$")
         self.set_buttom_stylies()
 
+
+        self.create_warring()
+
     def save_receipt_to_xl(self):
         # if self.material_comboboxes_a and self.material_comboboxes_b:
         # TODO подставить сюда массы для расчёта загрузки синтеза
@@ -271,10 +274,17 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         for widget in self.all_big_labels:
             widget.setFont(big_font)
 
+
+        if self.a_receipt_window:
+            self.a_receipt_window.change_font()
+        if self.b_receipt_window:
+            self.b_receipt_window.change_font()
+
     def enlarge_font(self):
         self.font_size += 1
         self.font_size_big += 1
         self.set_font()
+
 
     def reduce_font(self):
         self.font_size -= 1
@@ -298,7 +308,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_b_types[0].setCurrentIndex(1)
         self.material_b_types[1].setCurrentIndex(1)
         self.material_comboboxes_b[0].setCurrentIndex(1)
-        self.material_comboboxes_b[0].setCurrentIndex(2)
+        self.material_comboboxes_b[1].setCurrentIndex(4)
 
         self.material_percent_lines_a[0].setText("90.00")
         self.material_percent_lines_a[1].setText("10.00")
@@ -313,6 +323,30 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def create_final_receipt_window(self):
         self.count_final_receipt()
         self.final_receipt_window = FinalReceiptWindow(self)
+
+    def create_warring(self):
+        a = QGridLayout()
+        self.warring_grid.setSpacing(5)
+        self.warrings_rects = []
+        len_of_rects = 15
+        for i in range(len_of_rects):
+            col_numb = int(sqrt(len_of_rects)) + 1
+            row = i // col_numb
+            col = i % col_numb
+            rect = QLabel()
+            rect.setFixedHeight(10)
+            rect.setFixedWidth(10)
+            # rect.setText(f'{i}')
+            # rect.setScaledContents()
+            rect.setGeometry(QtCore.QRect(0, 0, 5, 5))
+            from random import randint
+            if randint(0,1):
+                rect.setStyleSheet("background-color: rgb(255, 0, 0);")
+            else:
+                rect.setStyleSheet("background-color: rgb(0, 255, 0);")
+            self.warring_grid.addWidget(rect, row, col)
+
+
 
     # Кнопочки ------------------------------------------------------------------------------------------------
     def debug(self) -> None:
@@ -354,10 +388,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.create_df_percent()
         self.count_tg()
         self.count_final_receipt()
-        self.update_extra_labels()
+        self.count_extra_labels()
         self.count_tg_inf()
-
-
 
     def create_df_percent(self):
         # Вспомогательная функция, которая учитывает ступенчатый синтез
@@ -577,6 +609,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def count_tg(self) -> None:
 
         percent_df = copy(self.percent_df)
+        if percent_df is None:
+            return None
         if self.tg_df is None:
 
             tg_df = get_tg_df(self.db_name)
@@ -648,7 +682,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             final_receipt_with_extra[name] += percent
             receipt_types[name] = mat_type.currentText()
 
-            if self.extra_ratio != 0 and self.extra_ratio_komponent == "A":
+            if self.extra_ratio and self.extra_ratio_komponent == "A":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
                 final_receipt_with_extra[name] += extra_percent
@@ -667,7 +701,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             final_receipt_with_extra[name] += percent
             receipt_types[name] = mat_type.currentText()
 
-            if self.extra_ratio != 0 and self.extra_ratio_komponent == "B":
+            if self.extra_ratio and self.extra_ratio_komponent == "B":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
                 final_receipt_with_extra[name] += extra_percent
@@ -711,7 +745,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         all_inf_mat = dict()
         all_inf_corrections = dict()
 
-        # TODO Сброить переменную self.material_influence_funcs если менялись названия компонентов
+        # TODO Сброить переменную self.material_influence_funcs если менялись названия компонентов и удалить строку
+        self.create_material_influence_funcs()
         if not self.material_influence_funcs:
             self.create_material_influence_funcs()
 
@@ -722,8 +757,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
 
         inf_dict = {}
-
-        self.tg_inf_dependence = {name: True for name in base_receipt}
+        # TODO Удалить, когда будет готова функция выбора
+        self.tg_inf_dependence = defaultdict(lambda: True)
 
         for name in base_receipt:
 
@@ -738,24 +773,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 else:
                     inf_dict[name] = 0.0
 
-        inf_dict_extra = {}
 
-        self.tg_inf_dependence = {name: True for name in self.extra_material}
-
-        for name in self.extra_material:
-            if self.tg_inf_dependence[name]:
-                inf_df = self.material_influence_funcs[name](self.extra_material[name])
-                total_inf = count_total_influence_df(self.percent_df, get_existence_df(inf_df), inf_df)
-                inf_dict_extra[name] = sum(total_inf.sum())
-            else:
-                influence = self.material_influence_funcs[name][base_receipt[name]]
-                if influence is not None:
-                    inf_dict_extra[name] = influence
-                else:
-                    inf_dict_extra[name] = 0.0
 
         self.tggg_with_correction = self.primary_tg + sum(inf_dict[i] for i in inf_dict)
-        self.ttgg_with_extra = self.primary_tg + sum(inf_dict_extra[i] for i in inf_dict_extra)
+
+
 
 
 
@@ -810,7 +832,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             #
             #     print(inf_not_exists)
 
-
     def create_material_influence_funcs(self):
         for name in self.final_receipt_no_extra:
             self.material_influence_funcs[name] = TgMaterialInfluence(
@@ -819,7 +840,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.list_of_item_names["Amine"],
                 self.db_name,
             )
-
 
     def count_mass_ratio(self) -> None:
         a = self.a_ew
@@ -1072,6 +1092,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def disable_receipt(self, komponent) -> None:
         if komponent == "A":
+            self.add_A_but.setEnabled(False)
+            self.del_A_but.setEnabled(False)
             for i in range(len(self.material_comboboxes_a)):
                 self.material_comboboxes_a[i].setEnabled(False)
                 self.material_percent_lines_a[i].setEnabled(False)
@@ -1080,6 +1102,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.normalise_A.setEnabled(False)
 
         elif komponent == "B":
+            self.add_B_but.setEnabled(False)
+            self.del_B_but.setEnabled(False)
             for i in range(len(self.material_comboboxes_b)):
                 self.material_comboboxes_b[i].setEnabled(False)
                 self.material_percent_lines_b[i].setEnabled(False)
@@ -1089,6 +1113,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def enable_receipt(self, komponent) -> None:
         if komponent == "A":
+            self.add_A_but.setEnabled(True)
+            self.del_A_but.setEnabled(True)
             for i in range(len(self.material_comboboxes_a)):
                 self.material_comboboxes_a[i].setEnabled(True)
                 self.material_percent_lines_a[i].setEnabled(True)
@@ -1097,6 +1123,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.normalise_A.setEnabled(True)
 
         elif komponent == "B":
+            self.add_B_but.setEnabled(True)
+            self.del_B_but.setEnabled(True)
             for i in range(len(self.material_comboboxes_b)):
                 self.material_comboboxes_b[i].setEnabled(True)
                 self.material_percent_lines_b[i].setEnabled(True)
@@ -1179,6 +1207,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if komponent == "A":
                 if not self.a_receipt_window:
                     self.a_receipt_window = SintezWindow(self, "A")
+
                 self.a_receipt_window.show()
                 self.disable_receipt("A")
             elif komponent == "B":
@@ -1447,14 +1476,57 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def extra_radiobutton_changer(self, mat_type: str) -> Callable:
         def wrapper():
             self.extra_ratio_komponent = mat_type
-            self.update_extra_labels()
+            self.count_extra_labels()
 
         return wrapper
 
-    def update_extra_labels(self) -> None:
+
+    def count_extra_labels(self) -> None:
         try:
+
+            widget = self.extra_ratio_line
+            numb = widget.text().replace(",", ".")
+            if len(numb.split("+")) > 1:
+                split_numb = numb.split("+")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = sum(map(float, split_numb))
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
+            elif len(numb.split("-")) > 1:
+                split_numb = numb.split("-")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) - float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
+            elif len(numb.split("*")) > 1:
+                split_numb = numb.split("*")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) * float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
+            elif len(numb.split("/")) > 1:
+                split_numb = numb.split("/")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) / float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
+            elif len(numb.split("\\")) > 1:
+                split_numb = numb.split("\\")
+                if all([i for i in map(self.isfloat, split_numb)]):
+                    numb = float(split_numb[0]) / float(split_numb[1])
+                elif self.isfloat(split_numb[0]):
+                    numb = float(split_numb[0])
+
+            if not self.isfloat(numb):
+                numb = 0
+            else:
+                numb = float(numb)
+            if numb < 0:
+                numb = 0
+            widget.setText(f"{round(numb, 2)}")
             line_text = self.extra_ratio_line.text().replace(",", ".")
-            if self.isfloat(line_text):
+
+            if float(line_text) != 0:
                 self.extra_ratio = float(line_text) / 100
 
                 if self.extra_ratio_komponent == "A":
@@ -1507,7 +1579,28 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 else:
                     self.mass_ratio_label_2.setText(f"Здесь будет \nсоотношение по массе\nc избытком")
 
+                if self.extra_ratio:
+                    inf_dict_extra = {}
+
+                    # TODO Удалить, когда будет готова функция выбора
+                    self.tg_inf_dependence = {name: True for name in self.extra_material}
+
+                    for name in self.extra_material:
+                        if self.tg_inf_dependence[name]:
+                            inf_df = self.material_influence_funcs[name](self.extra_material[name])
+                            total_inf = count_total_influence_df(self.percent_df, get_existence_df(inf_df), inf_df)
+                            inf_dict_extra[name] = sum(total_inf.sum())
+                        else:
+                            influence = self.material_influence_funcs[name][self.extra_material[name]]
+                            if influence is not None:
+                                inf_dict_extra[name] = influence
+                            else:
+                                inf_dict_extra[name] = 0.0
+
+                    self.ttgg_with_extra = self.primary_tg + sum(inf_dict_extra[i] for i in inf_dict_extra)
+
             else:
+                self.extra_ratio = None
                 self.extra_ratio_line.setText('')
                 self.mass_ratio_label_2.setText("Здесь будет \nсоотношение по массе\nc избытком")
                 self.extra_ew_label.setText("Здесь EW с избытком")
@@ -1913,14 +2006,9 @@ class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/final_re
                 )
                 grid.addWidget(label_name, row, 0)
                 grid.addWidget(label_percent, row, 1)
-
             label = QLabel()
             label.setText('------------------')
-
             grid.addWidget(QHLine(), row + 1, 0, row + 1, 2)
-
-
-
         add_receipt(self.gridLayout, self.main_window.final_receipt_no_extra)
         add_receipt(self.gridLayout_2, self.main_window.final_receipt_with_extra)
 
