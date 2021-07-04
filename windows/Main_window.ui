@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1075</width>
-    <height>576</height>
+    <height>595</height>
    </rect>
   </property>
   <property name="font">
@@ -186,7 +186,7 @@
     <property name="geometry">
      <rect>
       <x>820</x>
-      <y>360</y>
+      <y>420</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -199,7 +199,7 @@
     <property name="geometry">
      <rect>
       <x>900</x>
-      <y>360</y>
+      <y>420</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -541,7 +541,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>300</y>
+      <y>310</y>
       <width>81</width>
       <height>17</height>
      </rect>
@@ -562,7 +562,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>320</y>
+      <y>330</y>
       <width>71</width>
       <height>17</height>
      </rect>
@@ -575,7 +575,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>280</y>
+      <y>290</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -588,7 +588,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>350</y>
+      <y>360</y>
       <width>81</width>
       <height>23</height>
      </rect>
@@ -601,7 +601,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>370</y>
+      <y>380</y>
       <width>141</width>
       <height>81</height>
      </rect>
@@ -616,7 +616,7 @@ c избытком</string>
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>460</y>
+      <y>470</y>
       <width>171</width>
       <height>31</height>
      </rect>
@@ -749,7 +749,7 @@ c избытком</string>
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>510</y>
+      <y>520</y>
       <width>161</width>
       <height>31</height>
      </rect>
@@ -759,23 +759,18 @@ c избытком</string>
 </string>
     </property>
    </widget>
-   <widget class="QWidget" name="gridLayoutWidget_3">
+   <widget class="QPushButton" name="corrections_but">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>170</y>
+      <x>810</x>
+      <y>340</y>
       <width>151</width>
-      <height>101</height>
+      <height>31</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="warring_grid" rowminimumheight="0" columnminimumwidth="0">
-     <property name="sizeConstraint">
-      <enum>QLayout::SetNoConstraint</enum>
-     </property>
-     <property name="spacing">
-      <number>5</number>
-     </property>
-    </layout>
+    <property name="text">
+     <string>Корректировки</string>
+    </property>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>

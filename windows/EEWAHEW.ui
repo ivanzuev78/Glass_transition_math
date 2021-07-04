@@ -29,6 +29,9 @@
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout">
+     <property name="sizeConstraint">
+      <enum>QLayout::SetMinimumSize</enum>
+     </property>
      <property name="verticalSpacing">
       <number>15</number>
      </property>

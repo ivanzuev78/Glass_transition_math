@@ -1,3 +1,4 @@
+import math
 import sys
 from copy import copy
 from typing import Union, Callable, Optional
@@ -10,6 +11,7 @@ from PyQt5.QtWidgets import *
 from math import fabs, sqrt
 from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
+from additional_classes import MyQLabel, MyQGridLayout, MyQTabWidget
 from additional_funcs import TgMaterialInfluence, QHLine, create_tab_with_tables, get_existence_df, \
     count_total_influence_df
 
@@ -164,6 +166,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.coating_receipt_but,
             self.debug_but,
             self.fail_correction_but,
+            self.corrections_but,
             self.normalise_A,
             self.normalise_B,
             self.sintez_editor_but,
@@ -208,8 +211,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.style, self.style_combobox = f.read().split("$split$")
         self.set_buttom_stylies()
 
+        # Создаем свою grid для warring квадратиков
+        self.gridLayoutWidget_3 = QtWidgets.QWidget(self.centralwidget)
+        self.gridLayoutWidget_3.setGeometry(QtCore.QRect(10, 160, 151, 121))
+        self.gridLayoutWidget_3.setObjectName("gridLayoutWidget_3")
+        self.warring_grid = MyQGridLayout(self.gridLayoutWidget_3)
 
-        self.create_warring()
 
     def save_receipt_to_xl(self):
         # if self.material_comboboxes_a and self.material_comboboxes_b:
@@ -285,7 +292,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.font_size_big += 1
         self.set_font()
 
-
     def reduce_font(self):
         self.font_size -= 1
         self.font_size_big -= 1
@@ -327,26 +333,21 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def create_warring(self):
         a = QGridLayout()
         self.warring_grid.setSpacing(5)
+        self.warring_grid.addItem(QSpacerItem(1, 1), 1000, 0, 1000, 10)
         self.warrings_rects = []
-        len_of_rects = 15
+        len_of_rects = 89
         for i in range(len_of_rects):
-            col_numb = int(sqrt(len_of_rects)) + 1
-            row = i // col_numb
-            col = i % col_numb
-            rect = QLabel()
-            rect.setFixedHeight(10)
-            rect.setFixedWidth(10)
-            # rect.setText(f'{i}')
-            # rect.setScaledContents()
-            rect.setGeometry(QtCore.QRect(0, 0, 5, 5))
-            from random import randint
-            if randint(0,1):
-                rect.setStyleSheet("background-color: rgb(255, 0, 0);")
-            else:
-                rect.setStyleSheet("background-color: rgb(0, 255, 0);")
+            row = i // 10
+            col = i % 10
+            rect = MyQLabel('test')
             self.warring_grid.addWidget(rect, row, col)
 
+    def reset_settings(self):
 
+
+
+
+        pass
 
     # Кнопочки ------------------------------------------------------------------------------------------------
     def debug(self) -> None:
@@ -362,11 +363,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.debug_string.setText("Good")
 
     def update_but_func(self) -> None:
-        # self.save_receipt_to_xl()
-        d = {}
+        self.create_corrections_window()
 
+
+        pass
+
+
+    def create_corrections_window(self):
+        d = {}
         self.create_material_influence_funcs()
-        print(self.extra_material)
+
         for name in self.extra_material:
             inf_df = self.material_influence_funcs[name](self.extra_material[name])
             for nametg_df in inf_df:
@@ -376,8 +382,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 if nametg_df not in self.final_receipt_with_extra:
                     inf_df = inf_df.drop(nametg_df)
             d[name] = inf_df
-        self.window = create_tab_with_tables(d)
+        self.window = MyQTabWidget(d, self.percent_df, self.warring_grid, True)
         self.window.show()
+
+
+
 
     # Считающие функции ----------------------------------------------------------------------------------------
 
@@ -764,7 +773,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
             if self.tg_inf_dependence[name]:
                 inf_df = self.material_influence_funcs[name](base_receipt[name])
-                total_inf = count_total_influence_df(self.percent_df, get_existence_df(inf_df), inf_df)
+                total_inf = count_total_influence_df(self.percent_df, inf_df)
                 inf_dict[name] = sum(total_inf.sum())
             else:
                 influence = self.material_influence_funcs[name][base_receipt[name]]
@@ -994,7 +1003,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         line.setFixedWidth(65)
         line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
         line.editingFinished.connect(lambda: self.to_float(komponent))
-        line.editingFinished.connect(lambda: self.count_sum(komponent))
+        # line.editingFinished.connect(lambda: self.count_sum(komponent))
         row_count = grid.count()
 
         check = QCheckBox()
@@ -1477,6 +1486,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         def wrapper():
             self.extra_ratio_komponent = mat_type
             self.count_extra_labels()
+            self.count_extra_parameters()
 
         return wrapper
 
@@ -1588,7 +1598,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     for name in self.extra_material:
                         if self.tg_inf_dependence[name]:
                             inf_df = self.material_influence_funcs[name](self.extra_material[name])
-                            total_inf = count_total_influence_df(self.percent_df, get_existence_df(inf_df), inf_df)
+                            total_inf = count_total_influence_df(self.percent_df, inf_df)
                             inf_dict_extra[name] = sum(total_inf.sum())
                         else:
                             influence = self.material_influence_funcs[name][self.extra_material[name]]
@@ -1859,6 +1869,24 @@ class AddTgInfluence(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg_influ
         self.save_but.clicked.connect(self.save_to_db)
 
         # TODO добавить логику сохранения и подключить кнопку
+
+        self.button_list = [self.save_but, self.cancel_but]
+        oImage = QImage("fon.jpg")
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
+
+        with open("style.css", "r") as f:
+            self.style, self.style_combobox = f.read().split("$split$")
+
+        for wid in [self.material_type_combobox, self.material_combobox, self.material_combobox_epoxy,
+                    self.material_combobox_amine, ]:
+            wid.setStyleSheet(self.style_combobox)
+
+        for wid in [self.save_but, self.cancel_but]:
+            wid.setStyleSheet(self.style)
+
+
 
     def change_type_of_material(self):
         self.material_combobox.clear()
