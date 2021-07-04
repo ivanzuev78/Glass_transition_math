@@ -199,13 +199,14 @@ class QHLine(QFrame):
         self.setFrameShadow(QFrame.Sunken)
 
 
-def count_total_influence_df(df_percent: DataFrame, df_inf: DataFrame):
-    return normalize_df(df_percent * get_existence_df(df_inf)) * df_inf
+def count_total_influence_df(df_percent: DataFrame, df_inf: DataFrame, save_na: bool = False):
+    return normalize_df(df_percent * get_existence_df(df_inf, save_na)) * df_inf
 
 
-def get_existence_df(df: DataFrame) -> DataFrame:
+def get_existence_df(df: DataFrame, save_na: bool = False) -> DataFrame:
     df.iloc[(df[df.columns] > 0)] = 1
-    df.iloc[(df[df.columns].isna())] = 0
+    if not save_na:
+        df.iloc[(df[df.columns].isna())] = 0
     return df
 
 

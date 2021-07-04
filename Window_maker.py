@@ -125,6 +125,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.gridLayout_b.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
 
         # Подключаем кнопки
+
+        self.add_A_but.clicked.connect(self.reset_settings)
+        self.del_A_but.clicked.connect(self.reset_settings)
+        self.add_B_but.clicked.connect(self.reset_settings)
+        self.del_B_but.clicked.connect(self.reset_settings)
         self.add_A_but.clicked.connect(self.add_a_line)
         self.del_A_but.clicked.connect(self.del_a_line)
         self.add_B_but.clicked.connect(self.add_b_line)
@@ -212,6 +217,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.set_buttom_stylies()
 
         # Создаем свою grid для warring квадратиков
+        self.inf_window = None
         self.gridLayoutWidget_3 = QtWidgets.QWidget(self.centralwidget)
         self.gridLayoutWidget_3.setGeometry(QtCore.QRect(10, 160, 151, 121))
         self.gridLayoutWidget_3.setObjectName("gridLayoutWidget_3")
@@ -328,7 +334,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def create_final_receipt_window(self):
         self.count_final_receipt()
-        self.final_receipt_window = FinalReceiptWindow(self)
+        self.final_receipt_window = FinalReceiptWindow(self, self.final_receipt_no_extra, self.final_receipt_with_extra)
 
     def create_warring(self):
         a = QGridLayout()
@@ -343,8 +349,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.warring_grid.addWidget(rect, row, col)
 
     def reset_settings(self):
-
-
+        self.inf_window = None
+        self.final_receipt_window = None
 
 
         pass
@@ -363,7 +369,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.debug_string.setText("Good")
 
     def update_but_func(self) -> None:
-        self.create_corrections_window()
+        if self.inf_window is not None:
+            self.inf_window.show()
+
 
 
         pass
@@ -382,8 +390,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 if nametg_df not in self.final_receipt_with_extra:
                     inf_df = inf_df.drop(nametg_df)
             d[name] = inf_df
-        self.window = MyQTabWidget(d, self.percent_df, self.warring_grid, True)
-        self.window.show()
+
+        if self.inf_window is None:
+            self.inf_window = MyQTabWidget(d, self.percent_df, self.warring_grid, True)
+        else:
+            self.inf_window.update_tabs(d, self.percent_df)
+
 
 
 
@@ -397,8 +409,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.create_df_percent()
         self.count_tg()
         self.count_final_receipt()
+        if self.final_receipt_window is not None:
+            self.final_receipt_window.update_percents(self.final_receipt_no_extra, self.final_receipt_with_extra)
         self.count_extra_labels()
         self.count_tg_inf()
+        self.create_corrections_window()
 
     def create_df_percent(self):
         # Вспомогательная функция, которая учитывает ступенчатый синтез
@@ -595,10 +610,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     df_eq_matrix.loc[pair[0]] = [
                         0 for _ in range(len(df_eq_matrix.columns.values.tolist()))
                     ]
-                print("!!!", df_eq_matrix[pair[1]][pair[0]], "|", pair[2])
-                print()
+
                 df_eq_matrix[pair[1]][pair[0]] += pair[2]
-                print("!!!", df_eq_matrix[pair[1]][pair[0]])
+
         else:
             for pair in b_result_eq_table:
                 if pair[0] not in df_eq_matrix.columns.values.tolist():
@@ -607,9 +621,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     ]
                 df_eq_matrix[pair[0]][pair[1]] += pair[2]
 
-
-
-        print("-----------------")
         percent_df = normalize_df(df_eq_matrix)
 
         # Сохраняем матрицу процентов пар
@@ -736,10 +747,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         for name in final_receipt_no_extra:
             final_receipt_no_extra[name] = final_receipt_no_extra[name] / total_no_extra
 
-        print('final_receipt_no_extra\n', final_receipt_no_extra)
-        print('final_receipt_with_extra\n', final_receipt_with_extra)
-        print('extra_material\n', extra_material)
-
         self.final_receipt_with_extra = final_receipt_with_extra
         self.final_receipt_no_extra = final_receipt_no_extra
         self.extra_material = extra_material
@@ -815,7 +822,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             #                 dict_inf["k4"],
             #                 dict_inf["k5"],
             #             )(receipt[name] * 100)
-            #             print(influence)
             #             df_current_correction[dict_inf["amine"]][
             #                 dict_inf["epoxy"]
             #             ] = influence
@@ -823,7 +829,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             #         elif dict_inf["amine"] == "None" and dict_inf["epoxy"] == "None":
             #             # TODO использовать это в выборе влияния
             #             pass
-            #     print(name, df_current_correction)
             #     for amine in df_inf_exists.columns.values.tolist():
             #         for epoxy in df_inf_exists.index.tolist():
             #             if df_inf_exists[amine][epoxy] == 0:
@@ -834,12 +839,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             #         normalize_df(df_inf_exists * self.percent_df)
             #         * df_current_correction
             #     )
-            #     print("поправка", sum(total_tg_inf.sum()))
             #     self.primary_tg = round(
             #         self.current_tg_no_correction + sum(total_tg_inf.sum()), 1
             #     )
-            #
-            #     print(inf_not_exists)
 
     def create_material_influence_funcs(self):
         for name in self.final_receipt_no_extra:
@@ -982,6 +984,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         materia_typel_combobox = QComboBox()
         materia_typel_combobox.addItems(self.types_of_items)
         materia_typel_combobox.setFixedWidth(60)
+        materia_typel_combobox.currentIndexChanged.connect(self.reset_settings)
+
         materia_typel_combobox.currentIndexChanged.connect(
             self.change_list_of_materials(material_combobox, materia_typel_combobox)
         )
@@ -997,6 +1001,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.reset_choose_pair_react_window
         )
         material_combobox.currentIndexChanged.connect(self.reset_tg_settings)
+        material_combobox.currentIndexChanged.connect(self.reset_settings)
 
         line = QLineEdit()
         line.setText("0.00")
@@ -2001,7 +2006,7 @@ class TgViewWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/glass_view.ui"
 
 
 class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/final_receipt.ui")[0]):
-    def __init__(self, main_window: MyMainWindow):
+    def __init__(self, main_window: MyMainWindow, receipt_no_extra, receipt_with_extra):
         super(FinalReceiptWindow, self).__init__()
         self.setupUi(self)
         self.main_window = main_window
@@ -2012,12 +2017,13 @@ class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/final_re
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)
-
-        self.fill_table()
+        self.receipt_base = {}
+        self.receipt_extra = {}
+        self.fill_table(receipt_no_extra, receipt_with_extra)
         self.show()
 
-    def fill_table(self):
-        def add_receipt(grid, receipt):
+    def fill_table(self, receipt_no_extra, receipt_with_extra):
+        def add_receipt(grid, receipt, save_dict):
             # Отрисовываем рецептуру
             for row, name in enumerate(receipt):
                 label_name = QLabel()
@@ -2034,11 +2040,24 @@ class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/final_re
                 )
                 grid.addWidget(label_name, row, 0)
                 grid.addWidget(label_percent, row, 1)
+                save_dict[name] = label_percent
             label = QLabel()
             label.setText('------------------')
             grid.addWidget(QHLine(), row + 1, 0, row + 1, 2)
-        add_receipt(self.gridLayout, self.main_window.final_receipt_no_extra)
-        add_receipt(self.gridLayout_2, self.main_window.final_receipt_with_extra)
+        # add_receipt(self.gridLayout, self.main_window.final_receipt_no_extra, self.receipt_base)
+        # add_receipt(self.gridLayout_2, self.main_window.final_receipt_with_extra, self.receipt_extra)
+        add_receipt(self.gridLayout, receipt_no_extra, self.receipt_base)
+        add_receipt(self.gridLayout_2, receipt_with_extra, self.receipt_extra)
+
+    def update_percents(self, receipt_no_extra, receipt_with_extra):
+        for name in receipt_no_extra:
+            self.receipt_base[name].setText(
+                    str(round(receipt_no_extra[name] * 100, 4))
+                )
+            self.receipt_extra[name].setText(
+                    str(round(receipt_with_extra[name] * 100, 4))
+                )
+
 
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:

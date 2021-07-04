@@ -1,4 +1,5 @@
 from copy import copy
+from math import sqrt
 from typing import Optional, Union
 
 from PyQt5 import QtCore, QtWidgets
@@ -18,6 +19,7 @@ class MyQLabel(QLabel):
         self.__extra_cor = True
         self.setFixedHeight(10)
         self.setFixedWidth(10)
+        self.hint = hint
         self.setToolTip(hint)
         self.set_color()
 
@@ -47,6 +49,10 @@ class MyQLabel(QLabel):
         self.__extra_cor = value
         self.set_color()
 
+    def __del__(self):
+        print(f'MyQLabel {self.hint} deleted')
+        del self
+
 
 class MyQGridLayout(QGridLayout):
     def __init__(self, *args, **kwargs):
@@ -71,6 +77,10 @@ class MyQGridLayout(QGridLayout):
     def update_items(self):
         pass
 
+    def del_item(self, item):
+        index = self.all_labels.index(item)
+        self.itemAt(index+1).widget().setParent(None)
+        self.all_labels.pop(index)
 
 class MyQTabWidget(QTabWidget):
     def __init__(self, dict_of_df_inf: dict, percent_df: DataFrame, grid: MyQGridLayout, main_inf: bool, *args, **kwargs):
@@ -79,12 +89,18 @@ class MyQTabWidget(QTabWidget):
         # TODO setStyle MyQTabWidget
 
         self.all_tabs = {}
+        self.resize(500, 300)
 
         for name in dict_of_df_inf:
             table = MyQTabWidgetOneMaterial(name, dict_of_df_inf[name], percent_df, grid, main_inf)
             self.all_tabs[name] = table
             self.addTab(table, f"{name}")
 
+    def update_tabs(self, dict_of_df_inf: dict, percent_df: DataFrame) -> None:
+        for name in dict_of_df_inf:
+            if name not in self.all_tabs:
+                continue
+            self.all_tabs[name].update_tables(dict_of_df_inf[name], percent_df)
 
 
 class MyQTabWidgetOneMaterial(QTabWidget):
@@ -96,7 +112,7 @@ class MyQTabWidgetOneMaterial(QTabWidget):
         self.inf_tab = MyQTableWidget(inf_df, name, grid, main_inf=main_inf)
         self.addTab(self.inf_tab, "Полное влияние")
 
-        inf_percent_df = count_total_influence_df(percent_df, inf_df)
+        inf_percent_df = count_total_influence_df(percent_df, inf_df, save_na=True)
 
         self.inf_percent_tab = MyQTableWidget(inf_percent_df)
         self.addTab(self.inf_percent_tab, "Влияние на рецептуру")
@@ -108,6 +124,13 @@ class MyQTabWidgetOneMaterial(QTabWidget):
         self.percent_of_inf_tab = MyQTableWidget(percent_of_inf_df, heatmap=True)
         self.addTab(self.percent_of_inf_tab, "Процент влияний")
 
+    def update_tables(self, inf_df, percent_df):
+        self.inf_tab.update_table(inf_df)
+        inf_percent_df = count_total_influence_df(percent_df, inf_df, save_na=True)
+        self.inf_percent_tab.update_table(inf_percent_df)
+        percent_of_inf_df = normalize_df(inf_percent_df) * 100
+        percent_of_inf_df = percent_of_inf_df.applymap(lambda x: round(x, 2), na_action='ignore')
+        self.percent_of_inf_tab.update_table(percent_of_inf_df)
 
 
 class MyQTableWidget(QTableWidget):
@@ -115,7 +138,7 @@ class MyQTableWidget(QTableWidget):
                  grid: Optional[MyQGridLayout] = None, heatmap=False, main_inf=False, *args, **kwargs):
         super(MyQTableWidget, self).__init__(*args, **kwargs)
 
-        self.df_with_items = copy(df)
+        self.df_with_items = DataFrame(index=df.index.tolist(), columns=df.columns.values.tolist())
 
         headers = df.columns.values.tolist()
         self.setColumnCount(len(headers))
@@ -128,19 +151,20 @@ class MyQTableWidget(QTableWidget):
             for index_amine, amine in enumerate(headers):
                 if grid is not None:
                     item = MyQTableWidgetItem(df[amine][epoxy], f'{name}: {epoxy} | {amine}', grid, heatmap, main_inf)
-                    self.df_with_items[amine][epoxy] = item
+                    self.df_with_items.loc[epoxy][amine] = item
                     self.setItem(index_epoxy, index_amine, item)
                 else:
                     item = MyQTableWidgetItem(df[amine][epoxy], heatmap=heatmap)
-                    self.df_with_items[amine][epoxy] = item
+                    self.df_with_items.loc[epoxy][amine] = item
                     self.setItem(index_epoxy, index_amine, item)
 
         # TODO setStyle MyQTableWidget
+        pass
 
     def update_table(self, df: DataFrame):
         for epoxy in df.index.tolist():
             for amine in df.columns.values.tolist():
-                self.df_with_items[amine][epoxy].value = df[amine][epoxy]
+                self.df_with_items.loc[epoxy][amine].set_value(df[amine][epoxy])
 
 
 
@@ -150,11 +174,9 @@ class MyQTableWidgetItem(QTableWidgetItem):
                  heatmap=None, main_inf: bool=False, *args, **kwargs):
         super(MyQTableWidgetItem, self).__init__(*args, **kwargs)
 
-
         self.heatmap = heatmap
         self.hint = hint
         self.main_inf = main_inf
-
         self.__value = None
         self.setFlags(QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
         self.grid = grid
@@ -165,7 +187,7 @@ class MyQTableWidgetItem(QTableWidgetItem):
         else:
             self.label = None
 
-        self.value = value
+        self.set_value(value)
 
     def set_label_correction(self, value):
         if self.label is not None:
@@ -178,12 +200,11 @@ class MyQTableWidgetItem(QTableWidgetItem):
     def value(self):
         return self.__value
 
-    @value.setter
-    def value(self, value):
+    def set_value(self, value):
         self.__value = value
         if not self.heatmap:
             if str(value) != 'nan':
-                self.setText(str(round(value, 4)))
+                self.setText(str(round(value, 2)))
                 self.setBackground(QColor('#00F000'))
                 self.set_label_correction(True)
             else:
@@ -193,35 +214,20 @@ class MyQTableWidgetItem(QTableWidgetItem):
         else:
             # TODO Подобрать цвета для градиента
             if str(value) != 'nan':
-                if 0 <= value <= 5:
-                    color = '#200000'
-                elif 5 < value <= 10:
-                    color = '#300000'
-                elif 10 < value <= 15:
-                    color = '#400000'
-                elif 15 < value <= 20:
-                    color = '#600000'
-                elif 20 < value <= 30:
-                    color = '#800000'
-                elif 30 < value <= 40:
-                    color = '#A00000'
-                elif 40 < value <= 50:
-                    color = '#A00000'
-                elif 50 < value <= 70:
-                    color = '#A00000'
-                else:
-                    color = '#F00000'
-                self.setBackground(QColor(color))
+                value = float(value)
+                color = (255, int(255 - 25.5 * sqrt(value)), int(255 - 25.5 * sqrt(value)))
+                self.setBackground(QColor(*color))
                 self.setText(str(round(value, 2)) + ' %')
             else:
-                self.setBackground(QColor('#000000'))
+                self.setBackground(QColor('#FFFFFF'))
                 self.setText('N/A')
 
         # TODO построить heatmap для процентов влияния
 
     def __del__(self):
         if self.label is not None:
+            self.grid.del_item(self.label)
             del self.label
-            self.grid.update_items()
+
         del self
 
