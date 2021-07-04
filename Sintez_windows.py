@@ -47,6 +47,8 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         self.material_comboboxes = []
         self.material_percent_lines = []
 
+
+
         self.label.setText('Компонент ' + komponent)
 
         if komponent == "A":
@@ -94,6 +96,8 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)
+
+        self.resize(680, 85 + 38 * len(self.material_types))
 
         self.change_font()
         # self.line = QtWidgets.QFrame(self.centralwidget)

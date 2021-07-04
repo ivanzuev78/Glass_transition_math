@@ -120,7 +120,6 @@ class MyQTabWidgetOneMaterial(QTabWidget):
         percent_of_inf_df = normalize_df(inf_percent_df) * 100
         percent_of_inf_df = percent_of_inf_df.applymap(lambda x: round(x, 2), na_action='ignore')
 
-        # TODO передать heatmap=True, когда она будет прописана
         self.percent_of_inf_tab = MyQTableWidget(percent_of_inf_df, heatmap=True)
         self.addTab(self.percent_of_inf_tab, "Процент влияний")
 
@@ -212,7 +211,6 @@ class MyQTableWidgetItem(QTableWidgetItem):
                 self.setBackground(QColor('red'))
                 self.set_label_correction(False)
         else:
-            # TODO Подобрать цвета для градиента
             if str(value) != 'nan':
                 value = float(value)
                 color = (255, int(255 - 25.5 * sqrt(value)), int(255 - 25.5 * sqrt(value)))
@@ -221,8 +219,6 @@ class MyQTableWidgetItem(QTableWidgetItem):
             else:
                 self.setBackground(QColor('#FFFFFF'))
                 self.setText('N/A')
-
-        # TODO построить heatmap для процентов влияния
 
     def __del__(self):
         if self.label is not None:

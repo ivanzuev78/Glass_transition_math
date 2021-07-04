@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>706</width>
+    <width>560</width>
     <height>439</height>
    </rect>
   </property>
@@ -53,7 +53,7 @@
    <widget class="QWidget" name="gridLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>290</x>
       <y>70</y>
       <width>241</width>
       <height>511</height>
@@ -71,14 +71,14 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>290</x>
       <y>30</y>
       <width>331</width>
       <height>21</height>
      </rect>
     </property>
     <property name="text">
-     <string>Конечнеая рецептура покрытия с избытком</string>
+     <string>Конечнеая рецептура с избытком</string>
     </property>
    </widget>
   </widget>

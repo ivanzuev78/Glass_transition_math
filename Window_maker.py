@@ -17,7 +17,7 @@ from additional_funcs import TgMaterialInfluence, QHLine, create_tab_with_tables
 
 from load_and_save import save_receipt
 
-DB_NAME = "material.db"
+DB_NAME = "material_for_test.db"
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
@@ -64,7 +64,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.tg_df: Optional[pd.DataFrame] = None
         self.all_pairs_na_tg: Optional[dict] = None
 
-        # TODO добавить сброс при изменении компонентов
         self.pair_react_window = None
         self.pair_react_list_a = []
         self.pair_react_list_b = []
@@ -351,22 +350,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def reset_settings(self):
         self.inf_window = None
         self.final_receipt_window = None
-
+        self.pair_react_window = None
+        self.material_influence_funcs = None
 
         pass
 
     # Кнопочки ------------------------------------------------------------------------------------------------
     def debug(self) -> None:
-        # self.count_glass()
-        # self.enable_recept("A")
-        # self.add_choose_pair_react_window()
-        #
-        # self.count_tg_inf()
-        self.set_test_receipt()
-        # self.create_material_influence_funcs()
-        #
-        # self.reduce_font()
+        # self.set_test_receipt()
         self.debug_string.setText("Good")
+        print(self.table.size())
 
     def update_but_func(self) -> None:
         if self.inf_window is not None:
@@ -419,7 +412,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # Вспомогательная функция, которая учитывает ступенчатый синтез
         def count_reaction_in_komponent(names_list, eq_list, pair_react):
 
-            # TODO Реализовать интерфейс для выбора взаимодействующий веществ + проверка, что все прореагировали
+            # TODO Реализовать интерфейс для выбора взаимодействующий веществ (есть) + проверка, что все прореагировали
             # pair_react = [('KER-828', 'ИФДА'), ('KER-828', 'MXDA')]
             # на первом месте тот, кто прореагирует полностью
             # если наоборот, то поменять нужно
@@ -526,7 +519,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         if sum(b_eq) > 0:
             pairs_b = [(i[1], i[0]) for i in pairs_b]
 
-        # TODO необходимо передать списки со взаимодействиями
         a_eq, a_result_eq_table = count_reaction_in_komponent(
             a_names, a_eq, pairs_a
         )
@@ -761,8 +753,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         all_inf_mat = dict()
         all_inf_corrections = dict()
 
-        # TODO Сброить переменную self.material_influence_funcs если менялись названия компонентов и удалить строку
-        self.create_material_influence_funcs()
         if not self.material_influence_funcs:
             self.create_material_influence_funcs()
 
@@ -827,7 +817,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             #             ] = influence
             #
             #         elif dict_inf["amine"] == "None" and dict_inf["epoxy"] == "None":
-            #             # TODO использовать это в выборе влияния
+            # TODO использовать это в выборе влияния
+
             #             pass
             #     for amine in df_inf_exists.columns.values.tolist():
             #         for epoxy in df_inf_exists.index.tolist():
@@ -1276,6 +1267,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             # Добавление строки
             for j in range(table.columnCount()):
                 table.setItem(i, j, QTableWidgetItem(str(row[1][j])))
+
+        table.resize(max(map(len, rows)) * 8 + 16 + 100 * len(headers), 40 + 30 * len(rows))
         table.show()
         self.table = table
         pass
@@ -2020,10 +2013,12 @@ class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/final_re
         self.receipt_base = {}
         self.receipt_extra = {}
         self.fill_table(receipt_no_extra, receipt_with_extra)
+
+        self.resize(560, 80 + len(self.receipt_base) * 30)
         self.show()
 
     def fill_table(self, receipt_no_extra, receipt_with_extra):
-        def add_receipt(grid, receipt, save_dict):
+        def add_receipt(grid: QGridLayout, receipt, save_dict):
             # Отрисовываем рецептуру
             for row, name in enumerate(receipt):
                 label_name = QLabel()
@@ -2041,9 +2036,7 @@ class FinalReceiptWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/final_re
                 grid.addWidget(label_name, row, 0)
                 grid.addWidget(label_percent, row, 1)
                 save_dict[name] = label_percent
-            label = QLabel()
-            label.setText('------------------')
-            grid.addWidget(QHLine(), row + 1, 0, row + 1, 2)
+
         # add_receipt(self.gridLayout, self.main_window.final_receipt_no_extra, self.receipt_base)
         # add_receipt(self.gridLayout_2, self.main_window.final_receipt_with_extra, self.receipt_extra)
         add_receipt(self.gridLayout, receipt_no_extra, self.receipt_base)
