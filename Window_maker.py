@@ -17,7 +17,7 @@ from additional_funcs import TgMaterialInfluence, QHLine, create_tab_with_tables
 
 from load_and_save import save_receipt
 
-DB_NAME = "material_for_test.db"
+DB_NAME = "material.db"
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
@@ -357,9 +357,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     # Кнопочки ------------------------------------------------------------------------------------------------
     def debug(self) -> None:
-        # self.set_test_receipt()
+        self.set_test_receipt()
         self.debug_string.setText("Good")
-        print(self.table.size())
+        # print(self.table.size())
 
     def update_but_func(self) -> None:
         if self.inf_window is not None:
