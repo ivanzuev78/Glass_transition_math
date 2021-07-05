@@ -1,4 +1,5 @@
 import logging
+import math
 import sqlite3
 from functools import cache
 from typing import List
@@ -119,6 +120,8 @@ def get_ew_by_name(material: str, mat_type: str, db_name: str):
         return cursor.execute(
             f"SELECT AHEW FROM Amine WHERE name == '{material}'"
         ).fetchall()[0][0]
+    else:
+        return math.inf
 
 
 def get_tg_influence(mat_name, db_name):
