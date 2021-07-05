@@ -17,7 +17,7 @@ import pytest
 
 def test_eew_a():
     app = QApplication(sys.argv)
-    DB_NAME='material_for_test.db'
+    DB_NAME = "material_for_test.db"
     self = MyMainWindow(DB_NAME)
     self.add_line("A")
     self.add_line("A")
@@ -33,7 +33,7 @@ def test_eew_a():
 
 def test_eew_b():
     app = QApplication(sys.argv)
-    DB_NAME='material_for_test.db'
+    DB_NAME = "material_for_test.db"
     self = MyMainWindow(DB_NAME)
     self.add_line("B")
     self.add_line("B")
@@ -48,7 +48,7 @@ def test_eew_b():
 
 def test_ahew_a():
     app = QApplication(sys.argv)
-    DB_NAME='material_for_test.db'
+    DB_NAME = "material_for_test.db"
     self = MyMainWindow(DB_NAME)
     self.add_line("A")
     self.add_line("A")
@@ -63,7 +63,7 @@ def test_ahew_a():
 
 def test_ahew_b():
     app = QApplication(sys.argv)
-    DB_NAME='material_for_test.db'
+    DB_NAME = "material_for_test.db"
     self = MyMainWindow(DB_NAME)
     self.add_line("B")
     self.add_line("B")
@@ -78,7 +78,7 @@ def test_ahew_b():
 
 def test_primary_tg():
     app = QApplication(sys.argv)
-    DB_NAME='material_for_test.db'
+    DB_NAME = "material_for_test.db"
     self = MyMainWindow(DB_NAME)
     self.add_line("A")
     self.add_line("A")

@@ -90,7 +90,7 @@ class TgMaterialInfluence:
 def create_tab_with_tables(dict_of_df: Dict) -> QTabWidget:
 
     tabWidget = QTabWidget()
-    tabWidget.setWindowTitle('Спектр влияний')
+    tabWidget.setWindowTitle("Спектр влияний")
     tabWidget.setMovable(True)
     tabWidget.setGeometry(QRect(0, 0, 281, 251))
     tabWidget.setObjectName("tabWidget")
@@ -168,8 +168,6 @@ def create_tab_with_tables(dict_of_df: Dict) -> QTabWidget:
         tabWidget.addTab(table, f"{name}")
         tabs.append(table)
 
-
-
         for index_epoxy, epoxy in enumerate(rows):
             for index_amine, amine in enumerate(headers):
                 cell_exists = df_exists[amine][epoxy]
@@ -178,16 +176,13 @@ def create_tab_with_tables(dict_of_df: Dict) -> QTabWidget:
                 if cell_exists != 0:
                     item = QTableWidgetItem(str(round(cell_percent, 4)))
                     item.setFlags(QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
-                    item.setBackground(QColor('#00F000'))
+                    item.setBackground(QColor("#00F000"))
                     table.setItem(index_epoxy, index_amine, item)
                 else:
-                    item = QTableWidgetItem('N/A')
+                    item = QTableWidgetItem("N/A")
                     item.setFlags(QtCore.Qt.ItemIsDragEnabled | QtCore.Qt.ItemIsEnabled)
-                    item.setBackground(QColor('red'))
+                    item.setBackground(QColor("red"))
                     table.setItem(index_epoxy, index_amine, item)
-
-
-
 
     return tabWidget
 
@@ -199,7 +194,9 @@ class QHLine(QFrame):
         self.setFrameShadow(QFrame.Sunken)
 
 
-def count_total_influence_df(df_percent: DataFrame, df_inf: DataFrame, save_na: bool = False):
+def count_total_influence_df(
+    df_percent: DataFrame, df_inf: DataFrame, save_na: bool = False
+):
     return normalize_df(df_percent * get_existence_df(df_inf, save_na)) * df_inf
 
 
@@ -217,12 +214,9 @@ if __name__ == "__main__":
     amine_list2 = ["ИФДА", "PACM"]
 
     index_1 = [str(i) for i in range(5)]
-    colums_1 = [i for i in 'abcde']
+    colums_1 = [i for i in "abcde"]
     index_2 = [str(i) for i in range(8)]
-    colums_2 = [i for i in 'abcdefg']
+    colums_2 = [i for i in "abcdefg"]
 
     df_1 = DataFrame(index=index_1, columns=colums_1)
     print(df_1)
-
-
-

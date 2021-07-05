@@ -47,13 +47,11 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         self.material_comboboxes = []
         self.material_percent_lines = []
 
-
-
-        self.label.setText('Компонент ' + komponent)
+        self.label.setText("Компонент " + komponent)
 
         if komponent == "A":
-            self.setWindowTitle('Редактирование рецептуры Компонента А')
-            self.label.setText('Редактирование рецептуры Компонента А')
+            self.setWindowTitle("Редактирование рецептуры Компонента А")
+            self.label.setText("Редактирование рецептуры Компонента А")
             self.main_window_material_comboboxes = (
                 self.main_window.material_comboboxes_a
             )
@@ -63,8 +61,8 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
             )
 
         elif komponent == "B":
-            self.setWindowTitle('Редактирование рецептуры Компонента Б')
-            self.label.setText('Редактирование рецептуры Компонента Б')
+            self.setWindowTitle("Редактирование рецептуры Компонента Б")
+            self.label.setText("Редактирование рецептуры Компонента Б")
             self.main_window_material_comboboxes = (
                 self.main_window.material_comboboxes_b
             )
@@ -110,7 +108,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         # self.line_2.setFrameShape(QtWidgets.QFrame.HLine)
         # self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         # self.line_2.setObjectName("line_2")
-
 
     def change_font(self):
 
