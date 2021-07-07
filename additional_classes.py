@@ -12,11 +12,11 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QSpacerItem,
 )
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import numpy as np
 
 from Materials import normalize_df, get_ew_by_name
-from Window_maker import MyMainWindow
+
 from additional_funcs import count_total_influence_df
 
 
@@ -89,6 +89,27 @@ class MyQGridLayout(QGridLayout):
         index = self.all_labels.index(item)
         self.itemAt(index + 1).widget().setParent(None)
         self.all_labels.pop(index)
+
+
+class MyMainQTabWidget(QTabWidget):
+    def __init__(
+        self,
+        dict_of_df_inf_base: dict,
+        dict_of_df_inf_extra: dict,
+        percent_df: DataFrame,
+        grid: MyQGridLayout,
+        *args,
+        **kwargs,
+    ):
+        super(MyMainQTabWidget, self).__init__(*args, **kwargs)
+        self.base_tab = MyQTabWidget(dict_of_df_inf_base, percent_df, grid, True)
+        self.extra_tab = MyQTabWidget(dict_of_df_inf_extra, percent_df, grid, False)
+        self.addTab(self.base_tab, "Без избытка")
+        self.addTab(self.extra_tab, "С избытком")
+
+    def update_tabs(self, dict_of_df_inf_base, dict_of_df_inf_extra, percent_df):
+        self.base_tab.update_tabs(dict_of_df_inf_base, percent_df)
+        self.extra_tab.update_tabs(dict_of_df_inf_extra, percent_df)
 
 
 class MyQTabWidget(QTabWidget):
@@ -211,7 +232,11 @@ class MyQTableWidget(QTableWidget):
     def update_table(self, df: DataFrame):
         for epoxy in df.index.tolist():
             for amine in df.columns.values.tolist():
-                self.df_with_items.loc[epoxy][amine].set_value(df[amine][epoxy])
+                item = self.df_with_items.loc[epoxy][amine]
+                if not isinstance(item, MyQTableWidgetItem):
+                    continue
+                else:
+                    item.set_value(df[amine][epoxy])
 
 
 class MyQTableWidgetItem(QTableWidgetItem):
@@ -254,6 +279,9 @@ class MyQTableWidgetItem(QTableWidgetItem):
         return self.__value
 
     def set_value(self, value):
+        if isinstance(value, (Series, DataFrame)):
+            self.setBackground(QColor("#000000"))
+            return None
         self.__value = value
         if not self.heatmap:
             if str(value) != "nan":
@@ -287,7 +315,7 @@ class MyQTableWidgetItem(QTableWidgetItem):
 
 
 class ReceiptCounter:
-    def __init__(self, main_window: MyMainWindow):
+    def __init__(self, main_window: "MyMainWindow"):
 
         self.main_window = main_window
         self.material_types_a = []
@@ -303,6 +331,8 @@ class ReceiptCounter:
         self.ew_b = 0
 
     def change_receipt(self, component, material_types, material_names):
+        if '' in material_names:
+            return None
         if component == "A":
             self.material_types_a = material_types
             self.material_names_a = material_names
@@ -314,8 +344,8 @@ class ReceiptCounter:
                     if mat_type == "Amine":
                         ew = -ew
                     self.ew_dict[name] = ew
-                    ew_line_a.append(ew)
-                self.ew_line_a = np.array(ew_line_a)
+                ew_line_a.append(self.ew_dict[name])
+            self.ew_line_a = np.array(ew_line_a)
 
         elif component == "B":
             self.material_types_b = material_types
@@ -328,14 +358,14 @@ class ReceiptCounter:
                     if mat_type == "Amine":
                         ew = -ew
                     self.ew_dict[name] = ew
-                ew_line_b.append(ew)
+                ew_line_b.append(self.ew_dict[name])
             self.ew_line_b = np.array(ew_line_b)
 
     def count_ew(self, component):
         if component == "A":
             eq = sum(self.percents_a / self.ew_line_a)
             if eq != 0:
-                ew = 1 / eq
+                ew = 100 / eq
                 self.main_window.a_ew = ew
                 self.ew_a = ew
             else:
@@ -345,23 +375,44 @@ class ReceiptCounter:
         elif component == "B":
             eq = sum(self.percents_b / self.ew_line_b)
             if eq != 0:
-                ew = 1 / eq
-                self.main_window.a_ew = ew
+                ew = 100 / eq
+                self.main_window.ew_b = ew
                 self.ew_b = ew
             else:
-                self.main_window.a_ew = 0
+                self.main_window.ew_b = 0
                 self.ew_b = 0
 
     def set_percent(self, line, percent, component):
         if component == "A":
             self.percents_a[line] = percent
+            self.count_parameters()
 
-
-        if component == "b":
+        elif component == "B":
             self.percents_b[line] = percent
+            self.count_parameters()
 
-
-    def count_parametrs(self):
+    def count_parameters(self):
         sum_a = self.percents_a.sum()
+        self.main_window.set_sum(sum_a, "A")
         sum_b = self.percents_b.sum()
+        self.main_window.set_sum(sum_b, "B")
+
+        if round(sum_a, 2) == 100:
+            self.count_ew('A')
+            self.main_window.a_ew = self.ew_a
+        else:
+            self.main_window.a_ew = 0
+
+        if round(sum_b, 2) == 100:
+            self.count_ew('B')
+            self.main_window.ew_b = self.ew_b
+        else:
+            self.main_window.ew_b = 0
+
+
+        if round(sum_a, 2) == 100 and round(sum_b, 2) == 100:
+            self.main_window.count_all_parameters()
+
+    def get_sum(self, component):
+            return self.percents_a.sum() if component == "A" else self.percents_b.sum()
 

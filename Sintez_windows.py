@@ -86,6 +86,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 index,
                 self.main_window_material_types[index].currentText(),
                 widget.currentText(),
+                komponent,
                 percent,
             )
 
@@ -176,7 +177,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         return wrapper
 
     def add_line(
-        self, numb_of_line, mat_type, mat_name, percent=None, x=30, interval=50
+        self, numb_of_line, mat_type, mat_name, component, percent=None,
     ):
 
         items_type = self.material_types
@@ -198,7 +199,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         materia_type_combobox.currentIndexChanged.connect(
             self.main_window.change_list_of_materials(
-                material_combobox, materia_type_combobox
+                material_combobox, materia_type_combobox, component
             )
         )
 

@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import *
 from math import fabs, sqrt
 from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
-from additional_classes import MyQLabel, MyQGridLayout, MyQTabWidget
+from additional_classes import MyQLabel, MyQGridLayout, MyQTabWidget, ReceiptCounter, MyMainQTabWidget
 from additional_funcs import (
     TgMaterialInfluence,
     QHLine,
@@ -50,6 +50,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.__mass_ratio = None
         self.sum_a = 0
         self.sum_b = 0
+        self.ew_dict = {}
+
+        self.receipt_counter = ReceiptCounter(self)
 
         # Словарь с считалками влияния материалов на стекло
         # self.material_influence_funcs[material](percent) для попарного влияния
@@ -249,13 +252,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             [i.text() for i in self.material_percent_lines_a],
             [i.text() for i in self.material_percent_lines_b],
             [
-                get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
+                self.get_ew_by_name_local(mat.currentText(), mat_type.currentText())
                 for mat_type, mat in zip(
                     self.material_a_types, self.material_comboboxes_a
                 )
             ],
             [
-                get_ew_by_name(mat.currentText(), mat_type.currentText(), self.db_name)
+                self.get_ew_by_name_local(mat.currentText(), mat_type.currentText())
                 for mat_type, mat in zip(
                     self.material_b_types, self.material_comboboxes_b
                 )
@@ -313,9 +316,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.set_font()
         # self.set_buttom_stylies()
 
-    def reset_tg_settings(self) -> None:
-        self.tg_df = None
-
     def count_extra_parameters(self) -> None:
         pass
 
@@ -339,7 +339,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.count_sum("A")
         self.count_sum("B")
 
-        self.count_all_parameters()
+        self.receipt_counter.change_receipt('A', [line.currentText() for line in self.material_a_types],
+                                            [line.currentText() for line in self.material_comboboxes_a])
+        self.receipt_counter.change_receipt('B', [line.currentText() for line in self.material_b_types],
+                                            [line.currentText() for line in self.material_comboboxes_b])
 
     def create_final_receipt_window(self):
         self.count_final_receipt()
@@ -360,6 +363,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.warring_grid.addWidget(rect, row, col)
 
     def reset_settings(self):
+        self.tg_df = None
         self.inf_window = None
         self.final_receipt_window = None
         self.pair_react_window = None
@@ -386,8 +390,23 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def update_corrections_window(self):
         # TODO оптимизировать кусок кода. а то каждый раз всё это просчитывается 2
-        d = {}
-        self.create_material_influence_funcs()
+        dict_of_df_inf_base = {}
+        dict_of_df_inf_extra = {}
+        self.update_material_influence_funcs()
+
+        names_no_extra = [name for name in self.final_receipt_no_extra
+                          if self.receipt_types[name] not in ("Epoxy", "Amine")]
+
+        for name in names_no_extra:
+            inf_df = self.material_influence_funcs[name](self.final_receipt_no_extra[name])
+            for nametg_df in inf_df:
+                if nametg_df not in self.final_receipt_no_extra:
+                    inf_df = inf_df.drop(nametg_df, 1)
+            for nametg_df in inf_df.index:
+                if nametg_df not in self.final_receipt_no_extra:
+                    inf_df = inf_df.drop(nametg_df)
+            dict_of_df_inf_base[name] = inf_df
+
         for name in self.extra_material:
             inf_df = self.material_influence_funcs[name](self.extra_material[name])
             for nametg_df in inf_df:
@@ -396,17 +415,40 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             for nametg_df in inf_df.index:
                 if nametg_df not in self.final_receipt_with_extra:
                     inf_df = inf_df.drop(nametg_df)
-            d[name] = inf_df
+            dict_of_df_inf_extra[name] = inf_df
+            
         if self.inf_window is None:
-            self.inf_window = MyQTabWidget(d, self.percent_df, self.warring_grid, True)
+            self.inf_window = MyMainQTabWidget(dict_of_df_inf_base, dict_of_df_inf_extra, self.percent_df, self.warring_grid)
         else:
-            self.inf_window.update_tabs(d, self.percent_df)
+            self.inf_window.update_tabs(dict_of_df_inf_base, dict_of_df_inf_extra, self.percent_df)
+
+    def update_percent(self, line, component):
+        def wrapper():
+            if component == "A":
+                if self.isfloat(self.material_percent_lines_a[line].text()):
+                    percent = float(self.material_percent_lines_a[line].text())
+                    self.receipt_counter.set_percent(line, percent, 'A')
+            elif component == "B":
+                if self.isfloat(self.material_percent_lines_b[line].text()):
+                    percent = float(self.material_percent_lines_b[line].text())
+                    self.receipt_counter.set_percent(line, percent, 'B')
+        return wrapper
+
+    def get_ew_by_name_local(self, mat_name, mat_type):
+        if mat_name in self.ew_dict:
+            return self.ew_dict[mat_name]
+        else:
+            ew = get_ew_by_name(mat_name, mat_type, self.db_name)
+            if ew is None:
+                return 0
+            if mat_type == "Amine":
+                ew = -ew
+            self.ew_dict[mat_name] = ew
+            return ew
 
     # Считающие функции ----------------------------------------------------------------------------------------
 
     def count_all_parameters(self) -> None:
-        self.count_ew("A")
-        self.count_ew("B")
         self.count_mass_ratio()
         self.create_df_percent()
         self.count_tg()
@@ -417,7 +459,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             )
         self.count_extra_labels()
         self.count_tg_inf()
-        self.create_corrections_window()
+        self.update_corrections_window()
 
     def create_df_percent(self):
         # Вспомогательная функция, которая учитывает ступенчатый синтез
@@ -482,11 +524,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             mat_type = self.material_a_types[index].currentText()
             mat_name = widget.currentText()
             percent = float(self.material_percent_lines_a[index].text()) / 100
-            ew = get_ew_by_name(mat_name, mat_type, self.db_name)
+            ew = self.get_ew_by_name_local(mat_name, mat_type)
             if ew:
                 eq = percent / ew * self.mass_ratio
-                if mat_type == "Amine":
-                    eq = -eq
             else:
                 eq = 0
             a_types.append(mat_type)
@@ -503,11 +543,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             mat_type = self.material_b_types[index].currentText()
             mat_name = widget.currentText()
             percent = float(self.material_percent_lines_b[index].text()) / 100
-            ew = get_ew_by_name(mat_name, mat_type, self.db_name)
+            ew = self.get_ew_by_name_local(mat_name, mat_type)
             if ew:
                 eq = percent / ew
-                if mat_type == "Amine":
-                    eq = -eq
             else:
                 eq = 0
             b_types.append(mat_type)
@@ -760,8 +798,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         all_inf_mat = dict()
         all_inf_corrections = dict()
 
+        if self.percent_df is None:
+            return None
+
         if not self.material_influence_funcs:
-            self.create_material_influence_funcs()
+            self.update_material_influence_funcs()
 
         base_receipt = defaultdict(float)
         for name in self.final_receipt_no_extra:
@@ -833,14 +874,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         #         self.current_tg_no_correction + sum(total_tg_inf.sum()), 1
         #     )
 
-    def create_material_influence_funcs(self):
-        for name in self.final_receipt_no_extra:
-            self.material_influence_funcs[name] = TgMaterialInfluence(
-                name,
-                self.list_of_item_names["Epoxy"],
-                self.list_of_item_names["Amine"],
-                self.db_name,
-            )
+    def update_material_influence_funcs(self):
+        if len(self.material_influence_funcs) == 0:
+            for name in self.final_receipt_no_extra:
+                self.material_influence_funcs[name] = TgMaterialInfluence(
+                    name,
+                    self.list_of_item_names["Epoxy"],
+                    self.list_of_item_names["Amine"],
+                    self.db_name,
+                )
 
     def count_mass_ratio(self) -> None:
         a = self.a_ew
@@ -851,75 +893,31 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 return None
         self.mass_ratio = 0
 
-    def count_ew(self, komponent):
-        resin_names = []
-        resin_values = []
-        amine_names = []
-        amine_values = []
+    def set_receipt_to_counter(self, component):
+        def wrapper():
+            if component == "A":
+                material_names = [line.currentText() for line in self.material_comboboxes_a]
+                if '' in material_names:
+                    return None
+                self.receipt_counter.change_receipt('A', [line.currentText() for line in self.material_a_types],
+                                                    material_names)
+                for line, percent in enumerate(self.material_percent_lines_a):
+                    self.receipt_counter.set_percent(line, percent.text(), "A")
+            elif component == "B":
+                material_names = [line.currentText() for line in self.material_comboboxes_b]
 
-        if komponent == "A":
-            material_comboboxes = self.material_comboboxes_a
-            material_types = self.material_a_types
-            material_percent_lines = self.material_percent_lines_a
-        elif komponent == "B":
-            material_comboboxes = self.material_comboboxes_b
-            material_types = self.material_b_types
-            material_percent_lines = self.material_percent_lines_b
-        else:
-            return None
+                if '' in material_names:
+                    return None
+                self.receipt_counter.change_receipt('B', [line.currentText() for line in self.material_b_types],
+                                                    material_names)
 
-        for index, widget in enumerate(material_comboboxes):
-            if material_types[index].currentText() == "Amine":
-                amine_names.append(widget.currentText())
-                amine_values.append(float(material_percent_lines[index].text()))
-            elif material_types[index].currentText() == "Epoxy":
-                resin_names.append(widget.currentText())
-                resin_values.append(float(material_percent_lines[index].text()))
-
-        resin_eew = np.array(
-            [
-                i
-                for i in map(
-                    get_ew_by_name,
-                    resin_names,
-                    ["Epoxy" for _ in range(len(resin_names))],
-                    [self.db_name for _ in range(len(resin_names))],
-                )
-            ]
-        )
-        amine_ahew = np.array(
-            [
-                i
-                for i in map(
-                    get_ew_by_name,
-                    amine_names,
-                    ["Amine" for _ in range(len(amine_names))],
-                    [self.db_name for _ in range(len(amine_names))],
-                )
-            ]
-        )
-
-        resin_values = np.array(resin_values) / 100
-        amine_values = np.array(amine_values) / 100
-
-        amine_equivalents = amine_values / amine_ahew
-        epoxy_equivalents = resin_values / resin_eew
-        delta_ew = epoxy_equivalents.sum() - amine_equivalents.sum()
-        if delta_ew == 0:
-            ew = 0
-        else:
-            ew = 1 / delta_ew
-
-        if komponent == "A":
-            self.a_ew = ew
-        elif komponent == "B":
-            self.ew_b = ew
-
-        # self.set_ew(komponent)
+                for line, percent in enumerate(self.material_percent_lines_b):
+                    self.receipt_counter.set_percent(line, percent.text(), "B")
+        return wrapper
 
     # Обработчики строк сырья -----------------------------------------------------------------------------------
     # Добавляет строку сырья в соответствующую рецептуру
-    def add_line(self, komponent: str) -> None:
+    def add_line(self, component: str) -> None:
         final_label = QLabel("Итого")
         final_label.setStyleSheet(self.style)
         final_label.setFont((QtGui.QFont("Times New Roman", self.font_size)))
@@ -933,7 +931,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             | QtCore.Qt.TextSelectableByMouse
         )
 
-        if komponent == "A":
+        if component == "A":
             items_type = self.material_a_types
             items = self.material_comboboxes_a
             items_lines = self.material_percent_lines_a
@@ -946,7 +944,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.final_a_numb_label.deleteLater()
             self.final_a_numb_label = final_label_numb
 
-        elif komponent == "B":
+        elif component == "B":
             items_type = self.material_b_types
             items = self.material_comboboxes_b
             items_lines = self.material_percent_lines_b
@@ -962,7 +960,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         else:
             return None
 
-        self.show_top(komponent)
+        self.show_top(component)
+
+        row_count = len(items)
 
         material_combobox = QComboBox()
         material_combobox.addItems(self.list_of_item_names["None"])
@@ -974,15 +974,18 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         materia_typel_combobox = QComboBox()
         materia_typel_combobox.addItems(self.types_of_items)
         materia_typel_combobox.setFixedWidth(60)
-        materia_typel_combobox.currentIndexChanged.connect(self.reset_settings)
+
+        # materia_typel_combobox.currentIndexChanged.connect(self.reset_settings)
 
         materia_typel_combobox.currentIndexChanged.connect(
-            self.change_list_of_materials(material_combobox, materia_typel_combobox)
+            self.change_list_of_materials(material_combobox, materia_typel_combobox, component)
         )
         materia_typel_combobox.currentIndexChanged.connect(
             self.reset_choose_pair_react_window
         )
-        materia_typel_combobox.currentIndexChanged.connect(self.reset_tg_settings)
+
+
+
         materia_typel_combobox.setFixedHeight(20)
         materia_typel_combobox.setFont(QtGui.QFont("Times New Roman", self.font_size))
         materia_typel_combobox.setStyleSheet(self.style_combobox)
@@ -990,38 +993,44 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         material_combobox.currentIndexChanged.connect(
             self.reset_choose_pair_react_window
         )
-        material_combobox.currentIndexChanged.connect(self.reset_tg_settings)
+        # TODO Строчки под вопросом
         material_combobox.currentIndexChanged.connect(self.reset_settings)
+        material_combobox.currentIndexChanged.connect(self.set_receipt_to_counter(component))
 
-        line = QLineEdit()
-        line.setText("0.00")
-        line.setFixedWidth(65)
-        line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
-        line.editingFinished.connect(lambda: self.to_float(komponent))
-        # line.editingFinished.connect(lambda: self.count_sum(komponent))
-        row_count = grid.count()
+        # materia_typel_combobox.currentIndexChanged.connect(self.set_receipt_to_counter(component))
+
+
+
+        percent_line = QLineEdit()
+        percent_line.setText("0.00")
+        percent_line.setFixedWidth(65)
+        percent_line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+        percent_line.editingFinished.connect(lambda: self.to_float(component))
+        percent_line.textChanged.connect(self.update_percent(row_count, component))
 
         check = QCheckBox()
         lock_checkboxes.append(check)
         items_type.append(materia_typel_combobox)
         items.append(material_combobox)
-        items_lines.append(line)
+        items_lines.append(percent_line)
 
         grid.addWidget(materia_typel_combobox, row_count + 1, 0)
         grid.addWidget(material_combobox, row_count + 1, 1)
-        grid.addWidget(line, row_count + 1, 2)
+        grid.addWidget(percent_line, row_count + 1, 2)
         grid.addWidget(check, row_count + 1, 3)
 
         grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
         grid.addWidget(final_label_numb, row_count + 2, 2)
 
-        self.count_sum(komponent)
+        self.count_sum(component)
 
     def add_a_line(self) -> None:
         self.add_line("A")
+        self.set_receipt_to_counter('A')()
 
     def add_b_line(self) -> None:
         self.add_line("B")
+        self.set_receipt_to_counter('B')()
 
     # Удаляет последнюю строку в рецептуре
     def del_line(self, komponent: str) -> None:
@@ -1078,11 +1087,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 if komponent == "A":
                     self.final_a = final_label
                     self.final_a_numb_label = final_label_numb
-                    self.count_sum("A")
+                    # self.count_sum("A")
                 else:
                     self.final_b = final_label
                     self.final_b_numb_label = final_label_numb
-                    self.count_sum("B")
+                    # self.count_sum("B")
             else:
                 self.hide_top(komponent)
 
@@ -1090,9 +1099,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def del_a_line(self) -> None:
         self.del_line("A")
+        self.set_receipt_to_counter('A')()
 
     def del_b_line(self) -> None:
         self.del_line("B")
+        self.set_receipt_to_counter('B')()
 
     def disable_receipt(self, komponent) -> None:
         if komponent == "A":
@@ -1326,39 +1337,17 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     combobox.addItem(self.material_to_add[1])
 
     # Считает сумму компонентов в рецептуре
-    def count_sum(self, komponent: str):
-        if komponent == "A":
-            item_lines = self.material_percent_lines_a
-        elif komponent == "B":
-            item_lines = self.material_percent_lines_b
-        else:
-            return None
+    def count_sum(self, component: str):
+        # TODO Выпилить эту функцию
+        self.set_sum(self.receipt_counter.get_sum(component), component)
 
-        total_sum = 0
-        for widget in item_lines:
-            try:
-                numb = float(widget.text().replace(",", "."))
-            except Exception:
-                numb = 0
-                widget.setText("Error!")
-            total_sum += numb
-
-        # if 99.9999 < total_sum < 100.0001:
-        #     total_sum = 100
-        # total_sum_str = f"{total_sum:.{2}f}"
-
-        self.set_sum(total_sum, komponent)
-        if round(total_sum, 2) == 100:
-            self.count_all_parameters()
-
-    def set_sum(self, total_sum, komponent):
-        if komponent == "A" and self.final_a_numb_label:
+    def set_sum(self, total_sum, сomponent):
+        if сomponent == "A" and self.final_a_numb_label:
             self.sum_a = total_sum
             self.final_a_numb_label.setText(f"{round(total_sum, 2)}")
-        elif komponent == "B" and self.final_b_numb_label:
+        elif сomponent == "B" and self.final_b_numb_label:
             self.sum_b = total_sum
             self.final_b_numb_label.setText(f"{round(total_sum, 2)}")
-
 
     # Приводит все проценты в рецептуре к типу float и считает +-*/ если есть в строке
     def to_float(self, komponent: str) -> None:
@@ -1426,12 +1415,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.ahew_label.setText(f"No EW")
 
     # Меняет список сырья при смене типа в рецептуре
-    def change_list_of_materials(self, material_combobox, material_type) -> callable:
+    def change_list_of_materials(self, material_combobox, material_type, component) -> callable:
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
                 self.list_of_item_names[material_type.currentText()]
             )
+            self.set_receipt_to_counter(component)
 
         return wrapper
 
@@ -1657,6 +1647,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             )
         else:
             self.mass_ratio_label.setText(f"Продукты не реагируют")
+            self.primary_tg = None
+            self.tggg_with_correction = None
+            self.ttgg_with_extra = None
+            self.count_extra_labels()
+
 
     @mass_ratio.getter
     def mass_ratio(self) -> float:

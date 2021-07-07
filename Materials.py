@@ -110,6 +110,8 @@ def normalize_df(df: DataFrame) -> DataFrame:
 
 
 def get_ew_by_name(material: str, mat_type: str, db_name: str):
+    if material == '':
+        return None
     connection = sqlite3.connect(db_name)
     cursor = connection.cursor()
     if mat_type == "Epoxy":

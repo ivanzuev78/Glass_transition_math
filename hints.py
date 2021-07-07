@@ -12,6 +12,8 @@ df.columns.values.tolist()
 df.index.tolist()
 print(df)
 
+# Слайсы значений по условию df
+df.loc[(df[column_name] >= x_min) & (df[column_name] <= x_max)]
 
 # ui to pi
 # pyuic5 test.ui -o testui.py
