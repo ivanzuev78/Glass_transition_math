@@ -331,7 +331,7 @@ class ReceiptCounter:
         self.ew_b = 0
 
     def change_receipt(self, component, material_types, material_names):
-        if '' in material_names:
+        if "" in material_names:
             return None
         if component == "A":
             self.material_types_a = material_types
@@ -398,21 +398,19 @@ class ReceiptCounter:
         self.main_window.set_sum(sum_b, "B")
 
         if round(sum_a, 2) == 100:
-            self.count_ew('A')
+            self.count_ew("A")
             self.main_window.a_ew = self.ew_a
         else:
             self.main_window.a_ew = 0
 
         if round(sum_b, 2) == 100:
-            self.count_ew('B')
+            self.count_ew("B")
             self.main_window.ew_b = self.ew_b
         else:
             self.main_window.ew_b = 0
-
 
         if round(sum_a, 2) == 100 and round(sum_b, 2) == 100:
             self.main_window.count_all_parameters()
 
     def get_sum(self, component):
-            return self.percents_a.sum() if component == "A" else self.percents_b.sum()
-
+        return self.percents_a.sum() if component == "A" else self.percents_b.sum()

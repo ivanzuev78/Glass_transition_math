@@ -1,6 +1,7 @@
 import math
 import sys
 from copy import copy
+from pathlib import Path
 from typing import Union, Callable, Optional
 from collections import defaultdict
 
@@ -8,10 +9,18 @@ from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import *
 
+import pickle
+
 from math import fabs, sqrt
 from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
-from additional_classes import MyQLabel, MyQGridLayout, MyQTabWidget, ReceiptCounter, MyMainQTabWidget
+from additional_classes import (
+    MyQLabel,
+    MyQGridLayout,
+    MyQTabWidget,
+    ReceiptCounter,
+    MyMainQTabWidget,
+)
 from additional_funcs import (
     TgMaterialInfluence,
     QHLine,
@@ -51,6 +60,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.sum_a = 0
         self.sum_b = 0
         self.ew_dict = {}
+        self.path_to_save_a = None
+        self.path_to_save_b = None
 
         self.receipt_counter = ReceiptCounter(self)
 
@@ -142,6 +153,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.del_A_but.clicked.connect(self.del_a_line)
         self.add_B_but.clicked.connect(self.add_b_line)
         self.del_B_but.clicked.connect(self.del_b_line)
+
         self.debug_but.clicked.connect(self.debug)
 
         self.normalise_A.clicked.connect(self.normalise_func("A"))
@@ -150,19 +162,34 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
         self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
 
-        self.sintez_editor_but.clicked.connect(self.add_choose_pair_react_window)
         self.extra_ratio_line.editingFinished.connect(self.count_extra_labels)
         self.update_but.clicked.connect(self.update_but_func)
         self.font_down_but.clicked.connect(self.reduce_font)
         self.font_up_but.clicked.connect(self.enlarge_font)
 
         # Menu buttons connect
+
+        self.excel_save_A.triggered.connect(self.save_receipt_to_xl("A"))
+        self.excel_save_B.triggered.connect(self.save_receipt_to_xl("B"))
+        self.excel_save_all.triggered.connect(self.save_receipt_to_xl("AB"))
+
+        self.save_a.triggered.connect(self.save_to_own_format("A"))
+        self.save_b.triggered.connect(self.save_to_own_format("B"))
+        self.save_as_a.triggered.connect(self.save_to_own_format("A", True))
+        self.save_as_b.triggered.connect(self.save_to_own_format("B", True))
+
+        self.load_a.triggered.connect(self.load_receipt_own_format("A"))
+        self.load_b.triggered.connect(self.load_receipt_own_format("B"))
+
         self.menu_add_mat.triggered.connect(self.add_material_window)
         self.menu_add_tg.triggered.connect(self.add_tg_window)
         self.menu_add_tg_inf.triggered.connect(self.add_tg_inf_window)
+        self.menu_tg_infs.triggered.connect(self.create_corrections_window)
 
         self.menu_tg_table.triggered.connect(self.show_tg_table)
         self.menu_final_receipt.triggered.connect(self.create_final_receipt_window)
+
+        self.menu_sintez_edit.triggered.connect(self.add_choose_pair_react_window)
 
         pixmap = QPixmap("icons/lock.png")
         self.label_lock_a.setPixmap(pixmap)
@@ -178,18 +205,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.button_list = [
             self.a_recept_but,
             self.b_recept_but,
-            self.add_raw,
-            self.add_tg_but,
-            self.add_tg_inf_but,
             self.b_recept_but,
-            self.coating_receipt_but,
             self.debug_but,
-            self.fail_correction_but,
-            self.corrections_but,
             self.normalise_A,
             self.normalise_B,
-            self.sintez_editor_but,
-            self.tg_view_but,
             self.update_but,
             self.font_up_but,
             self.font_down_but,
@@ -211,6 +230,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.label_5,
             self.label_6,
             self.label_7,
+            self.label_8,
             self.eew_label,
             self.ahew_label,
             self.extra_ew_label,
@@ -218,6 +238,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.debug_string,
             self.lineEdit_name_a,
             self.lineEdit_name_b,
+            self.lineEdit_sintez_mass,
             self.tg_cor_label,
             self.tg_extra_label,
             self.extra_ratio_line,
@@ -237,35 +258,211 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.gridLayoutWidget_3.setObjectName("gridLayoutWidget_3")
         self.warring_grid = MyQGridLayout(self.gridLayoutWidget_3)
 
-    def save_receipt_to_xl(self):
-        # if self.material_comboboxes_a and self.material_comboboxes_b:
-        # TODO подставить сюда массы для расчёта загрузки синтеза
-        mass_a = 666
-        mass_b = 666
-        save_receipt(
-            self.lineEdit_name_a.text(),
-            self.lineEdit_name_b.text(),
-            [i.currentText() for i in self.material_a_types],
-            [i.currentText() for i in self.material_b_types],
-            [i.currentText() for i in self.material_comboboxes_a],
-            [i.currentText() for i in self.material_comboboxes_b],
-            [i.text() for i in self.material_percent_lines_a],
-            [i.text() for i in self.material_percent_lines_b],
-            [
-                self.get_ew_by_name_local(mat.currentText(), mat_type.currentText())
-                for mat_type, mat in zip(
-                    self.material_a_types, self.material_comboboxes_a
+    def save_receipt_to_xl(self, component):
+        def wrapper():
+            try:
+                mass_a = self.lineEdit_sintez_mass.text()
+                mass_a = float(mass_a)
+            except ValueError:
+                mass_a = 100
+                self.lineEdit_sintez_mass.setText("100")
+            mass_b = mass_a
+            # TODO Убрать эти костыли, прописать нормальный вызов функции
+            if component == "A":
+                save_receipt(
+                    self.lineEdit_name_a.text(),
+                    "",
+                    [i.currentText() for i in self.material_a_types],
+                    [i.currentText() for i in self.material_b_types],
+                    [i.currentText() for i in self.material_comboboxes_a],
+                    [i.currentText() for i in self.material_comboboxes_b],
+                    [i.text() for i in self.material_percent_lines_a],
+                    [i.text() for i in self.material_percent_lines_b],
+                    [
+                        self.get_ew_by_name_local(
+                            mat.currentText(), mat_type.currentText()
+                        )
+                        for mat_type, mat in zip(
+                            self.material_a_types, self.material_comboboxes_a
+                        )
+                    ],
+                    [
+                        self.get_ew_by_name_local(
+                            mat.currentText(), mat_type.currentText()
+                        )
+                        for mat_type, mat in zip(
+                            self.material_b_types, self.material_comboboxes_b
+                        )
+                    ],
+                    mass_a,
+                    mass_b,
                 )
-            ],
-            [
-                self.get_ew_by_name_local(mat.currentText(), mat_type.currentText())
-                for mat_type, mat in zip(
-                    self.material_b_types, self.material_comboboxes_b
+            elif component == "B":
+                save_receipt(
+                    "",
+                    self.lineEdit_name_b.text(),
+                    [i.currentText() for i in self.material_a_types],
+                    [i.currentText() for i in self.material_b_types],
+                    [i.currentText() for i in self.material_comboboxes_a],
+                    [i.currentText() for i in self.material_comboboxes_b],
+                    [i.text() for i in self.material_percent_lines_a],
+                    [i.text() for i in self.material_percent_lines_b],
+                    [
+                        self.get_ew_by_name_local(
+                            mat.currentText(), mat_type.currentText()
+                        )
+                        for mat_type, mat in zip(
+                            self.material_a_types, self.material_comboboxes_a
+                        )
+                    ],
+                    [
+                        self.get_ew_by_name_local(
+                            mat.currentText(), mat_type.currentText()
+                        )
+                        for mat_type, mat in zip(
+                            self.material_b_types, self.material_comboboxes_b
+                        )
+                    ],
+                    mass_a,
+                    mass_b,
                 )
-            ],
-            mass_a,
-            mass_b,
-        )
+            else:
+                # if self.material_comboboxes_a and self.material_comboboxes_b:
+                # TODO подставить сюда массы для расчёта загрузки синтеза
+                save_receipt(
+                    self.lineEdit_name_a.text(),
+                    self.lineEdit_name_b.text(),
+                    [i.currentText() for i in self.material_a_types],
+                    [i.currentText() for i in self.material_b_types],
+                    [i.currentText() for i in self.material_comboboxes_a],
+                    [i.currentText() for i in self.material_comboboxes_b],
+                    [i.text() for i in self.material_percent_lines_a],
+                    [i.text() for i in self.material_percent_lines_b],
+                    [
+                        self.get_ew_by_name_local(
+                            mat.currentText(), mat_type.currentText()
+                        )
+                        for mat_type, mat in zip(
+                            self.material_a_types, self.material_comboboxes_a
+                        )
+                    ],
+                    [
+                        self.get_ew_by_name_local(
+                            mat.currentText(), mat_type.currentText()
+                        )
+                        for mat_type, mat in zip(
+                            self.material_b_types, self.material_comboboxes_b
+                        )
+                    ],
+                    mass_a,
+                    mass_b,
+                )
+
+        return wrapper
+
+    def save_to_own_format(self, component, save_as=False):
+        def wrapper():
+            if component == "A":
+                receipt_name = self.lineEdit_name_a.text()
+                if not self.path_to_save_a or save_as:
+                    file = QFileDialog.getSaveFileName(
+                        self, "Сохранить синтез", receipt_name, "receipt(*.receipt)"
+                    )
+                    if file[0] == "":
+                        return None
+                    self.path_to_save_a = file[0]
+                file = self.path_to_save_a
+                material_types = self.material_a_types
+                material_comboboxes = self.material_comboboxes_a
+                material_percent_lines = self.material_percent_lines_a
+            elif component == "B":
+                receipt_name = self.lineEdit_name_b.text()
+                if not self.path_to_save_b or save_as:
+                    file = QFileDialog.getSaveFileName(
+                        self, "Сохранить синтез", receipt_name, "receipt(*.receipt)"
+                    )
+                    if file[0] == "":
+                        return None
+                    self.path_to_save_b = file[0]
+                file = self.path_to_save_b
+                material_types = self.material_b_types
+                material_comboboxes = self.material_comboboxes_b
+                material_percent_lines = self.material_percent_lines_b
+            else:
+                return None
+
+            with open(file, "wb") as file:
+                to_save = [
+                    [i.currentText() for i in material_types],
+                    [i.currentText() for i in material_comboboxes],
+                    [i.text() for i in material_percent_lines],
+                    receipt_name,
+                ]
+
+                pickle.dump(to_save, file)
+
+        return wrapper
+
+    def load_receipt_own_format(self, component):
+        def wrapper():
+            file = QFileDialog.getOpenFileName(
+                self, "Открыть синтез", ".", "receipt(*.receipt)"
+            )
+
+            with open(file[0], "rb") as f:
+                saved_info = pickle.load(f)
+
+            if component == "A":
+                for _ in range(len(self.material_a_types)):
+                    self.del_line("A")
+                material_types = self.material_a_types
+                material_comboboxes = self.material_comboboxes_a
+                material_percent_lines = self.material_percent_lines_a
+                lineEdit_name = self.lineEdit_name_a
+            elif component == "B":
+                for _ in range(len(self.material_b_types)):
+                    self.del_line("B")
+                material_types = self.material_b_types
+                material_comboboxes = self.material_comboboxes_b
+                material_percent_lines = self.material_percent_lines_b
+                lineEdit_name = self.lineEdit_name_b
+
+            else:
+                return None
+
+            mat_types = saved_info[0]
+            mat_names = saved_info[1]
+            percents = saved_info[2]
+            receipt_name = saved_info[3]
+
+            if receipt_name:
+                lineEdit_name.setText(receipt_name)
+                print(receipt_name)
+            else:
+                lineEdit_name.setText(Path(file[0]).name.split(".")[0])
+                print(Path(file[0]).name.split(".")[0])
+
+            for mat_type, mat_name, percent in zip(mat_types, mat_names, percents):
+                self.add_line(component)
+                current_index = 0
+                while material_types[-1].currentIndex() != -1:
+                    if material_types[-1].currentText() == mat_type:
+                        material_types[-1].setCurrentIndex(current_index)
+                        break
+                    current_index += 1
+                    material_types[-1].setCurrentIndex(current_index)
+
+                current_index = 0
+                while material_comboboxes[-1].currentIndex() != -1:
+                    if material_comboboxes[-1].currentText() == mat_name:
+                        material_comboboxes[-1].setCurrentIndex(current_index)
+                        break
+                    current_index += 1
+                    material_comboboxes[-1].setCurrentIndex(current_index)
+
+                material_percent_lines[-1].setText(percent)
+
+        return wrapper
 
     def set_buttom_stylies(self):
         for widget in self.button_list + self.big_button_list:
@@ -339,10 +536,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.count_sum("A")
         self.count_sum("B")
 
-        self.receipt_counter.change_receipt('A', [line.currentText() for line in self.material_a_types],
-                                            [line.currentText() for line in self.material_comboboxes_a])
-        self.receipt_counter.change_receipt('B', [line.currentText() for line in self.material_b_types],
-                                            [line.currentText() for line in self.material_comboboxes_b])
+        self.receipt_counter.change_receipt(
+            "A",
+            [line.currentText() for line in self.material_a_types],
+            [line.currentText() for line in self.material_comboboxes_a],
+        )
+        self.receipt_counter.change_receipt(
+            "B",
+            [line.currentText() for line in self.material_b_types],
+            [line.currentText() for line in self.material_comboboxes_b],
+        )
 
     def create_final_receipt_window(self):
         self.count_final_receipt()
@@ -378,14 +581,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # print(self.table.size())
 
     def update_but_func(self) -> None:
-        if self.inf_window is not None:
-            self.inf_window.show()
-
-        pass
+        self.count_all_parameters()
 
     def create_corrections_window(self):
-        if self.inf_window is None:
-            self.update_corrections_window()
+
+        self.update_corrections_window()
         self.inf_window.show()
 
     def update_corrections_window(self):
@@ -394,11 +594,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         dict_of_df_inf_extra = {}
         self.update_material_influence_funcs()
 
-        names_no_extra = [name for name in self.final_receipt_no_extra
-                          if self.receipt_types[name] not in ("Epoxy", "Amine")]
+        names_no_extra = [
+            name
+            for name in self.final_receipt_no_extra
+            if self.receipt_types[name] not in ("Epoxy", "Amine")
+        ]
 
         for name in names_no_extra:
-            inf_df = self.material_influence_funcs[name](self.final_receipt_no_extra[name])
+            inf_df = self.material_influence_funcs[name](
+                self.final_receipt_no_extra[name]
+            )
             for nametg_df in inf_df:
                 if nametg_df not in self.final_receipt_no_extra:
                     inf_df = inf_df.drop(nametg_df, 1)
@@ -416,22 +621,30 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 if nametg_df not in self.final_receipt_with_extra:
                     inf_df = inf_df.drop(nametg_df)
             dict_of_df_inf_extra[name] = inf_df
-            
+
         if self.inf_window is None:
-            self.inf_window = MyMainQTabWidget(dict_of_df_inf_base, dict_of_df_inf_extra, self.percent_df, self.warring_grid)
+            self.inf_window = MyMainQTabWidget(
+                dict_of_df_inf_base,
+                dict_of_df_inf_extra,
+                self.percent_df,
+                self.warring_grid,
+            )
         else:
-            self.inf_window.update_tabs(dict_of_df_inf_base, dict_of_df_inf_extra, self.percent_df)
+            self.inf_window.update_tabs(
+                dict_of_df_inf_base, dict_of_df_inf_extra, self.percent_df
+            )
 
     def update_percent(self, line, component):
         def wrapper():
             if component == "A":
                 if self.isfloat(self.material_percent_lines_a[line].text()):
                     percent = float(self.material_percent_lines_a[line].text())
-                    self.receipt_counter.set_percent(line, percent, 'A')
+                    self.receipt_counter.set_percent(line, percent, "A")
             elif component == "B":
                 if self.isfloat(self.material_percent_lines_b[line].text()):
                     percent = float(self.material_percent_lines_b[line].text())
-                    self.receipt_counter.set_percent(line, percent, 'B')
+                    self.receipt_counter.set_percent(line, percent, "B")
+
         return wrapper
 
     def get_ew_by_name_local(self, mat_name, mat_type):
@@ -896,23 +1109,34 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def set_receipt_to_counter(self, component):
         def wrapper():
             if component == "A":
-                material_names = [line.currentText() for line in self.material_comboboxes_a]
-                if '' in material_names:
+                material_names = [
+                    line.currentText() for line in self.material_comboboxes_a
+                ]
+                if "" in material_names:
                     return None
-                self.receipt_counter.change_receipt('A', [line.currentText() for line in self.material_a_types],
-                                                    material_names)
+                self.receipt_counter.change_receipt(
+                    "A",
+                    [line.currentText() for line in self.material_a_types],
+                    material_names,
+                )
                 for line, percent in enumerate(self.material_percent_lines_a):
                     self.receipt_counter.set_percent(line, percent.text(), "A")
             elif component == "B":
-                material_names = [line.currentText() for line in self.material_comboboxes_b]
+                material_names = [
+                    line.currentText() for line in self.material_comboboxes_b
+                ]
 
-                if '' in material_names:
+                if "" in material_names:
                     return None
-                self.receipt_counter.change_receipt('B', [line.currentText() for line in self.material_b_types],
-                                                    material_names)
+                self.receipt_counter.change_receipt(
+                    "B",
+                    [line.currentText() for line in self.material_b_types],
+                    material_names,
+                )
 
                 for line, percent in enumerate(self.material_percent_lines_b):
                     self.receipt_counter.set_percent(line, percent.text(), "B")
+
         return wrapper
 
     # Обработчики строк сырья -----------------------------------------------------------------------------------
@@ -978,13 +1202,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # materia_typel_combobox.currentIndexChanged.connect(self.reset_settings)
 
         materia_typel_combobox.currentIndexChanged.connect(
-            self.change_list_of_materials(material_combobox, materia_typel_combobox, component)
+            self.change_list_of_materials(
+                material_combobox, materia_typel_combobox, component
+            )
         )
         materia_typel_combobox.currentIndexChanged.connect(
             self.reset_choose_pair_react_window
         )
-
-
 
         materia_typel_combobox.setFixedHeight(20)
         materia_typel_combobox.setFont(QtGui.QFont("Times New Roman", self.font_size))
@@ -995,11 +1219,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         )
         # TODO Строчки под вопросом
         material_combobox.currentIndexChanged.connect(self.reset_settings)
-        material_combobox.currentIndexChanged.connect(self.set_receipt_to_counter(component))
+        material_combobox.currentIndexChanged.connect(
+            self.set_receipt_to_counter(component)
+        )
 
         # materia_typel_combobox.currentIndexChanged.connect(self.set_receipt_to_counter(component))
-
-
 
         percent_line = QLineEdit()
         percent_line.setText("0.00")
@@ -1026,11 +1250,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def add_a_line(self) -> None:
         self.add_line("A")
-        self.set_receipt_to_counter('A')()
+        self.set_receipt_to_counter("A")()
 
     def add_b_line(self) -> None:
         self.add_line("B")
-        self.set_receipt_to_counter('B')()
+        self.set_receipt_to_counter("B")()
 
     # Удаляет последнюю строку в рецептуре
     def del_line(self, komponent: str) -> None:
@@ -1099,11 +1323,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def del_a_line(self) -> None:
         self.del_line("A")
-        self.set_receipt_to_counter('A')()
+        self.set_receipt_to_counter("A")()
 
     def del_b_line(self) -> None:
         self.del_line("B")
-        self.set_receipt_to_counter('B')()
+        self.set_receipt_to_counter("B")()
 
     def disable_receipt(self, komponent) -> None:
         if komponent == "A":
@@ -1341,11 +1565,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # TODO Выпилить эту функцию
         self.set_sum(self.receipt_counter.get_sum(component), component)
 
-    def set_sum(self, total_sum, сomponent):
-        if сomponent == "A" and self.final_a_numb_label:
+    def set_sum(self, total_sum, component):
+        if component == "A" and self.final_a_numb_label:
             self.sum_a = total_sum
             self.final_a_numb_label.setText(f"{round(total_sum, 2)}")
-        elif сomponent == "B" and self.final_b_numb_label:
+        elif component == "B" and self.final_b_numb_label:
             self.sum_b = total_sum
             self.final_b_numb_label.setText(f"{round(total_sum, 2)}")
 
@@ -1415,7 +1639,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.ahew_label.setText(f"No EW")
 
     # Меняет список сырья при смене типа в рецептуре
-    def change_list_of_materials(self, material_combobox, material_type, component) -> callable:
+    def change_list_of_materials(
+        self, material_combobox, material_type, component
+    ) -> callable:
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
@@ -1652,7 +1878,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.ttgg_with_extra = None
             self.count_extra_labels()
 
-
     @mass_ratio.getter
     def mass_ratio(self) -> float:
         return self.__mass_ratio
@@ -1763,6 +1988,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             return False
 
     # -----------------------------------------------------------------------------------------------------------
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        sys.exit(0)
 
 
 class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]):
@@ -1834,6 +2061,27 @@ class AddTg(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg.ui")[0]):
 
         self.save_but.clicked.connect(self.add_tg)
         self.cancel_but.clicked.connect(self.close)
+
+        self.button_list = [self.save_but, self.cancel_but]
+        self.combobox_list = [self.epoxy_comboBox, self.amine_comboBox]
+        oImage = QImage("fon.jpg")
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
+
+        with open("style.css", "r") as f:
+            self.style, self.style_combobox = f.read().split("$split$")
+
+        self.setStyleSheet(self.style_combobox)
+        self.set_button_stylizes()
+
+    def set_button_stylizes(self):
+
+        for widget in self.button_list:
+            widget.setStyleSheet(self.style)
+
+        for widget in self.combobox_list:
+            widget.setStyleSheet(self.style_combobox)
 
     def add_tg(self):
         epoxy = self.epoxy_comboBox.currentText()

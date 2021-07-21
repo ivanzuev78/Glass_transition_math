@@ -177,7 +177,12 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         return wrapper
 
     def add_line(
-        self, numb_of_line, mat_type, mat_name, component, percent=None,
+        self,
+        numb_of_line,
+        mat_type,
+        mat_name,
+        component,
+        percent=None,
     ):
 
         items_type = self.material_types
@@ -463,6 +468,11 @@ class ChoosePairReactWindow(
         self.pairs_to_react_a = []
         self.pairs_to_react_b = []
         self.fill_window()
+
+        oImage = QImage("fon.jpg")
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
 
     def fill_window(self):
         for pair in self.all_pairs_a:

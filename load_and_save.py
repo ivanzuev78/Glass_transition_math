@@ -94,10 +94,10 @@ def save_receipt(
             rows_a, rows_b, fillvalue=["" for _ in range(5)]
         ):
             ws.append(row_a + ["|"] + row_b)
-        ws["B2"] = ew_string_a
-        ws["H2"] = ew_string_b
+        # ws["B2"] = ew_string_a
+        # ws["H2"] = ew_string_b
     elif save_a:
-        rows_a = create_one_komponent_rows(
+        rows_a, ew_string_a = create_one_komponent_rows(
             name_a,
             mat_type_a_list,
             mat_a_list,
@@ -109,9 +109,10 @@ def save_receipt(
         )
         for row in rows_a:
             ws.append(row)
+        # ws["B2"] = ew_string_a
         filename = name_a
     elif save_b:
-        rows_b = create_one_komponent_rows(
+        rows_b, ew_string_b = create_one_komponent_rows(
             name_b,
             mat_type_b_list,
             mat_b_list,
@@ -123,6 +124,7 @@ def save_receipt(
         )
         for row in rows_b:
             ws.append(row)
+        # ws["B2"] = ew_string_b
         filename = name_b
     else:
         return None
