@@ -296,6 +296,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     ],
                     mass_a,
                     mass_b,
+                    save_a=True
                 )
             elif component == "B":
                 save_receipt(
@@ -325,6 +326,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     ],
                     mass_a,
                     mass_b,
+                    save_b=True
                 )
             else:
                 # if self.material_comboboxes_a and self.material_comboboxes_b:
@@ -356,6 +358,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     ],
                     mass_a,
                     mass_b,
+                    save_a=True,
+                    save_b=True,
                 )
 
         return wrapper
@@ -408,6 +412,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             file = QFileDialog.getOpenFileName(
                 self, "Открыть синтез", ".", "receipt(*.receipt)"
             )
+
+            if file[0] == '':
+                return None
 
             with open(file[0], "rb") as f:
                 saved_info = pickle.load(f)

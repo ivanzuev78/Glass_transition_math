@@ -2,6 +2,7 @@ import os
 from itertools import zip_longest
 
 import openpyxl as opx
+from PyQt5.QtWidgets import QFileDialog
 from openpyxl.styles import Alignment, Font
 
 
@@ -61,12 +62,14 @@ def save_receipt(
     ew_b_list: list = None,
     mass_a: float = 100,
     mass_b: float = 100,
+    save_a: bool = False,
+    save_b: bool = False,
 ):
-    save_a = True if name_a else False
-    save_b = True if name_b else False
 
     wb = opx.Workbook()
     ws = wb.active
+
+
 
     if save_a and save_b:
         rows_a, ew_string_a = create_one_komponent_rows(
@@ -89,7 +92,10 @@ def save_receipt(
             "Б",
             False,
         )
-        filename = name_a + "_" + name_b
+        if name_a and name_b:
+            filename = name_a + "_" + name_b
+        else:
+            filename = name_a or name_b
         for row_a, row_b in zip_longest(
             rows_a, rows_b, fillvalue=["" for _ in range(5)]
         ):
@@ -158,7 +164,11 @@ def save_receipt(
             prev_prev = prev
             prev = cell
 
-    filename += ".xlsx"
-    wb.save(filename)
+    file = QFileDialog.getSaveFileName(
+        None, "Сохранить синтез", filename if filename != '_' else '', "xlsx(*.xlsx)"
+    )
+    if file[0]:
+        filename += ".xlsx"
+        wb.save(file[0])
 
-    os.startfile(filename)
+        os.startfile(file[0])
