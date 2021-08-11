@@ -170,7 +170,6 @@ def add_tg_influence(
 
 
 def get_influence_func(k0, ke, kexp, k1, k2, k3, k4, k5):
-    @cache
     def function(value):
         return (
             k0
