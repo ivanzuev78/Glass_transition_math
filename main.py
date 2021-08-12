@@ -2,10 +2,10 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-from Window_maker import TgViewWindow, MainWindow
+from main_window import MyMainWindow
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    form = MainWindow()
+    form = MyMainWindow()
     form.show()
     app.exec_()
