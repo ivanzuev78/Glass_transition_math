@@ -29,6 +29,7 @@ from additional_funcs import (
     count_total_influence_df,
 )
 
+
 from load_and_save import save_receipt
 
 DB_NAME = "material.db"
