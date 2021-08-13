@@ -1,10 +1,10 @@
-from typing import Union
+from typing import Union, Optional
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem
 
-from new_material_classes import Material
+from new_material_classes import Material, Receipt
 from old_version.Materials import get_all_material_types, get_all_material_of_one_type
 
 DB_NAME = "material.db"
@@ -102,6 +102,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_list_a = []
         self.material_list_b = []
 
+        self.receipt_a: Optional[Receipt] = None
+        self.receipt_b: Optional[Receipt] = None
         # Подключаем кнопки
         # self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
         # self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
@@ -367,47 +369,17 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             widget.setText(f"{float(numb):.{2}f}")
 
     # Меняет список сырья при смене типа в рецептуре
-    def change_list_of_materials(
-        self, material_combobox, material_type, component
-    ) -> callable:
+    def change_list_of_materials(self, material_combobox, material_type) -> callable:
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
                 self.list_of_item_names[material_type.currentText()]
             )
-            self.set_receipt_to_counter(component)
 
         return wrapper
 
-    def set_receipt_to_counter(self, component):
-        def wrapper():
-            if component == "A":
-                material_names = [
-                    line.currentText() for line in self.material_comboboxes_a
-                ]
-                if "" in material_names:
-                    return None
-                self.receipt_counter.change_receipt(
-                    "A",
-                    [line.currentText() for line in self.material_a_types],
-                    material_names,
-                )
-                for line, percent in enumerate(self.material_percent_lines_a):
-                    self.receipt_counter.set_percent(line, percent.text(), "A")
-            elif component == "B":
-                material_names = [
-                    line.currentText() for line in self.material_comboboxes_b
-                ]
-
-                if "" in material_names:
-                    return None
-                self.receipt_counter.change_receipt(
-                    "B",
-                    [line.currentText() for line in self.material_b_types],
-                    material_names,
-                )
-
-                for line, percent in enumerate(self.material_percent_lines_b):
-                    self.receipt_counter.set_percent(line, percent.text(), "B")
-
-        return wrapper
+    def add_material_to_receipt(self, material, component):
+        if component == "A":
+            self.receipt_a.add_material(material)
+        elif component == "B":
+            self.receipt_b.add_material(material)
