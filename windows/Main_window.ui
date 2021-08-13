@@ -700,7 +700,7 @@ c избытком</string>
      <x>0</x>
      <y>0</y>
      <width>1032</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu">
@@ -756,6 +756,7 @@ c избытком</string>
     <addaction name="menu_tg_table"/>
     <addaction name="menu_tg_infs"/>
     <addaction name="menu_final_receipt"/>
+    <addaction name="menu_pair_table"/>
    </widget>
    <widget class="QMenu" name="menu_4">
     <property name="title">
@@ -861,6 +862,11 @@ c избытком</string>
   <action name="load_b">
    <property name="text">
     <string>Компонент Б</string>
+   </property>
+  </action>
+  <action name="menu_pair_table">
+   <property name="text">
+    <string>Таблица пар</string>
    </property>
   </action>
  </widget>

@@ -1,6 +1,5 @@
-from copy import copy
 from math import sqrt
-from typing import Optional, Union
+from typing import Optional
 
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QColor

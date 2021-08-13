@@ -1,4 +1,5 @@
-import math
+
+import os
 import sys
 from copy import copy
 from pathlib import Path
@@ -11,21 +12,17 @@ from PyQt5.QtWidgets import *
 
 import pickle
 
-from math import fabs, sqrt
+from math import fabs
 from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
 from additional_classes import (
     MyQLabel,
     MyQGridLayout,
-    MyQTabWidget,
     ReceiptCounter,
     MyMainQTabWidget,
 )
 from additional_funcs import (
     TgMaterialInfluence,
-    QHLine,
-    create_tab_with_tables,
-    get_existence_df,
     count_total_influence_df,
 )
 
@@ -376,6 +373,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                         return None
                     self.path_to_save_a = file[0]
                 file = self.path_to_save_a
+
                 material_types = self.material_a_types
                 material_comboboxes = self.material_comboboxes_a
                 material_percent_lines = self.material_percent_lines_a
@@ -1629,6 +1627,21 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 numb = 0
             widget.setText(f"{float(numb):.{2}f}")
 
+    def set_ew(self, komponent):
+        if komponent == "A":
+            if self.a_ew > 0:
+                self.eew_label.setText(f"EEW = {round(self.a_ew, 2)}")
+            elif self.a_ew < 0:
+                self.eew_label.setText(f"AHEW = {-round(self.a_ew, 2)}")
+            else:
+                self.eew_label.setText(f"No EW")
+        if komponent == "B":
+            if self.b_ew > 0:
+                self.ahew_label.setText(f"EEW = {round(self.b_ew, 2)}")
+            elif self.b_ew < 0:
+                self.ahew_label.setText(f"AHEW = {-round(self.b_ew, 2)}")
+            else:
+                self.ahew_label.setText(f"No EW")
     def set_ew(self, komponent):
         if komponent == "A":
             if self.a_ew > 0:
