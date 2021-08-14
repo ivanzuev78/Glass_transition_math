@@ -69,8 +69,6 @@ def save_receipt(
     wb = opx.Workbook()
     ws = wb.active
 
-
-
     if save_a and save_b:
         rows_a, ew_string_a = create_one_komponent_rows(
             name_a,
@@ -165,7 +163,7 @@ def save_receipt(
             prev = cell
 
     file = QFileDialog.getSaveFileName(
-        None, "Сохранить синтез", filename if filename != '_' else '', "xlsx(*.xlsx)"
+        None, "Сохранить синтез", filename if filename != "_" else "", "xlsx(*.xlsx)"
     )
     if file[0]:
         filename += ".xlsx"

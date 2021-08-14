@@ -1,10 +1,11 @@
+from itertools import cycle
 from typing import Union, Optional
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem
 
-from new_material_classes import Material, Receipt
+from new_material_classes import Receipt, Material
 from old_version.Materials import get_all_material_types, get_all_material_of_one_type
 
 DB_NAME = "material.db"
@@ -104,6 +105,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.receipt_a: Optional[Receipt] = None
         self.receipt_b: Optional[Receipt] = None
+
+        self.a_receipt_window: Optional[SintezWindow] = None
+        self.b_receipt_window: Optional[SintezWindow] = None
         # Подключаем кнопки
         # self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
         # self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
@@ -112,6 +116,19 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.add_B_but.clicked.connect(self.add_b_line)
         self.del_A_but.clicked.connect(self.del_a_line)
         self.del_B_but.clicked.connect(self.del_b_line)
+
+        self.normalise_A.clicked.connect(self.normalise_func("A"))
+        self.normalise_B.clicked.connect(self.normalise_func("B"))
+
+        self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
+        self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
+
+
+        self.debug_but.clicked.connect(self.debug)
+
+    def debug(self) -> None:
+        self.receipt_a.count_sum()
+        print(self.receipt_a.sum_percent)
 
     def set_bottom_styles(self):
         for widget in self.button_list + self.big_button_list:
@@ -155,6 +172,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if self.final_a_numb_label:
                 self.final_a_numb_label.deleteLater()
             self.final_a_numb_label = final_label_numb
+            receipt = self.receipt_a
 
         elif component == "B":
             items_type = self.material_b_types
@@ -169,6 +187,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if self.final_b_numb_label:
                 self.final_b_numb_label.deleteLater()
             self.final_b_numb_label = final_label_numb
+            receipt = self.receipt_b
         else:
             return None
 
@@ -189,9 +208,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # TODO Добавить функцию, которая передает тип и название материала в Material
         materia_typel_combobox.currentIndexChanged.connect(
-            self.change_list_of_materials(
-                material_combobox, materia_typel_combobox, component
-            )
+            self.change_list_of_materials(material_combobox, materia_typel_combobox)
+        )
+
+
+        material = Material(
+            materia_typel_combobox.currentText(),
+            material_combobox.currentText(),
+            receipt,
         )
 
         materia_typel_combobox.setFixedHeight(20)
@@ -205,8 +229,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         percent_line.editingFinished.connect(lambda: self.to_float(component))
 
-        # TODO Добавить функцию, которая передает проценты в Material
-        # percent_line.textChanged.connect(self.update_percent(row_count, component))
+        # Подключение функций, которые передают параметры в Material при изменении
+        percent_line.editingFinished.connect(
+            self.change_parameter_material(material, percent_line, "percent")
+        )
+        materia_typel_combobox.currentIndexChanged.connect(
+            self.change_parameter_material(material, materia_typel_combobox, "type")
+        )
+        material_combobox.currentIndexChanged.connect(
+            self.change_parameter_material(material, material_combobox, "name")
+        )
 
         check = QCheckBox()
         lock_checkboxes.append(check)
@@ -221,6 +253,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
         grid.addWidget(final_label_numb, row_count + 2, 2)
+        receipt.count_sum()
 
     def add_a_line(self) -> None:
         self.add_line("A")
@@ -246,6 +279,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def del_line(self, komponent: str) -> None:
 
         if komponent == "A":
+            if len(self.material_list_a) == 0:
+                return None
             items_type = self.material_a_types
             items = self.material_comboboxes_a
             items_lines = self.material_percent_lines_a
@@ -257,8 +292,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if self.final_a_numb_label:
                 self.final_a_numb_label.deleteLater()
                 self.final_a_numb_label = None
+            self.material_list_a.pop(-1)
+
 
         elif komponent == "B":
+            if len(self.material_list_b) == 0:
+                return None
             items_type = self.material_b_types
             items = self.material_comboboxes_b
             items_lines = self.material_percent_lines_b
@@ -270,6 +309,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if self.final_b_numb_label:
                 self.final_b_numb_label.deleteLater()
                 self.final_b_numb_label = None
+            self.material_list_b.pop(-1)
+
         else:
             return None
 
@@ -297,11 +338,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 if komponent == "A":
                     self.final_a = final_label
                     self.final_a_numb_label = final_label_numb
-                    # self.count_sum("A")
-                else:
+                    self.receipt_a.count_sum()
+                elif komponent == "B":
                     self.final_b = final_label
                     self.final_b_numb_label = final_label_numb
-                    # self.count_sum("B")
+                    self.receipt_b.count_sum()
             else:
                 self.hide_top(komponent)
 
@@ -310,6 +351,30 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def del_b_line(self) -> None:
         self.del_line("B")
+
+    def set_sum(self, percent: float, component: str):
+        if component == "A":
+            self.final_a_numb_label.setText(f"{percent:.{2}f}")
+        elif component == "B":
+            self.final_b_numb_label.setText(f"{percent:.{2}f}")
+
+    def add_receipt_window(self, komponent) -> callable:
+        def wrapper():
+            if komponent == "A":
+                if not self.a_receipt_window:
+                    self.a_receipt_window = SintezWindow(self, "A")
+
+                self.a_receipt_window.show()
+                self.disable_receipt("A")
+            elif komponent == "B":
+                if not self.b_receipt_window:
+                    self.b_receipt_window = SintezWindow(self, "B")
+                self.b_receipt_window.show()
+                self.disable_receipt("B")
+            else:
+                return None
+
+        return wrapper
 
     @staticmethod
     def isfloat(value):
@@ -369,7 +434,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             widget.setText(f"{float(numb):.{2}f}")
 
     # Меняет список сырья при смене типа в рецептуре
-    def change_list_of_materials(self, material_combobox, material_type) -> callable:
+    def change_list_of_materials(self, material_combobox: QComboBox, material_type: QComboBox) -> callable:
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
@@ -383,3 +448,569 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.receipt_a.add_material(material)
         elif component == "B":
             self.receipt_b.add_material(material)
+
+    @staticmethod
+    def change_parameter_material(
+        material: Material, widget: Union[QComboBox, QLineEdit], parameter: str
+    ) -> callable:
+        """
+        :param material: Объект Material
+        :param widget: Виджет из которого берется значение
+        :param parameter: "name" / "type" / "percent"
+        :return: None
+        """
+        def wrapper():
+            if parameter == "name":
+                material.name = widget.currentText()
+            elif parameter == "type":
+                material.mat_type = widget.currentText()
+            elif parameter == "percent":
+                percent = float(widget.text())
+                material.percent = percent
+
+        return wrapper
+
+    # Нормирует рецептуру
+    def normalise_func(self, komponent: str) -> callable:
+        if komponent == "A":
+            material_lines = self.material_list_a
+            lock_checkbox = self.lock_checkboxies_a
+            percent_lines = self.material_percent_lines_a
+        elif komponent == "B":
+            material_lines = self.material_list_b
+            lock_checkbox = self.lock_checkboxies_b
+            percent_lines = self.material_percent_lines_b
+
+        def wrap():
+            sum_all = 0
+            sum_all_after = 0
+            sum_all_without_last = 0
+            total_sum_left = 100
+            for material, checkbox in zip(material_lines, lock_checkbox):
+
+                if checkbox.isChecked():
+                    total_sum_left -= material
+                    continue
+                sum_all += material
+            if sum_all:
+                for material, checkbox, percent_line in zip(material_lines, lock_checkbox, percent_lines):
+                    if checkbox.isChecked():
+                        continue
+                    percent = round(float(material) / sum_all * total_sum_left, 2)
+                    percent_line.setText(
+                        f"{percent:.{2}f}"
+                    )
+                    material.percent = percent
+                    sum_all_after += percent
+                    if material is material_lines[-1]:
+                        break
+                    sum_all_without_last += percent
+                if sum_all_after != 100:
+                    for material, checkbox, percent_line in reversed(list(zip(material_lines, lock_checkbox, percent_lines))):
+                        current_numb = float(material)
+                        if current_numb != 0 and not checkbox.isChecked():
+                            percent = round(current_numb + (total_sum_left - sum_all_after), 2)
+                            percent_line.setText(
+                                f"{percent:.{2}f}"
+                            )
+                            material.percent = percent
+                            break
+
+            if komponent == 'A':
+                self.receipt_a.set_sum_to_qt()
+            elif komponent == 'B':
+                self.receipt_b.set_sum_to_qt()
+        return wrap
+
+    def disable_receipt(self, komponent) -> None:
+        if komponent == "A":
+            self.add_A_but.setEnabled(False)
+            self.del_A_but.setEnabled(False)
+            for i in range(len(self.material_comboboxes_a)):
+                self.material_comboboxes_a[i].setEnabled(False)
+                self.material_percent_lines_a[i].setEnabled(False)
+                self.material_a_types[i].setEnabled(False)
+                self.lock_checkboxies_a[i].setEnabled(False)
+                self.normalise_A.setEnabled(False)
+
+        elif komponent == "B":
+            self.add_B_but.setEnabled(False)
+            self.del_B_but.setEnabled(False)
+            for i in range(len(self.material_comboboxes_b)):
+                self.material_comboboxes_b[i].setEnabled(False)
+                self.material_percent_lines_b[i].setEnabled(False)
+                self.material_b_types[i].setEnabled(False)
+                self.lock_checkboxies_b[i].setEnabled(False)
+                self.normalise_B.setEnabled(False)
+
+    def enable_receipt(self, komponent) -> None:
+        if komponent == "A":
+            self.add_A_but.setEnabled(True)
+            self.del_A_but.setEnabled(True)
+            for i in range(len(self.material_comboboxes_a)):
+                self.material_comboboxes_a[i].setEnabled(True)
+                self.material_percent_lines_a[i].setEnabled(True)
+                self.material_a_types[i].setEnabled(True)
+                self.lock_checkboxies_a[i].setEnabled(True)
+                self.normalise_A.setEnabled(True)
+
+        elif komponent == "B":
+            self.add_B_but.setEnabled(True)
+            self.del_B_but.setEnabled(True)
+            for i in range(len(self.material_comboboxes_b)):
+                self.material_comboboxes_b[i].setEnabled(True)
+                self.material_percent_lines_b[i].setEnabled(True)
+                self.material_b_types[i].setEnabled(True)
+                self.lock_checkboxies_b[i].setEnabled(True)
+                self.normalise_B.setEnabled(True)
+
+    def set_percents_from_receipt_window(self, component, percents):
+        if component == "A":
+            material_percent_lines = self.material_percent_lines_a
+            material_lines = self.material_list_a
+            receipt = self.receipt_a
+        elif component == "B":
+            material_percent_lines = self.material_percent_lines_b
+            material_lines = self.material_list_b
+            receipt = self.receipt_b
+        else:
+            return None
+        receipt.scope_trigger = len(percents) - 1
+        for material, percent_line, percent in zip(material_lines, material_percent_lines, percents):
+            percent_line.setText(str(percent))
+            material.percent = percent
+
+
+
+class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
+    def __init__(self, main_window: MyMainWindow, komponent):
+        super(SintezWindow, self).__init__()
+        self.setupUi(self)
+        self.main_window = main_window
+        self.komponent = komponent
+        self.horizontalSlider = {}
+        self.line_percent = {}
+        self.line_EW = {}
+        self.line_name_of_component = {}
+        self.percents = {}
+        self.previousPercents = {}
+        self.sumpercent = 0
+        self.checkBoxAHEW = {}
+        self.checkBoxEEW = {}
+        self.label_activity = {}
+        self.checkBoxChange = {}
+
+        self.__EW = 0
+        self.slider_is_pushed = {}
+
+        self.gridLayout.addItem(QSpacerItem(1, 1), 1000, 0, 1000, 5)
+
+        # self.total_EW_lineEdit = QtWidgets.QLineEdit(self.centralwidget)
+        # self.total_EW_lineEdit.setGeometry(QtCore.QRect(100, 60, 200, 20))
+        # self.total_EW_lineEdit.setObjectName("total_EW_lineEdit")
+
+        self.material_types = []
+        self.material_comboboxes = []
+        self.material_percent_lines = []
+
+        self.label.setText("Компонент " + komponent)
+
+        if komponent == "A":
+            self.setWindowTitle("Редактирование рецептуры Компонента А")
+            self.label.setText("Редактирование рецептуры Компонента А")
+            self.main_window_material_comboboxes = (
+                self.main_window.material_comboboxes_a
+            )
+            self.main_window_material_types = self.main_window.material_a_types
+            self.main_window_material_percent_lines = (
+                self.main_window.material_percent_lines_a
+            )
+
+        elif komponent == "B":
+            self.setWindowTitle("Редактирование рецептуры Компонента Б")
+            self.label.setText("Редактирование рецептуры Компонента Б")
+            self.main_window_material_comboboxes = (
+                self.main_window.material_comboboxes_b
+            )
+            self.main_window_material_types = self.main_window.material_b_types
+            self.main_window_material_percent_lines = (
+                self.main_window.material_percent_lines_b
+            )
+        else:
+            raise TypeError
+
+        with open("style.css", "r") as f:
+            self.style, self.style_combobox = f.read().split("$split$")
+
+        self.numb_of_components = len(self.main_window_material_comboboxes)
+
+        for index, widget in enumerate(self.main_window_material_comboboxes):
+            percent = float(self.main_window_material_percent_lines[index].text())
+            self.percents[index] = percent
+            self.previousPercents[index] = percent
+            self.add_line(
+                index,
+                self.main_window_material_types[index].currentText(),
+                widget.currentText(),
+                komponent,
+                percent,
+            )
+
+        oImage = QImage("fon.jpg")
+        # sImage = oImage.scaled(QSize(self.window_height, self.window_width))
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
+
+        self.resize(680, 85 + 38 * len(self.material_types))
+
+        self.change_font()
+        # self.line = QtWidgets.QFrame(self.centralwidget)
+        # self.line.setGeometry(QtCore.QRect(150, 100, 20, 300))
+        # self.line.setFrameShape(QtWidgets.QFrame.VLine)
+        # self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        # self.line.setObjectName("line")
+        # self.line_2 = QtWidgets.QFrame(self.centralwidget)
+        # self.line_2.setGeometry(QtCore.QRect(20, 140, 761, 16))
+        # self.line_2.setFrameShape(QtWidgets.QFrame.HLine)
+        # self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
+        # self.line_2.setObjectName("line_2")
+
+    def change_font(self):
+
+        font = QtGui.QFont("Times New Roman", self.main_window.font_size)
+        big_bold_font = QtGui.QFont("Times New Roman", self.main_window.font_size_big)
+        # big_bold_font.setBold(True)
+        self.label.setFont(big_bold_font)
+        for line_numb in range(len(self.material_types)):
+            self.material_types[line_numb].setFont(font)
+            self.material_comboboxes[line_numb].setFont(font)
+            self.material_percent_lines[line_numb].setFont(font)
+
+    @property
+    def EW(self):
+        return self.__EW
+
+    @EW.setter
+    def EW(self, value):
+        # if value > 0:
+        #     self.total_EW_lineEdit.setText("EEW  " + str(round(value, 2)))
+        # elif value == 0:
+        #     self.total_EW_lineEdit.setText("No EW")
+        # else:
+        #     self.total_EW_lineEdit.setText("AHEW  " + str(-round(value, 2)))
+        self.__EW = value
+
+    def slider_is_moved(self, numb_of_slider):
+        def wrapper():
+            value_of_slider = int(self.horizontalSlider[numb_of_slider].value()) / 100
+            # self.try_to_change(numb_of_slider, self.percents[numb_of_slider], value_of_slider)
+            self.percents[numb_of_slider] = value_of_slider
+            # self.count_EW()
+            self.line_percent[numb_of_slider].setText(str(value_of_slider))
+
+        return wrapper
+
+    # def change_activivty(self, numb_of_line, box):
+    #     def wrapper():
+    #         if box == 'AHEW':
+    #             if self.checkBoxEEW[numb_of_line].isChecked() or self.label_activity[numb_of_line].text() == 'None':
+    #                 self.label_activity[numb_of_line].setText('AHEW')
+    #                 self.checkBoxEEW[numb_of_line].setChecked(False)
+    #                 return None
+    #
+    #         elif box == 'EEW':
+    #             if self.checkBoxAHEW[numb_of_line].isChecked() or self.label_activity[numb_of_line].text() == 'None':
+    #                 self.label_activity[numb_of_line].setText('EEW')
+    #                 self.checkBoxAHEW[numb_of_line].setChecked(False)
+    #                 return None
+    #
+    #         self.label_activity[numb_of_line].setText('None')
+    #
+    #     return wrapper
+
+    def change_percent_in_line(self, numb_of_line):
+        def wrapper():
+            text = self.line_percent[numb_of_line].text()
+            if text.isdigit():
+                numb = float(text)
+                self.horizontalSlider[numb_of_line].setSliderPosition(numb * 100)
+                self.line_percent[numb_of_line].setText(text)
+            else:
+                # Вписать инструкцию, которая будет сообщать об ошибке
+                pass
+
+        return wrapper
+
+    def add_line(
+        self,
+        numb_of_line,
+        mat_type,
+        mat_name,
+        component,
+        percent=None,
+    ):
+
+        items_type = self.material_types
+        items = self.material_comboboxes
+        items_lines = self.material_percent_lines
+        grid = self.gridLayout
+        material_combobox = QComboBox()
+        materia_type_combobox = QComboBox()
+
+        materia_type_combobox.setStyleSheet(self.style_combobox)
+        material_combobox.setStyleSheet(self.style_combobox)
+        # Подтянуть соответствующий индекс
+        materia_type_combobox.addItems(self.main_window.types_of_items)
+        materia_type_combobox.setCurrentIndex(
+            self.main_window_material_types[numb_of_line].currentIndex()
+        )
+        print(self.main_window_material_types[numb_of_line].currentIndex())
+        materia_type_combobox.setFixedWidth(60)
+
+        materia_type_combobox.currentIndexChanged.connect(
+            self.main_window.change_list_of_materials(
+                material_combobox, materia_type_combobox
+            )
+        )
+
+        # Подцепить соответствующие вещества
+        material_combobox.addItems(self.main_window.list_of_item_names[mat_type])
+        material_combobox.setCurrentIndex(
+            self.main_window_material_comboboxes[numb_of_line].currentIndex()
+        )
+        material_combobox.setFixedWidth(120)
+
+        line = QLineEdit()
+        line.setText(self.main_window_material_percent_lines[numb_of_line].text())
+        # line.editingFinished.connect(lambda: self.to_float(komponent))
+        # line.editingFinished.connect(lambda: self.count_sum(komponent))
+
+        items_type.append(materia_type_combobox)
+        items.append(material_combobox)
+        items_lines.append(line)
+        row_count = numb_of_line
+        grid.addWidget(materia_type_combobox, row_count + 1, 0)
+        grid.addWidget(material_combobox, row_count + 1, 1)
+        grid.addWidget(line, row_count + 1, 2)
+
+        # grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
+        # grid.addWidget(final_label_numb, row_count + 2, 2)
+        # self.count_sum(komponent)
+        line.setFixedWidth(60)
+        self.line_percent[numb_of_line] = line
+        # self.line_name_of_component[numb_of_line] = QComboBox(self.centralwidget)
+        # self.line_name_of_component[numb_of_line].setGeometry(QtCore.QRect(x + 140, 110 + interval * numb_of_line, 141, 20))
+        # self.line_name_of_component[numb_of_line].setObjectName(f"line_name_of_component{numb_of_line}")
+
+        # Создаём окно для процентов
+        # self.line_percent[numb_of_line] = QtWidgets.QLineEdit(self.centralwidget)
+        # self.line_percent[numb_of_line].setGeometry(QtCore.QRect(x + 300, 110 + interval * numb_of_line, 51, 20))
+        # self.line_percent[numb_of_line].setObjectName(f"line_percent{numb_of_line}")
+        if percent:
+            self.line_percent[numb_of_line].setText(str(percent))
+        self.line_percent[numb_of_line].editingFinished.connect(
+            self.try_to_change(numb_of_line, "line")
+        )
+
+        self.checkBoxChange[numb_of_line] = QtWidgets.QCheckBox()
+        # self.checkBoxChange[numb_of_line].setGeometry(QtCore.QRect(x + 370, 112 + interval * numb_of_line, 16, 17))
+        # self.checkBoxChange[numb_of_line].setText("")
+        # self.checkBoxChange[numb_of_line].setObjectName(f"checkBoxChange{numb_of_line}")
+        # self.checkBoxChange[numb_of_line].clicked.connect()
+        grid.addWidget(self.checkBoxChange[numb_of_line], row_count + 1, 3)
+
+        slider = QtWidgets.QSlider()
+        # self.horizontalSlider[numb_of_line].setGeometry(QtCore.QRect(x + 390, 110 + interval * numb_of_line, 400, 20))
+        # self.horizontalSlider[numb_of_line].setProperty("value", 20)
+        # self.horizontalSlider[numb_of_line].setSliderPosition(10 + 3 * numb_of_line)
+        slider.setOrientation(QtCore.Qt.Horizontal)
+        slider.setTickInterval(10)
+        slider.setObjectName(f"horizontalSlider{numb_of_line}")
+        slider.setRange(0, 10000)
+
+        self.horizontalSlider[numb_of_line] = slider
+        grid.addWidget(slider, row_count + 1, 4)
+        if percent:
+            slider.setSliderPosition(percent * 100)
+
+        slider.valueChanged.connect(self.try_to_change(numb_of_line, "slider"))
+        # self.horizontalSlider[numb_of_line].sliderMoved.connect(self.try_to_change(numb_of_line, 'slider'))
+        slider.sliderPressed.connect(self.slider_push_changer(numb_of_line, True))
+        slider.sliderReleased.connect(self.set_percents)
+        self.slider_is_pushed[numb_of_line] = False
+
+    def slider_push_changer(self, line: int, is_push: bool):
+        def wrapper():
+            self.slider_is_pushed[line] = is_push
+
+        return wrapper
+
+    # def count_EW(self):
+    #     activ_group = 0
+    #     for numb_of_line in range(self.numb_of_components):
+    #         if self.label_activity[numb_of_line].text() != 'None':
+    #
+    #             current_activ_group = 1 / float(self.line_EW[numb_of_line].text()) * \
+    #                                   float(self.line_percent[numb_of_line].text()) / 100
+    #
+    #             if self.label_activity[numb_of_line].text() == 'AHEW':
+    #                 activ_group += current_activ_group
+    #             else:
+    #                 activ_group -= current_activ_group
+    #     if activ_group != 0:
+    #         self.EW = int((1 / activ_group) * 1000) / 1000
+    #     else:
+    #         self.EW = 0
+
+    def try_to_change(self, numb_of_line, source):
+        def wrapper():
+            if self.slider_is_pushed[numb_of_line]:
+                if self.checkBoxChange[numb_of_line].isChecked():
+                    self.horizontalSlider[numb_of_line].setSliderPosition(
+                        self.percents[numb_of_line] * 100
+                    )
+                    return None
+
+                lines_to_change = []
+                for line in self.checkBoxChange:
+                    if self.checkBoxChange[line].isChecked() and line != numb_of_line:
+                        lines_to_change.append(line)
+
+                previos_value = self.previousPercents[numb_of_line]
+
+                if source == "slider":
+                    new_value = round(
+                        int(self.horizontalSlider[numb_of_line].value()) / 100, 2
+                    )
+                else:
+                    new_value = self.line_percent[numb_of_line].text()
+                    try:
+                        new_value = round(float(new_value), 2)
+                    except:
+                        self.line_percent[numb_of_line].setText(
+                            str(self.percents[numb_of_line])
+                        )
+                        return None
+
+                delta = round(new_value - previos_value, 2)
+
+                if delta > 0:
+                    change_way_is_up = True
+                else:
+                    change_way_is_up = False
+                    delta = -delta
+
+                if delta < 0.01:
+                    return None
+
+                for line in self.percents:
+                    self.previousPercents[line] = self.percents[line]
+
+                # Функция, меняющая компоненты без сохранения EW
+                else:
+                    sum_percent = 0
+                    sum_ostatok_percent = 0
+                    for line in lines_to_change:
+                        sum_percent += self.percents[line]
+                        sum_ostatok_percent += 100 - self.percents[line]
+
+                    if ((sum_percent > delta) and change_way_is_up) or (
+                        (sum_ostatok_percent > delta) and not change_way_is_up
+                    ):
+
+                        # if change_way_is_up:
+                        #     self.percents[numb_of_line] += delta
+                        # else:
+                        #     self.percents[numb_of_line] -= delta
+
+                        self.percents[numb_of_line] = round(
+                            self.percents[numb_of_line], 2
+                        )
+                        break_flag = []
+                        for line in cycle(lines_to_change):
+                            # Ходим по концентрациям других продуктов и меняем при проходе на 0,01%, если там что-то еще осталось
+                            # Когда ничего не осталось, возвращаем компонент, который меняли обратно на оставшуюся дельту
+
+                            if delta < 0.01:
+                                break
+
+                            if not change_way_is_up:
+                                self.percents[line] += 0.01
+                                self.percents[line] = round(self.percents[line], 2)
+                                self.percents[numb_of_line] -= 0.01
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+
+                            if self.percents[line] == 0:
+                                if line not in break_flag:
+                                    break_flag.append(line)
+                                if len(break_flag) == len(lines_to_change):
+                                    break
+
+                                continue
+
+                            if change_way_is_up:
+                                self.percents[line] -= 0.01
+                                self.percents[line] = round(self.percents[line], 2)
+                                self.percents[numb_of_line] += 0.01
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+
+                            # self.set_percents(numb_of_line)
+
+                            delta -= 0.01
+                            delta = round(delta, 2)
+
+                    else:
+                        # Когда нам надо добить до конца
+                        if change_way_is_up:
+                            for line in lines_to_change:
+                                self.percents[numb_of_line] += self.percents[line]
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+                                self.percents[line] = 0
+                            # self.horizontalSlider[numb_of_line].setSliderPosition(self.percents[numb_of_line] * 100)
+                            # return None
+                        else:
+                            for line in lines_to_change:
+                                self.percents[numb_of_line] -= 100 - self.percents[line]
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+                                self.percents[line] = 100
+                            # self.horizontalSlider[numb_of_line].setSliderPosition(self.percents[numb_of_line] * 100)
+                            # return None
+
+                self.set_percents(numb_of_line)
+                sum_percent_all = 0
+                for i in self.percents.values():
+                    sum_percent_all += i
+
+                for line in self.percents:
+                    self.previousPercents[line] = self.percents[line]
+
+                # self.count_EW()
+                self.main_window.set_percents_from_receipt_window(self.komponent,
+                                                                  [self.percents[i] for i in range(len(self.percents))])
+
+        return wrapper
+
+    def set_percents(self, current_line=-1):
+        for line in self.percents:
+            self.line_percent[line].setText(str(self.percents[line]))
+            if line == current_line:
+                continue
+            self.horizontalSlider[line].setSliderPosition(self.percents[line] * 100)
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        if self.komponent == "A":
+            self.main_window.a_receipt_window = None
+        if self.komponent == "B":
+            self.main_window.b_receipt_window = None
+
+        self.main_window.enable_receipt(self.komponent)
+        self.close()

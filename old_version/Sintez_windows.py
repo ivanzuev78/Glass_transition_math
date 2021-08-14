@@ -428,10 +428,8 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                     self.previousPercents[line] = self.percents[line]
 
                 # self.count_EW()
-                self.main_window.set_percents_from_receipt_window(
-                    self.komponent,
-                    [self.percents[i] for i in range(len(self.percents))],
-                )
+                self.main_window.set_percents_from_receipt_window(self.komponent,
+                                                                  [self.percents[i] for i in range(len(self.percents))])
 
         return wrapper
 

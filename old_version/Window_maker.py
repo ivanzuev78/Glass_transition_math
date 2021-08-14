@@ -1,4 +1,3 @@
-
 import os
 import sys
 from copy import copy
@@ -9,11 +8,12 @@ from collections import defaultdict
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
 from PyQt5.QtWidgets import *
-
+import pandas as pd
 import pickle
 
 from math import fabs
-from Materials import *
+
+# from Materials import *
 from Sintez_windows import SintezWindow, ChoosePairReactWindow
 from additional_classes import (
     MyQLabel,
@@ -293,7 +293,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     ],
                     mass_a,
                     mass_b,
-                    save_a=True
+                    save_a=True,
                 )
             elif component == "B":
                 save_receipt(
@@ -323,7 +323,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     ],
                     mass_a,
                     mass_b,
-                    save_b=True
+                    save_b=True,
                 )
             else:
                 # if self.material_comboboxes_a and self.material_comboboxes_b:
@@ -411,7 +411,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self, "Открыть синтез", ".", "receipt(*.receipt)"
             )
 
-            if file[0] == '':
+            if file[0] == "":
                 return None
 
             with open(file[0], "rb") as f:
@@ -1642,6 +1642,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.ahew_label.setText(f"AHEW = {-round(self.b_ew, 2)}")
             else:
                 self.ahew_label.setText(f"No EW")
+
     def set_ew(self, komponent):
         if komponent == "A":
             if self.a_ew > 0:
@@ -2349,5 +2350,3 @@ if __name__ == "__main__":
     form = MyMainWindow()
     form.show()
     app.exec_()
-
-
