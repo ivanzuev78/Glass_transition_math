@@ -1,3 +1,5 @@
+import math
+import sqlite3
 from typing import Optional, Union
 
 from pandas import DataFrame
@@ -13,6 +15,7 @@ class Material:
         self.receipt = receipt
         self.__percent: float = 0.0
         receipt.add_material(self)
+        self.ew = self.receipt.data_driver.get_ew_by_name(mat_type, mat_name)
 
     @property
     def percent(self) -> float:
@@ -54,8 +57,17 @@ class Material:
     @mat_type.setter
     def mat_type(self, value: str):
         # TODO сеттер на изменение типа материала
-        if isinstance(value, float):
+        if isinstance(value, str):
             self.__mat_type = value
+
+    def set_type_and_name(self, mat_type: str, name: str) -> None:
+        self.mat_type = mat_type
+        self.name = name
+        self.set_ew()
+
+    def set_ew(self):
+        self.ew = self.receipt.data_driver.get_ew_by_name(self.mat_type, self.name)
+        self.receipt.update_all_parameters()
 
     def __str__(self):
         return self.__name
@@ -75,10 +87,11 @@ class Material:
 
 class Receipt:
 
-    def __init__(self, component: str):
+    def __init__(self, component: str, data_driver: "DataDriver"):
         from qt_windows import MyMainWindow
 
         self.main_window: Optional[MyMainWindow] = None
+        self.data_driver = data_driver
         self.materials: list = []
         self.sum_percent: float = 0.0
         self.component = component
@@ -97,7 +110,6 @@ class Receipt:
         if self.component == "B":
             self.materials = self.main_window.material_list_b
 
-
     def remove_material(self):
         # TODO пересчёт всего в связи с изменением рецептуры
         del self.materials[-1]
@@ -111,7 +123,10 @@ class Receipt:
                 return None
         self.sum_percent = round(sum(self.materials), 2)
         self.set_sum_to_qt()
+        self.count_ew()
         if self.sum_percent == 100.0:
+            self.update_all_parameters()
+
             # TODO Команда, вызывающая расчёты
             ...
         else:
@@ -119,14 +134,44 @@ class Receipt:
             # Возможно нужно будет сбросить что-то в ReceiptCounter
             ...
 
+    def update_all_parameters(self):
+        """
+        Предполагается, что сумма процентов уже посчитана
+        :return:
+        """
+        if self.sum_percent == 100:
+            self.count_ew()
+            self.receipt_counter.count_mass_ratio()
+        else:
+            ...
+
+    def count_ew(self):
+        if self.sum_percent == 100:
+            inverse_ew = 0
+            for material in self.materials:
+                if material.mat_type in ("Epoxy", "Amine"):
+                    inverse_ew += (material.percent / material.ew)
+            if inverse_ew:
+                self.ew = 100 / inverse_ew
+            else:
+                self.ew = None
+        else:
+            self.ew = None
+        self.set_ew_to_qt()
+
     def set_sum_to_qt(self):
         self.main_window.set_sum(self.sum_percent, self.component)
+
+    def set_ew_to_qt(self):
+        self.main_window.set_ew(self.component, self.ew)
 
 
 class ReceiptCounter:
     def __init__(
-        self, receipt_a: Receipt, receipt_b: Receipt, extra_ratio: bool = False
+        self, receipt_a: Receipt, receipt_b: Receipt, main_window, extra_ratio: bool = False
     ):
+        from qt_windows import MyMainWindow
+        self.main_window: Optional[MyMainWindow] = main_window
         self.receipt_a = receipt_a
         self.receipt_b = receipt_b
         self.__tg: Optional[float] = None
@@ -152,9 +197,40 @@ class ReceiptCounter:
     @mass_ratio.setter
     def mass_ratio(self, value):
         # TODO сеттер для передачи значений в окна
-        if isinstance(value, float):
-            self.__mass_ratio = value
+        self.__mass_ratio = value
+        self.main_window.set_mass_ratio(value)
+
+    def count_mass_ratio(self):
+        if self.receipt_a.ew and self.receipt_b.ew:
+            if self.receipt_a.ew * self.receipt_b.ew < 0:
+                self.mass_ratio = - self.receipt_a.ew / self.receipt_b.ew
+                return None
+        self.mass_ratio = None
+
 
     def count_percent_df(self):
         # TODO реализовать логику расчёта percent_df
         ...
+
+
+class DataDriver:
+
+    def __init__(self, db_name: str):
+        self.db_name = db_name
+
+    def get_ew_by_name(self, mat_type: str, material: str):
+        if material == "":
+            return None
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        if mat_type == "Epoxy":
+            return cursor.execute(
+                f"SELECT EEW FROM Epoxy WHERE name == '{material}'"
+            ).fetchall()[0][0]
+        elif mat_type == "Amine":
+            return cursor.execute(
+                f"SELECT AHEW FROM Amine WHERE name == '{material}'"
+            ).fetchall()[0][0]
+        else:
+            return math.inf
+

@@ -2,7 +2,7 @@ from itertools import cycle
 from typing import Union, Optional
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
+from PyQt5.QtGui import QImage, QPalette, QBrush
 from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem
 
 from new_material_classes import Receipt, Material
@@ -19,15 +19,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.db_name = db_name
 
-        oImage = QImage("fon.jpg")
+        oimage = QImage("fon.jpg")
         palette = QPalette()
-        palette.setBrush(QPalette.Window, QBrush(oImage))
+        palette.setBrush(QPalette.Window, QBrush(oimage))
         self.setPalette(palette)
 
         self.button_list = [
-            self.a_recept_but,
-            self.b_recept_but,
-            self.b_recept_but,
+            self.a_receipt_but,
+            self.b_receipt_but,
             self.debug_but,
             self.normalise_A,
             self.normalise_B,
@@ -66,15 +65,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.extra_ratio_line,
         ]
         self.all_big_labels = [self.label, self.label_2]
-        self.font_size = 10
-        self.font_size_big = 15
+        self.font_size = 9
+        self.font_size_big = 5
 
         # QSpacerItem в gridLayout для подпирания строк снизу
         self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
         self.gridLayout_b.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
 
         with open("style.css", "r") as f:
-            self.style, self.style_combobox = f.read().split("$split$")
+            self.style, self.style_combobox, self.style_red_but = f.read().split("$split$")
         self.set_bottom_styles()
 
         self.types_of_items = get_all_material_types(self.db_name)
@@ -109,8 +108,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.a_receipt_window: Optional[SintezWindow] = None
         self.b_receipt_window: Optional[SintezWindow] = None
         # Подключаем кнопки
-        # self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
-        # self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
+        # self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
+        # self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
 
         self.add_A_but.clicked.connect(self.add_a_line)
         self.add_B_but.clicked.connect(self.add_b_line)
@@ -120,9 +119,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.normalise_A.clicked.connect(self.normalise_func("A"))
         self.normalise_B.clicked.connect(self.normalise_func("B"))
 
-        self.a_recept_but.clicked.connect(self.add_receipt_window("A"))
-        self.b_recept_but.clicked.connect(self.add_receipt_window("B"))
-
+        self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
+        self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
 
         self.debug_but.clicked.connect(self.debug)
 
@@ -133,6 +131,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def set_bottom_styles(self):
         for widget in self.button_list + self.big_button_list:
             widget.setStyleSheet(self.style)
+        self.change_receipt_color('A', True)
+        self.change_receipt_color('B', True)
 
     def hide_top(self, komponent: str):
         if komponent == "A":
@@ -231,13 +231,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # Подключение функций, которые передают параметры в Material при изменении
         percent_line.editingFinished.connect(
-            self.change_parameter_material(material, percent_line, "percent")
+            self.change_percent_material(material, percent_line)
         )
-        materia_typel_combobox.currentIndexChanged.connect(
-            self.change_parameter_material(material, materia_typel_combobox, "type")
-        )
+
         material_combobox.currentIndexChanged.connect(
-            self.change_parameter_material(material, material_combobox, "name")
+            self.change_type_name_material(material, materia_typel_combobox, material_combobox)
         )
 
         check = QCheckBox()
@@ -355,22 +353,73 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def set_sum(self, percent: float, component: str):
         if component == "A":
             self.final_a_numb_label.setText(f"{percent:.{2}f}")
+            if percent != 100:
+                self.final_a_numb_label.setStyleSheet(
+                    "QLabel { color: red}")
+                self.a_receipt_but.setStyleSheet(self.style_red_but)
+            else:
+                self.final_a_numb_label.setStyleSheet(
+                    "QLabel { color: green}")
+                self.a_receipt_but.setStyleSheet(self.style)
         elif component == "B":
             self.final_b_numb_label.setText(f"{percent:.{2}f}")
+            if percent != 100:
+                self.final_b_numb_label.setStyleSheet(
+                    "QLabel { color: red}")
+                self.b_receipt_but.setStyleSheet(self.style_red_but)
+            else:
+                self.final_b_numb_label.setStyleSheet(
+                    "QLabel { color: green}")
+                self.b_receipt_but.setStyleSheet(self.style)
+
+    def set_ew(self, component, ew):
+        if component == "A":
+            if ew is None:
+                self.eew_label.setText(f"No EW")
+            elif ew > 0:
+                self.eew_label.setText(f"EEW = {round(ew, 2)}")
+            elif ew < 0:
+                self.eew_label.setText(f"AHEW = {-round(ew, 2)}")
+
+        if component == "B":
+            if ew is None:
+                self.ahew_label.setText(f"No EW")
+            elif ew > 0:
+                self.ahew_label.setText(f"EEW = {round(ew, 2)}")
+            elif ew < 0:
+                self.ahew_label.setText(f"AHEW = {-round(ew, 2)}")
+
+    def set_mass_ratio(self, value):
+        if value is None:
+            self.mass_ratio_label.setText(f"Продукты не реагируют")
+        elif value >= 1:
+            numb_a = round(value, 2)
+            numb_b = 1
+            self.mass_ratio_label.setText(
+                f"Соотношение по массе:\n\t{numb_a} : {numb_b}"
+            )
+        elif 0 < value < 1:
+            numb_a = 1
+            numb_b = round(1 / value, 2)
+            self.mass_ratio_label.setText(
+                f"Соотношение по массе:\n\t{numb_a} : {numb_b}"
+            )
 
     def add_receipt_window(self, komponent) -> callable:
         def wrapper():
             if komponent == "A":
-                if not self.a_receipt_window:
-                    self.a_receipt_window = SintezWindow(self, "A")
+                if self.final_a_numb_label.text() == '100.00':
+                    if not self.a_receipt_window:
+                        self.a_receipt_window = SintezWindow(self, "A")
 
-                self.a_receipt_window.show()
-                self.disable_receipt("A")
+                    self.a_receipt_window.show()
+                    self.disable_receipt("A")
             elif komponent == "B":
-                if not self.b_receipt_window:
-                    self.b_receipt_window = SintezWindow(self, "B")
-                self.b_receipt_window.show()
-                self.disable_receipt("B")
+                if self.final_b_numb_label.text() == '100.00':
+                    if not self.b_receipt_window:
+                        self.b_receipt_window = SintezWindow(self, "B")
+                    self.b_receipt_window.show()
+                    self.disable_receipt("B")
             else:
                 return None
 
@@ -450,24 +499,22 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.receipt_b.add_material(material)
 
     @staticmethod
-    def change_parameter_material(
-        material: Material, widget: Union[QComboBox, QLineEdit], parameter: str
+    def change_type_name_material(
+        material: Material, material_type_combobox: QComboBox, material_combobox: QComboBox
     ) -> callable:
         """
+        :param material_combobox: QComboBox из строки рецептуры
+        :param material_type_combobox: QComboBox из строки рецептуры
         :param material: Объект Material
-        :param widget: Виджет из которого берется значение
-        :param parameter: "name" / "type" / "percent"
         :return: None
         """
         def wrapper():
-            if parameter == "name":
-                material.name = widget.currentText()
-            elif parameter == "type":
-                material.mat_type = widget.currentText()
-            elif parameter == "percent":
-                percent = float(widget.text())
-                material.percent = percent
+            material.set_type_and_name(material_type_combobox.currentText(), material_combobox.currentText())
+        return wrapper
 
+    def change_percent_material(self, material: Material, percent_line: QLineEdit) -> callable:
+        def wrapper():
+            material.percent = float(percent_line.text())
         return wrapper
 
     # Нормирует рецептуру
@@ -580,6 +627,23 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             percent_line.setText(str(percent))
             material.percent = percent
 
+    def change_receipt_color(self, component: str, color_red: bool):
+        if component == 'A':
+            if color_red:
+                style = self.style_red_but
+            else:
+                style = self.style
+            self.a_receipt_but.setStyleSheet(style)
+        elif component == 'B':
+            if color_red:
+                style = self.style_red_but
+            else:
+                style = self.style
+            self.b_receipt_but.setStyleSheet(style)
+
+
+
+
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
@@ -640,7 +704,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
             raise TypeError
 
         with open("style.css", "r") as f:
-            self.style, self.style_combobox = f.read().split("$split$")
+            self.style, self.style_combobox, _ = f.read().split("$split$")
 
         self.numb_of_components = len(self.main_window_material_comboboxes)
 
@@ -677,7 +741,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         # self.line_2.setObjectName("line_2")
 
     def change_font(self):
-
         font = QtGui.QFont("Times New Roman", self.main_window.font_size)
         big_bold_font = QtGui.QFont("Times New Roman", self.main_window.font_size_big)
         # big_bold_font.setBold(True)

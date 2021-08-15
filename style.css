@@ -25,3 +25,23 @@ QComboBox {
     border-color: #000000;
     border: 1px solid #586072;
 }
+
+$split$
+
+QPushButton{
+   background-color: #CBDBFF;
+    border-radius: 6px;
+    border-color: #000000;
+    border: 1px solid #586072;
+    padding: 1px;
+    font: 9
+
+}
+
+QPushButton:hover {
+    color: black;
+    background-color: #f00b00;
+}
+QPushButton:pressed {
+background-color: #AFC2ED;
+}

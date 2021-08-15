@@ -386,7 +386,7 @@
      <string>Название рецептуры</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="a_recept_but">
+   <widget class="QPushButton" name="a_receipt_but">
     <property name="geometry">
      <rect>
       <x>180</x>
@@ -394,6 +394,12 @@
       <width>91</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Times New Roman</family>
+      <pointsize>10</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>Рецептура А</string>
@@ -431,7 +437,7 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="b_recept_but">
+   <widget class="QPushButton" name="b_receipt_but">
     <property name="geometry">
      <rect>
       <x>500</x>
@@ -439,6 +445,12 @@
       <width>91</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Times New Roman</family>
+      <pointsize>10</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>Рецептура Б</string>
