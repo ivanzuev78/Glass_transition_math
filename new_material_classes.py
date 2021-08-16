@@ -147,12 +147,12 @@ class Receipt:
 
     def count_ew(self):
         if self.sum_percent == 100:
-            inverse_ew = 0
+            inversed_ew = 0
             for material in self.materials:
                 if material.mat_type in ("Epoxy", "Amine"):
-                    inverse_ew += (material.percent / material.ew)
-            if inverse_ew:
-                self.ew = 100 / inverse_ew
+                    inversed_ew += (material.percent / material.ew)
+            if inversed_ew:
+                self.ew = 100 / inversed_ew
             else:
                 self.ew = None
         else:
@@ -207,9 +207,9 @@ class ReceiptCounter:
                 return None
         self.mass_ratio = None
 
-
     def count_percent_df(self):
         # TODO реализовать логику расчёта percent_df
+
         ...
 
 
