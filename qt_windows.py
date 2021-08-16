@@ -6,19 +6,18 @@ from PyQt5.QtGui import QImage, QPalette, QBrush
 from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem
 
 from new_material_classes import Receipt, Material
-from old_version.Materials import get_all_material_types, get_all_material_of_one_type
 
 DB_NAME = "material.db"
 # DB_NAME = "material_for_test.db"
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
-    def __init__(self, db_name=DB_NAME):
+    def __init__(self, data_driver, db_name=DB_NAME):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
 
         self.db_name = db_name
-
+        self.data_driver = data_driver
         oimage = QImage("fon.jpg")
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oimage))
@@ -76,9 +75,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.style, self.style_combobox, self.style_red_but = f.read().split("$split$")
         self.set_bottom_styles()
 
-        self.types_of_items = get_all_material_types(self.db_name)
+        self.types_of_items = self.data_driver.get_all_material_types()
         self.list_of_item_names = {
-            material: get_all_material_of_one_type(material, self.db_name)
+            material: self.data_driver.get_all_material_of_one_type(material)
             for material in self.types_of_items
         }
         # QLine со значением суммы в конце рецептуры

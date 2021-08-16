@@ -6,11 +6,10 @@ DB_NAME = "material.db"
 class InitClass:
     def __init__(self):
 
-        # Создаём главное окно
-        self.my_main_window = MyMainWindow()
-
-
         self.data_driver = DataDriver(DB_NAME)
+        # Создаём главное окно
+        self.my_main_window = MyMainWindow(self.data_driver)
+
         # Создаем рецептуры и передаём их в главное окно
         self.receipt_a = Receipt("A", self.data_driver)
         self.receipt_b = Receipt("B", self.data_driver)

@@ -1,6 +1,6 @@
 import math
 import sqlite3
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from pandas import DataFrame
 
@@ -234,3 +234,19 @@ class DataDriver:
         else:
             return math.inf
 
+    def get_all_material_types(self) -> List[str]:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        all_material = [
+            i[0] for i in cursor.fetchall() if i[0] not in ("Tg", "Tg_influence")
+        ]
+        all_material.insert(0, all_material.pop(all_material.index("None")))
+        return all_material
+
+    def get_all_material_of_one_type(self, material_type: str) -> List[str]:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT name FROM {material_type}")
+        all_material = [i[0] for i in cursor.fetchall()]
+        return all_material
