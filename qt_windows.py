@@ -3,7 +3,7 @@ from typing import Union, Optional
 
 from PyQt5 import uic, QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QImage, QPalette, QBrush
-from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem
+from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem, QGridLayout
 
 from new_material_classes import Receipt, Material
 
@@ -104,11 +104,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.receipt_a: Optional[Receipt] = None
         self.receipt_b: Optional[Receipt] = None
 
+        # ======================== Переменные для окон =======================================
+
         self.a_receipt_window: Optional[SintezWindow] = None
         self.b_receipt_window: Optional[SintezWindow] = None
-        # Подключаем кнопки
-        # self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
-        # self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
+
+        self.pair_react_window: Optional[ChoosePairReactWindow] = None
+
+
+
+        # ======================== Подключаем кнопки =======================================
 
         self.add_A_but.clicked.connect(self.add_a_line)
         self.add_B_but.clicked.connect(self.add_b_line)
@@ -121,11 +126,18 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
         self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
 
+        # ----------------------- Кнопки меню -----------------------------------
+        self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
+
+
+
+
+
         self.debug_but.clicked.connect(self.debug)
 
     def debug(self) -> None:
-        self.receipt_a.count_sum()
-        print(self.receipt_a.sum_percent)
+        for m in self.receipt_a:
+            print(m.name, m.percent, m.ew)
 
     def set_bottom_styles(self):
         for widget in self.button_list + self.big_button_list:
@@ -209,7 +221,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         materia_typel_combobox.currentIndexChanged.connect(
             self.change_list_of_materials(material_combobox, materia_typel_combobox)
         )
-
 
         material = Material(
             materia_typel_combobox.currentText(),
@@ -404,6 +415,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 f"Соотношение по массе:\n\t{numb_a} : {numb_b}"
             )
 
+    # ========================= Окна ===========================
+
     def add_receipt_window(self, komponent) -> callable:
         def wrapper():
             if komponent == "A":
@@ -423,6 +436,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 return None
 
         return wrapper
+
+    def add_pair_react_window(self):
+        if not self.pair_react_window:
+            self.pair_react_window = ChoosePairReactWindow(self, self.receipt_a.all_pairs_material, self.receipt_b.all_pairs_material)
+        self.pair_react_window.show()
+
+    # =========================  ===========================
 
     @staticmethod
     def isfloat(value):
@@ -511,7 +531,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             material.set_type_and_name(material_type_combobox.currentText(), material_combobox.currentText())
         return wrapper
 
-    def change_percent_material(self, material: Material, percent_line: QLineEdit) -> callable:
+    @staticmethod
+    def change_percent_material(material: Material, percent_line: QLineEdit) -> callable:
         def wrapper():
             material.percent = float(percent_line.text())
         return wrapper
@@ -639,10 +660,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             else:
                 style = self.style
             self.b_receipt_but.setStyleSheet(style)
-
-
-
-
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
@@ -1076,3 +1093,76 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         self.main_window.enable_receipt(self.komponent)
         self.close()
+
+
+class ChoosePairReactWindow(
+    QtWidgets.QMainWindow, uic.loadUiType("windows/choose_pair_react.ui")[0]
+):
+    def __init__(self, main_window: MyMainWindow, all_pairs_a, all_pairs_b):
+        super(ChoosePairReactWindow, self).__init__()
+        self.setupUi(self)
+        self.main_window = main_window
+        self.labels_a = []
+        self.labels_b = []
+        self.checkboxes_a = []
+        self.checkboxes_b = []
+        self.all_pairs_a = all_pairs_a
+        self.all_pairs_b = all_pairs_b
+        self.pairs_to_react_a = []
+        self.pairs_to_react_b = []
+        self.fill_window()
+
+        oImage = QImage("fon.jpg")
+        palette = QPalette()
+        palette.setBrush(QPalette.Window, QBrush(oImage))
+        self.setPalette(palette)
+
+    def fill_window(self):
+        for pair in self.all_pairs_a:
+            self.add_line(pair, self.gridLayout_a, self.labels_a, self.checkboxes_a)
+        self.gridLayout_a.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
+        for pair in self.all_pairs_b:
+            self.add_line(pair, self.gridLayout_b, self.labels_b, self.checkboxes_b)
+        self.gridLayout_b.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
+
+    @staticmethod
+    def add_line(
+        pair: tuple, layout: QGridLayout, labels_list: list, checkboxes_list: list
+    ):
+        label = QLabel()
+        label.setText(f"{pair[0]} + {pair[1]}")
+        labels_list.append(label)
+        checkbox = QCheckBox()
+        checkbox.setChecked(True)
+        checkbox.setFixedWidth(20)
+        checkbox.setFixedHeight(20)
+        checkboxes_list.append(checkbox)
+
+        row_count = layout.count()
+        layout.addWidget(checkbox, row_count + 1, 0)
+        layout.addWidget(label, row_count + 1, 1)
+
+    def get_react_pairs(self, komponent):
+        if komponent == "A":
+            checkboxes_list = self.checkboxes_a
+            all_pairs = self.all_pairs_a
+            self.pairs_to_react_a = []
+            pairs_to_react = self.pairs_to_react_a
+        elif komponent == "B":
+            checkboxes_list = self.checkboxes_b
+            all_pairs = self.all_pairs_b
+            self.pairs_to_react_b = []
+            pairs_to_react = self.pairs_to_react_b
+        else:
+            return None
+        for checkbox, pair in zip(checkboxes_list, all_pairs):
+            if checkbox.isChecked():
+                pairs_to_react.append(pair)
+        return pairs_to_react
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        if not all(
+            chbox.isChecked() for chbox in self.checkboxes_b + self.checkboxes_a
+        ):
+            self.main_window.sintez_pair_label.setText("Ступенчатый синтез")
+        a0.accept()

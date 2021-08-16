@@ -49,6 +49,8 @@ class Material:
         # TODO сеттер на изменение материала
         if isinstance(value, str):
             self.__name = value
+            self.receipt.update_all_pairs_material()
+
 
     @property
     def mat_type(self) -> str:
@@ -92,16 +94,22 @@ class Receipt:
 
         self.main_window: Optional[MyMainWindow] = None
         self.data_driver = data_driver
-        self.materials: list = []
+        self.materials: List[Material] = []
         self.sum_percent: float = 0.0
         self.component = component
         self.ew: Optional[float] = None
         self.receipt_counter: Optional[ReceiptCounter] = None
-        self.scope_trigger = 0
+        self.scope_trigger: int = 0
+
+        # TODO Поставить сеттер на передачу пар в окно синтеза
+        self.all_pairs_material: List[(Material, Material)] = []
+
+        self.react_pairs: List[(Material, Material)] = []
 
     def add_material(self, material: Material):
         # TODO пересчёт всего в связи с изменением рецептуры
         self.materials.append(material)
+        self.update_all_pairs_material()
 
     def set_main_window(self, main_window):
         self.main_window = main_window
@@ -113,6 +121,7 @@ class Receipt:
     def remove_material(self):
         # TODO пересчёт всего в связи с изменением рецептуры
         del self.materials[-1]
+        self.update_all_pairs_material()
 
     def count_sum(self):
         # Ждём, пока все материалы установят себе процент
@@ -133,6 +142,11 @@ class Receipt:
             # TODO Сброс всех полей с параметрами (Стеклование, соотношение и т.д.)
             # Возможно нужно будет сбросить что-то в ReceiptCounter
             ...
+
+    def __iter__(self):
+        for material in self.materials:
+            yield material
+        return StopIteration
 
     def update_all_parameters(self):
         """
@@ -164,6 +178,18 @@ class Receipt:
 
     def set_ew_to_qt(self):
         self.main_window.set_ew(self.component, self.ew)
+
+    def update_all_pairs_material(self):
+        epoxy_list = []
+        amine_list = []
+        for mat in self.materials:
+            if mat.mat_type == "Epoxy":
+                epoxy_list.append(mat)
+            elif mat.mat_type == "Amine":
+                amine_list.append(mat)
+        self.all_pairs_material = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
+
+
 
 
 class ReceiptCounter:
@@ -209,7 +235,12 @@ class ReceiptCounter:
 
     def count_percent_df(self):
         # TODO реализовать логику расчёта percent_df
+        if not (self.receipt_a.ew and self.receipt_b.ew) or self.receipt_a.ew * self.receipt_b.ew >= 0:
+            self.percent_df = None
+        a_eq = [material.percent / material.ew * self.mass_ratio for material in self.receipt_a]
+        b_eq = [material.percent / material.ew for material in self.receipt_b]
 
+        total_eq = math.fabs(sum(a_eq))
         ...
 
 
