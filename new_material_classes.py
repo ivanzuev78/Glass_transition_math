@@ -1,5 +1,6 @@
 import math
 import sqlite3
+from itertools import chain
 from typing import Optional, Union, List
 
 from pandas import DataFrame
@@ -109,6 +110,16 @@ class Receipt:
         self.all_pairs_material: List[(Material, Material)] = []
 
         self.react_pairs: List[(Material, Material)] = []
+
+    def check_all_react(self):
+        # TODO доделать
+        for mat in self.materials:
+            if self.ew and self.ew < 0:
+                if mat.mat_type == 'Amine':
+                    if mat not in chain.from_iterable(self.react_pairs):
+                        print('good')
+                    else:
+                        print('Bad')
 
     def add_material(self, material: Material):
         # TODO пересчёт всего в связи с изменением рецептуры

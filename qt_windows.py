@@ -141,6 +141,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # print(self.pair_react_window.labels_a)
         # print(self.material_list_a)
         print(self.pair_react_window.checkboxes_a_means.items())
+        self.receipt_a.check_all_react()
 
     def set_bottom_styles(self):
         for widget in self.button_list + self.big_button_list:
@@ -1164,20 +1165,20 @@ class ChoosePairReactWindow(
         layout.addWidget(checkbox, row_count + 1, 0)
         layout.addWidget(label, row_count + 1, 1)
 
-    @staticmethod
-    def change_checkbox_state(checkbox: QCheckBox, checkboxes_means: defaultdict, pair: tuple):
+    def change_checkbox_state(self, checkbox: QCheckBox, checkboxes_means: defaultdict, pair: tuple):
         def wrapper():
             checkboxes_means[f"{pair[0]}-{pair[1]}"] = checkbox.isChecked()
+            self.get_react_pairs(pair[0].receipt.component)
         return wrapper
 
     def get_react_pairs(self, component):
         if component == "A":
             checkboxes_list = self.checkboxes_a
-            all_pairs = self.all_pairs_a
+            all_pairs = self.receipt_a.all_pairs_material
             pairs_to_react = self.pairs_to_react_a
         elif component == "B":
             checkboxes_list = self.checkboxes_b
-            all_pairs = self.all_pairs_b
+            all_pairs = self.receipt_b.all_pairs_material
             pairs_to_react = self.pairs_to_react_b
         else:
             return None
