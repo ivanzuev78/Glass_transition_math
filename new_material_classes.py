@@ -4,7 +4,7 @@ from typing import Optional, Union, List
 
 from pandas import DataFrame
 
-import init_class
+# import init_class
 
 
 class Material:
@@ -74,6 +74,9 @@ class Material:
     def __str__(self):
         return self.__name
 
+    def __repr__(self):
+        return "< " + self.receipt.component + '_' + self.__name + ">"
+
     def __float__(self):
         return self.__percent
 
@@ -90,7 +93,7 @@ class Material:
 class Receipt:
 
     def __init__(self, component: str, data_driver: "DataDriver"):
-        from qt_windows import MyMainWindow
+        from qt_windows import MyMainWindow, ChoosePairReactWindow
 
         self.main_window: Optional[MyMainWindow] = None
         self.data_driver = data_driver
@@ -100,6 +103,7 @@ class Receipt:
         self.ew: Optional[float] = None
         self.receipt_counter: Optional[ReceiptCounter] = None
         self.scope_trigger: int = 0
+        self.pair_react_window: Optional["ChoosePairReactWindow"] = None
 
         # TODO Поставить сеттер на передачу пар в окно синтеза
         self.all_pairs_material: List[(Material, Material)] = []
@@ -188,8 +192,8 @@ class Receipt:
             elif mat.mat_type == "Amine":
                 amine_list.append(mat)
         self.all_pairs_material = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
-
-
+        if self.pair_react_window is not None:
+            self.pair_react_window.update_component(self.component)
 
 
 class ReceiptCounter:
@@ -241,6 +245,8 @@ class ReceiptCounter:
         b_eq = [material.percent / material.ew for material in self.receipt_b]
 
         total_eq = math.fabs(sum(a_eq))
+
+
         ...
 
 

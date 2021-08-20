@@ -1,3 +1,4 @@
+from collections import defaultdict
 from itertools import cycle
 from typing import Union, Optional
 
@@ -136,8 +137,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.debug_but.clicked.connect(self.debug)
 
     def debug(self) -> None:
-        for m in self.receipt_a:
-            print(m.name, m.percent, m.ew)
+        # print(self.pair_react_window.checkboxes_a)
+        # print(self.pair_react_window.labels_a)
+        # print(self.material_list_a)
+        print(self.pair_react_window.checkboxes_a_means.items())
 
     def set_bottom_styles(self):
         for widget in self.button_list + self.big_button_list:
@@ -217,7 +220,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         materia_typel_combobox.addItems(self.types_of_items)
         materia_typel_combobox.setFixedWidth(60)
 
-        # TODO Добавить функцию, которая передает тип и название материала в Material
         materia_typel_combobox.currentIndexChanged.connect(
             self.change_list_of_materials(material_combobox, materia_typel_combobox)
         )
@@ -300,8 +302,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if self.final_a_numb_label:
                 self.final_a_numb_label.deleteLater()
                 self.final_a_numb_label = None
-            self.material_list_a.pop(-1)
-
+            self.receipt_a.remove_material()
 
         elif komponent == "B":
             if len(self.material_list_b) == 0:
@@ -317,7 +318,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if self.final_b_numb_label:
                 self.final_b_numb_label.deleteLater()
                 self.final_b_numb_label = None
-            self.material_list_b.pop(-1)
+            self.receipt_b.remove_material()
 
         else:
             return None
@@ -327,6 +328,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             items_lines.pop(-1).deleteLater()
             items_type.pop(-1).deleteLater()
             lock_check_boxes.pop(-1).deleteLater()
+
 
             if items:
                 final_label = QLabel("Итого")
@@ -439,7 +441,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def add_pair_react_window(self):
         if not self.pair_react_window:
-            self.pair_react_window = ChoosePairReactWindow(self, self.receipt_a.all_pairs_material, self.receipt_b.all_pairs_material)
+            self.pair_react_window = ChoosePairReactWindow(self, self.receipt_a, self.receipt_b)
         self.pair_react_window.show()
 
     # =========================  ===========================
@@ -1098,63 +1100,91 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 class ChoosePairReactWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/choose_pair_react.ui")[0]
 ):
-    def __init__(self, main_window: MyMainWindow, all_pairs_a, all_pairs_b):
+    def __init__(self, main_window: MyMainWindow, receipt_a: Receipt, receipt_b: Receipt):
         super(ChoosePairReactWindow, self).__init__()
         self.setupUi(self)
-        self.main_window = main_window
-        self.labels_a = []
-        self.labels_b = []
-        self.checkboxes_a = []
-        self.checkboxes_b = []
-        self.all_pairs_a = all_pairs_a
-        self.all_pairs_b = all_pairs_b
-        self.pairs_to_react_a = []
-        self.pairs_to_react_b = []
-        self.fill_window()
 
         oImage = QImage("fon.jpg")
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)
 
-    def fill_window(self):
-        for pair in self.all_pairs_a:
-            self.add_line(pair, self.gridLayout_a, self.labels_a, self.checkboxes_a)
+        self.main_window = main_window
+        self.receipt_a = receipt_a
+        self.receipt_b = receipt_b
+        self.receipt_a.pair_react_window = self
+        self.receipt_b.pair_react_window = self
+
+        self.labels_a = []
+        self.labels_b = []
+        self.checkboxes_a = []
+        self.checkboxes_b = []
+        self.checkboxes_a_means = defaultdict(lambda: True)
+        self.checkboxes_b_means = defaultdict(lambda: True)
+        self.pairs_to_react_a = self.receipt_a.react_pairs
+        self.pairs_to_react_b = self.receipt_a.react_pairs
+
         self.gridLayout_a.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
-        for pair in self.all_pairs_b:
-            self.add_line(pair, self.gridLayout_b, self.labels_b, self.checkboxes_b)
         self.gridLayout_b.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
 
-    @staticmethod
-    def add_line(
-        pair: tuple, layout: QGridLayout, labels_list: list, checkboxes_list: list
+        self.update_component('A')
+        self.update_component('B')
+
+    def update_component(self, component):
+        if component == "A":
+            while self.labels_a:
+                self.labels_a.pop(0).deleteLater()
+                self.checkboxes_a.pop(0).deleteLater()
+            for pair in self.receipt_a.all_pairs_material:
+                self.add_line(pair, self.gridLayout_a, self.labels_a, self.checkboxes_a, self.checkboxes_a_means)
+        elif component == "B":
+            while self.labels_b:
+                self.labels_b.pop(0).deleteLater()
+                self.checkboxes_b.pop(0).deleteLater()
+            for pair in self.receipt_b.all_pairs_material:
+                self.add_line(pair, self.gridLayout_b, self.labels_b, self.checkboxes_b, self.checkboxes_b_means)
+
+    def add_line(self,
+        pair: tuple, layout: QGridLayout, labels_list: list, checkboxes_list: list, checkboxes_means: defaultdict
     ):
         label = QLabel()
         label.setText(f"{pair[0]} + {pair[1]}")
         labels_list.append(label)
+
         checkbox = QCheckBox()
-        checkbox.setChecked(True)
+        checkbox.setChecked(checkboxes_means[f"{pair[0]}-{pair[1]}"])
         checkbox.setFixedWidth(20)
         checkbox.setFixedHeight(20)
+
+        checkbox.stateChanged.connect(self.change_checkbox_state(checkbox, checkboxes_means, pair))
+        # TODO Добавить функцию пересчёта при смене пары
         checkboxes_list.append(checkbox)
 
         row_count = layout.count()
         layout.addWidget(checkbox, row_count + 1, 0)
         layout.addWidget(label, row_count + 1, 1)
 
-    def get_react_pairs(self, komponent):
-        if komponent == "A":
+    @staticmethod
+    def change_checkbox_state(checkbox: QCheckBox, checkboxes_means: defaultdict, pair: tuple):
+        def wrapper():
+            checkboxes_means[f"{pair[0]}-{pair[1]}"] = checkbox.isChecked()
+        return wrapper
+
+    def get_react_pairs(self, component):
+        if component == "A":
             checkboxes_list = self.checkboxes_a
             all_pairs = self.all_pairs_a
-            self.pairs_to_react_a = []
             pairs_to_react = self.pairs_to_react_a
-        elif komponent == "B":
+        elif component == "B":
             checkboxes_list = self.checkboxes_b
             all_pairs = self.all_pairs_b
-            self.pairs_to_react_b = []
             pairs_to_react = self.pairs_to_react_b
         else:
             return None
+
+        while pairs_to_react:
+            pairs_to_react.pop(0)
+
         for checkbox, pair in zip(checkboxes_list, all_pairs):
             if checkbox.isChecked():
                 pairs_to_react.append(pair)
