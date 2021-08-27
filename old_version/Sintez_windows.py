@@ -1,6 +1,8 @@
 import os
 import sys
 from math import inf
+from typing import Optional
+
 from PyQt5 import uic, QtWidgets, QtGui, QtCore
 from PyQt5.QtGui import QImage, QPalette, QBrush
 from PyQt5.QtWidgets import (
@@ -14,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 from itertools import cycle
 import openpyxl as opx
+from pandas import DataFrame
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
@@ -36,6 +39,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         self.__EW = 0
         self.slider_is_pushed = {}
+
+        self.base_df: Optional[DataFrame] = None
+        self.current_df: Optional[DataFrame] = None
 
         self.gridLayout.addItem(QSpacerItem(1, 1), 1000, 0, 1000, 5)
 
@@ -78,9 +84,18 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         self.numb_of_components = len(self.main_window_material_comboboxes)
 
+        self.percent_list = []
+        self.name_list = []
+
         for index, widget in enumerate(self.main_window_material_comboboxes):
             percent = float(self.main_window_material_percent_lines[index].text())
+            name = widget.currentText()
             self.percents[index] = percent
+
+            # new
+            self.percent_list.append(percent)
+            self.name_list.append(name)
+
             self.previousPercents[index] = percent
             self.add_line(
                 index,
@@ -90,6 +105,14 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 percent,
             )
 
+        self.sootnoshenie = {}
+        # Составим словарь соотношений
+        for index, name in enumerate(self.name_list):
+            if len(self.name_list) > index + 1:
+                for next_name in self.name_list[index+1:]:
+                    self.sootnoshenie[frozenset([name, next_name])] = self.percent_list[index] / self.percent_list[index+1]
+
+        print(self.sootnoshenie)
         oImage = QImage("fon.jpg")
         # sImage = oImage.scaled(QSize(self.window_height, self.window_width))
         palette = QPalette()
@@ -300,11 +323,146 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
     def try_to_change(self, numb_of_line, source):
         def wrapper():
             if self.slider_is_pushed[numb_of_line]:
-                if self.checkBoxChange[numb_of_line].isChecked():
-                    self.horizontalSlider[numb_of_line].setSliderPosition(
-                        self.percents[numb_of_line] * 100
+                # Вроде, не нужно
+                # if self.checkBoxChange[numb_of_line].isChecked():
+                #     # self.horizontalSlider[numb_of_line].setSliderPosition(
+                #     #     self.percents[numb_of_line] * 100
+                #     # )
+                #     return None
+
+                lines_to_change = []
+                for line in self.checkBoxChange:
+                    if self.checkBoxChange[line].isChecked() and line != numb_of_line:
+                        lines_to_change.append(line)
+
+                previos_value = self.previousPercents[numb_of_line]
+
+                if source == "slider":
+                    new_value = round(
+                        int(self.horizontalSlider[numb_of_line].value()) / 100, 2
                     )
+                else:
+                    new_value = self.line_percent[numb_of_line].text()
+                    try:
+                        new_value = round(float(new_value), 2)
+                    except:
+                        self.line_percent[numb_of_line].setText(
+                            str(self.percents[numb_of_line])
+                        )
+                        return None
+
+                delta = round(new_value - previos_value, 2)
+
+                if delta > 0:
+                    change_way_is_up = True
+                else:
+                    change_way_is_up = False
+                    delta = -delta
+
+                if delta < 0.01:
                     return None
+
+                for line in self.percents:
+                    self.previousPercents[line] = self.percents[line]
+
+                # Функция, меняющая компоненты без сохранения EW
+                else:
+                    sum_percent = 0
+                    sum_ostatok_percent = 0
+                    for line in lines_to_change:
+                        sum_percent += self.percents[line]
+                        sum_ostatok_percent += 100 - self.percents[line]
+
+                    if ((sum_percent > delta) and change_way_is_up) or (
+                        (sum_ostatok_percent > delta) and not change_way_is_up
+                    ):
+
+                        # if change_way_is_up:
+                        #     self.percents[numb_of_line] += delta
+                        # else:
+                        #     self.percents[numb_of_line] -= delta
+
+                        self.percents[numb_of_line] = round(
+                            self.percents[numb_of_line], 2
+                        )
+                        break_flag = []
+                        for line in cycle(lines_to_change):
+                            # Ходим по концентрациям других продуктов и меняем при проходе на 0,01%, если там что-то еще осталось
+                            # Когда ничего не осталось, возвращаем компонент, который меняли обратно на оставшуюся дельту
+
+                            if delta < 0.01:
+                                break
+
+                            if not change_way_is_up:
+                                self.percents[line] += 0.01
+                                self.percents[line] = round(self.percents[line], 2)
+                                self.percents[numb_of_line] -= 0.01
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+
+                            if self.percents[line] == 0:
+                                if line not in break_flag:
+                                    break_flag.append(line)
+                                if len(break_flag) == len(lines_to_change):
+                                    break
+
+                                continue
+
+                            if change_way_is_up:
+                                self.percents[line] -= 0.01
+                                self.percents[line] = round(self.percents[line], 2)
+                                self.percents[numb_of_line] += 0.01
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+
+                            # self.set_percents(numb_of_line)
+
+                            delta -= 0.01
+                            delta = round(delta, 2)
+
+                    else:
+                        # Когда нам надо добить до конца
+                        if change_way_is_up:
+                            for line in lines_to_change:
+                                self.percents[numb_of_line] += self.percents[line]
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+                                self.percents[line] = 0
+                            # self.horizontalSlider[numb_of_line].setSliderPosition(self.percents[numb_of_line] * 100)
+                            # return None
+                        else:
+                            for line in lines_to_change:
+                                self.percents[numb_of_line] -= 100 - self.percents[line]
+                                self.percents[numb_of_line] = round(
+                                    self.percents[numb_of_line], 2
+                                )
+                                self.percents[line] = 100
+                            # self.horizontalSlider[numb_of_line].setSliderPosition(self.percents[numb_of_line] * 100)
+                            # return None
+
+                self.set_percents(numb_of_line)
+                sum_percent_all = 0
+                for i in self.percents.values():
+                    sum_percent_all += i
+
+                for line in self.percents:
+                    self.previousPercents[line] = self.percents[line]
+
+                # self.count_EW()
+                self.main_window.set_percents_from_receipt_window(self.komponent,
+                                                                  [self.percents[i] for i in range(len(self.percents))])
+
+        return wrapper
+
+    def try_to_change_new(self, numb_of_line, source):
+        def wrapper():
+            if self.slider_is_pushed[numb_of_line]:
+                # Фикирует слайдер
+                # if self.checkBoxChange[numb_of_line].isChecked():
+                #     return None
 
                 lines_to_change = []
                 for line in self.checkBoxChange:
@@ -522,33 +680,3 @@ class ChoosePairReactWindow(
             self.main_window.sintez_pair_label.setText("Ступенчатый синтез")
         a0.accept()
 
-
-if __name__ == "__main__":
-    from Window_maker import MainWindow
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    a = SintezWindow()
-    a.show()
-    # b = MainWindow(6)
-    # b.show()
-
-    # sintez = Sintez()
-    # PACM = Component('PACM', 52.6, 'AHEW')
-    # benz = Component('benz')
-    # DGEBA = Component('DGEBA', 188, 'EEW')
-    # PTBF = Component('PTBF')
-    # DMP_30 = Component('DMP_30')
-    #
-    # sintez.add_component(PACM, 70.37)
-    # sintez.add_component(benz, 10)
-    # sintez.add_component(DGEBA, 4)
-    # sintez.add_component(PTBF, 10.63)
-    # sintez.add_component(DMP_30, 5)
-    #
-    # sintez.count_activity()
-    #
-    # w = MainWindow()
-    # w.add_sintez(sintez)
-
-    sys.exit(app.exec_())
