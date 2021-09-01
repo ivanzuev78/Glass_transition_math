@@ -9,7 +9,7 @@ class InitClass:
 
         self.data_driver = DataDriver(DB_NAME)
         # ==== Создаём главное окно ====
-        self.my_main_window = MyMainWindow(self.data_driver)
+        self.my_main_window = MyMainWindow(self.data_driver, debug=debug)
 
         # ============== Создаем рецептуры и передаём их в главное окно ==================
         self.receipt_a = Receipt("A", self.data_driver)

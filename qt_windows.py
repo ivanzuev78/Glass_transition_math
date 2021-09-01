@@ -15,12 +15,13 @@ DB_NAME = "material.db"
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
-    def __init__(self, data_driver, db_name=DB_NAME):
+    def __init__(self, data_driver, db_name=DB_NAME, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
 
         self.db_name = db_name
         self.data_driver = data_driver
+        self.debug_flag = debug
         oimage = QImage("fon.jpg")
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oimage))
@@ -422,14 +423,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 if self.final_a_numb_label.text() == "100.00":
                     if not self.a_receipt_window:
                         self.a_receipt_window = SintezWindow(self, "A")
-
-                    self.a_receipt_window.show()
+                    if not self.debug_flag:
+                        self.a_receipt_window.show()
                     self.disable_receipt("A")
             elif komponent == "B":
                 if self.final_b_numb_label.text() == "100.00":
                     if not self.b_receipt_window:
                         self.b_receipt_window = SintezWindow(self, "B")
-                    self.b_receipt_window.show()
+                    if not self.debug_flag:
+                        self.b_receipt_window.show()
                     self.disable_receipt("B")
             else:
                 return None
@@ -441,7 +443,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.pair_react_window = PairReactWindow(
                 self, self.receipt_a, self.receipt_b
             )
-        self.pair_react_window.show()
+        if not self.debug_flag:
+            self.pair_react_window.show()
 
     # =========================  ===========================
 
