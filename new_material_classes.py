@@ -1,11 +1,15 @@
 import math
 import sqlite3
+from collections import defaultdict
+from copy import copy
 from itertools import chain
-from typing import Optional, Union, List
+from typing import List, Optional, Tuple, Union
 
+import numpy as np
 from pandas import DataFrame
 
 # import init_class
+from additional_funcs import normalize, normalize_df
 
 
 class Material:
@@ -52,7 +56,6 @@ class Material:
             self.__name = value
             self.receipt.update_all_pairs_material()
 
-
     @property
     def mat_type(self) -> str:
         return self.__mat_type
@@ -76,7 +79,7 @@ class Material:
         return self.__name
 
     def __repr__(self):
-        return "< " + self.receipt.component + '_' + self.__name + ">"
+        return "< " + self.receipt.component + "_" + self.__name + ">"
 
     def __float__(self):
         return self.__percent
@@ -92,9 +95,8 @@ class Material:
 
 
 class Receipt:
-
     def __init__(self, component: str, data_driver: "DataDriver"):
-        from qt_windows import MyMainWindow, ChoosePairReactWindow
+        from qt_windows import MyMainWindow, PairReactWindow
 
         self.main_window: Optional[MyMainWindow] = None
         self.data_driver = data_driver
@@ -104,7 +106,7 @@ class Receipt:
         self.ew: Optional[float] = None
         self.receipt_counter: Optional[ReceiptCounter] = None
         self.scope_trigger: int = 0
-        self.pair_react_window: Optional["ChoosePairReactWindow"] = None
+        self.pair_react_window: Optional["PairReactWindow"] = None
 
         # TODO Поставить сеттер на передачу пар в окно синтеза
         self.all_pairs_material: List[(Material, Material)] = []
@@ -115,11 +117,11 @@ class Receipt:
         # TODO доделать
         for mat in self.materials:
             if self.ew and self.ew < 0:
-                if mat.mat_type == 'Amine':
+                if mat.mat_type == "Amine":
                     if mat not in chain.from_iterable(self.react_pairs):
-                        print('good')
+                        print("good")
                     else:
-                        print('Bad')
+                        print("Bad")
 
     def add_material(self, material: Material):
         # TODO пересчёт всего в связи с изменением рецептуры
@@ -179,7 +181,7 @@ class Receipt:
             inversed_ew = 0
             for material in self.materials:
                 if material.mat_type in ("Epoxy", "Amine"):
-                    inversed_ew += (material.percent / material.ew)
+                    inversed_ew += material.percent / material.ew
             if inversed_ew:
                 self.ew = 100 / inversed_ew
             else:
@@ -202,16 +204,23 @@ class Receipt:
                 epoxy_list.append(mat)
             elif mat.mat_type == "Amine":
                 amine_list.append(mat)
-        self.all_pairs_material = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
+        self.all_pairs_material = [
+            (epoxy, amine) for epoxy in epoxy_list for amine in amine_list
+        ]
         if self.pair_react_window is not None:
             self.pair_react_window.update_component(self.component)
 
 
 class ReceiptCounter:
     def __init__(
-        self, receipt_a: Receipt, receipt_b: Receipt, main_window, extra_ratio: bool = False
+        self,
+        receipt_a: Receipt,
+        receipt_b: Receipt,
+        main_window,
+        extra_ratio: bool = False,
     ):
-        from qt_windows import MyMainWindow
+        from qt_windows import MyMainWindow, PairReactWindow
+
         self.main_window: Optional[MyMainWindow] = main_window
         self.receipt_a = receipt_a
         self.receipt_b = receipt_b
@@ -220,6 +229,8 @@ class ReceiptCounter:
         self.extra_ratio = extra_ratio
         self.percent_df: Optional[DataFrame] = None
         # TODO прописать ссылки на окна для передачи параметров
+
+        self.pair_react_window: Optional[PairReactWindow] = None
 
     @property
     def tg(self):
@@ -244,25 +255,187 @@ class ReceiptCounter:
     def count_mass_ratio(self):
         if self.receipt_a.ew and self.receipt_b.ew:
             if self.receipt_a.ew * self.receipt_b.ew < 0:
-                self.mass_ratio = - self.receipt_a.ew / self.receipt_b.ew
+                self.mass_ratio = -self.receipt_a.ew / self.receipt_b.ew
                 return None
         self.mass_ratio = None
 
     def count_percent_df(self):
         # TODO реализовать логику расчёта percent_df
-        if not (self.receipt_a.ew and self.receipt_b.ew) or self.receipt_a.ew * self.receipt_b.ew >= 0:
+        if (
+            not (self.receipt_a.ew and self.receipt_b.ew)
+            or self.receipt_a.ew * self.receipt_b.ew >= 0
+        ):
             self.percent_df = None
-        a_eq = [material.percent / material.ew * self.mass_ratio for material in self.receipt_a]
+
+        def count_reaction_in_komponent(
+            names_list, eq_list, pair_react: List[Tuple[Material, Material]]
+        ):
+
+            # TODO Реализовать интерфейс для выбора взаимодействующий веществ (есть) + проверка, что все прореагировали
+            # pair_react = [('KER-828', 'ИФДА'), ('KER-828', 'MXDA')]
+            # на первом месте тот, кто прореагирует полностью
+            # если наоборот, то поменять нужно
+            # pair_react = [(i[1], i[0]) for i in pair_react]
+
+            if not pair_react:
+                return eq_list, []
+            dict_react_index = defaultdict(list)
+            pair_react_index = [
+                (names_list.index(epoxy.name), names_list.index(amine.name))
+                for epoxy, amine in pair_react
+            ]
+            dict_react_eq = defaultdict(list)
+
+            # Здесь количество эквивалентов прореагировавших пар
+            result_eq_table = []
+
+            for epoxy, amine in pair_react_index:
+                dict_react_index[epoxy].append(amine)
+                dict_react_eq[epoxy].append(eq_list[amine])
+
+            for epoxy in dict_react_eq:
+                if sum(dict_react_eq[epoxy]) == 0:
+                    dict_react_eq[epoxy] = [0 for _ in dict_react_eq[epoxy]]
+                else:
+                    dict_react_eq[epoxy] = [
+                        amine / sum(dict_react_eq[epoxy])
+                        for amine in dict_react_eq[epoxy]
+                    ]
+
+            for epoxy_index in dict_react_index:
+                for amine_index, amine_percent in zip(
+                    dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
+                ):
+                    eq_reacted = (
+                        names_list[epoxy_index],
+                        names_list[amine_index],
+                        eq_list[epoxy_index] * amine_percent,
+                    )
+                    eq_list[amine_index] += eq_list[epoxy_index] * amine_percent
+                    result_eq_table.append(eq_reacted)
+                eq_list[epoxy_index] = 0
+
+            return eq_list, result_eq_table
+
+        # Получаем все названия и % эпоксидки в Компоненте А
+        a_types = [material.mat_type for material in self.receipt_a]
+        a_names = [material.name for material in self.receipt_a]
+        a_eq = [
+            material.percent / material.ew * self.mass_ratio
+            for material in self.receipt_a
+        ]
+
+        # Получаем все названия и % эпоксидки в Компоненте B
+        b_types = [material.mat_type for material in self.receipt_b]
+        b_names = [material.name for material in self.receipt_b]
         b_eq = [material.percent / material.ew for material in self.receipt_b]
 
         total_eq = math.fabs(sum(a_eq))
 
+        pairs_a = self.pair_react_window.get_react_pairs("A")
+        pairs_b = self.pair_react_window.get_react_pairs("B")
+        if sum(a_eq) > 0:
+            pairs_a = [(i[1], i[0]) for i in pairs_a]
+        if sum(b_eq) > 0:
+            pairs_b = [(i[1], i[0]) for i in pairs_b]
 
-        ...
+        a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, pairs_a)
+        b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, pairs_b)
+
+        a_names_only_react = []
+        a_eq_only_react = []
+        a_type = None
+        if sum(a_eq) > 0:
+            a_type = "Epoxy"
+            for mat_type, name, eq in zip(a_types, a_names, a_eq):
+                if mat_type == "Epoxy":
+                    a_names_only_react.append(name)
+                    a_eq_only_react.append(eq)
+        elif sum(a_eq) < 0:
+            a_type = "Amine"
+            for mat_type, name, eq in zip(a_types, a_names, a_eq):
+                if mat_type == "Amine":
+                    a_names_only_react.append(name)
+                    a_eq_only_react.append(eq)
+
+        b_names_only_react = []
+        b_eq_only_react = []
+        b_type = None
+        if sum(b_eq) > 0:
+            b_type = "Epoxy"
+            for mat_type, name, eq in zip(b_types, b_names, b_eq):
+                if mat_type == "Epoxy":
+                    b_names_only_react.append(name)
+                    b_eq_only_react.append(eq)
+        elif sum(b_eq) < 0:
+            b_type = "Amine"
+            for mat_type, name, eq in zip(b_types, b_names, b_eq):
+                if mat_type == "Amine":
+                    b_names_only_react.append(name)
+                    b_eq_only_react.append(eq)
+
+        if a_type == b_type:
+            return None
+
+        a_eq_only_react_percent = normalize(np.array(a_eq_only_react))
+        b_eq_only_react_percent = normalize(np.array(b_eq_only_react))
+
+        # Получаем матрицу процентов пар
+        percent_matrix = np.outer(a_eq_only_react_percent, b_eq_only_react_percent)
+
+        eq_matrix = percent_matrix * total_eq
+
+        # Получаем dataframe процентов пар
+        df_eq_matrix = DataFrame(
+            eq_matrix,
+            index=a_names_only_react,
+            columns=b_names_only_react,
+        )
+
+        # Учитываем реакцию в ступенчатом синтезе
+        if a_type == "Amine":
+            df_eq_matrix = df_eq_matrix.T
+
+            for pair in a_result_eq_table:
+                if pair[0] not in df_eq_matrix.index.tolist():
+                    df_eq_matrix.loc[pair[0]] = [
+                        0 for _ in range(len(df_eq_matrix.columns.values.tolist()))
+                    ]
+                df_eq_matrix[pair[1]][pair[0]] += pair[2]
+
+        else:
+            for pair in a_result_eq_table:
+                if pair[0] not in df_eq_matrix.columns.values.tolist():
+                    df_eq_matrix[pair[0]] = [
+                        0 for _ in range(len(df_eq_matrix.index.tolist()))
+                    ]
+                df_eq_matrix[pair[0]][pair[1]] += pair[2]
+
+        if b_type == "Amine":
+
+            for pair in b_result_eq_table:
+                if pair[0] not in df_eq_matrix.index.tolist():
+                    df_eq_matrix.loc[pair[0]] = [
+                        0 for _ in range(len(df_eq_matrix.columns.values.tolist()))
+                    ]
+
+                df_eq_matrix[pair[1]][pair[0]] += pair[2]
+
+        else:
+            for pair in b_result_eq_table:
+                if pair[0] not in df_eq_matrix.columns.values.tolist():
+                    df_eq_matrix[pair[0]] = [
+                        0 for _ in range(len(df_eq_matrix.index.tolist()))
+                    ]
+                df_eq_matrix[pair[0]][pair[1]] += pair[2]
+
+        percent_df = normalize_df(df_eq_matrix)
+
+        # Сохраняем матрицу процентов пар
+        self.percent_df = copy(percent_df)
 
 
 class DataDriver:
-
     def __init__(self, db_name: str):
         self.db_name = db_name
 
