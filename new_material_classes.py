@@ -228,8 +228,10 @@ class ReceiptCounter:
         self.__mass_ratio: Optional[float] = None
         self.extra_ratio = extra_ratio
         self.percent_df: Optional[DataFrame] = None
-        # TODO прописать ссылки на окна для передачи параметров
+        self.tg_df: Optional[DataFrame] = None
 
+        # TODO прописать ссылки на окна для передачи параметров
+        self.data_driver: DataDriver = self.main_window.data_driver
         self.pair_react_window: Optional[PairReactWindow] = None
 
     @property
@@ -434,6 +436,28 @@ class ReceiptCounter:
         # Сохраняем матрицу процентов пар
         self.percent_df = copy(percent_df)
 
+    def count_tg(self):
+        ...
+        if self.percent_df is None:
+            self.count_percent_df()
+            if self.percent_df is None:
+                return None
+        if self.tg_df is None:
+            self.count_percent_df()
+        # TODO продолжить
+
+    def get_tg_df(self):
+        tg_df = self.data_driver.get_tg_df()
+        if self.percent_df is not None:
+            # дропаем неиспользуемые колонки и строки стеклования
+            for name in tg_df:
+                if name not in self.percent_df.columns.values.tolist():
+                    tg_df = tg_df.drop(name, 1)
+            for name in tg_df.index:
+                if name not in self.percent_df.index.tolist():
+                    tg_df = tg_df.drop(name)
+        self.tg_df = tg_df
+
 
 class DataDriver:
     def __init__(self, db_name: str):
@@ -471,3 +495,18 @@ class DataDriver:
         cursor.execute(f"SELECT name FROM {material_type}")
         all_material = [i[0] for i in cursor.fetchall()]
         return all_material
+
+    def get_tg_df(self) -> DataFrame:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute("SELECT Name FROM Epoxy")
+        epoxy_name = [name[0] for name in cursor.fetchall()]
+        cursor.execute("SELECT Name FROM Amine")
+        amine_name = [name[0] for name in cursor.fetchall()]
+        cursor.execute("SELECT * FROM Tg")
+        all_tg = cursor.fetchall()
+        df_tg_main = DataFrame(index=epoxy_name, columns=amine_name)
+        for tg in all_tg:
+            df_tg_main[tg[1]][tg[0]] = tg[2]
+        connection.close()
+        return df_tg_main

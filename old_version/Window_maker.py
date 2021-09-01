@@ -876,6 +876,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         percent_df = copy(self.percent_df)
         if percent_df is None:
             return None
+
         if self.tg_df is None:
 
             tg_df = get_tg_df(self.db_name)

@@ -29,6 +29,7 @@ class InitClass:
             self.receipt_a, self.receipt_b, self.my_main_window
         )
         self.receipt_counter.pair_react_window = self.my_main_window.pair_react_window
+        self.receipt_counter.data_driver = self.data_driver
         self.receipt_a.receipt_counter = self.receipt_counter
         self.receipt_b.receipt_counter = self.receipt_counter
 
