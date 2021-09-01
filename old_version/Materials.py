@@ -185,8 +185,8 @@ def get_influence_func(k0, ke, kexp, k1, k2, k3, k4, k5):
 
 
 if __name__ == "__main__":
-    import numpy as np
     import matplotlib.pyplot as plt
+    import numpy as np
 
     a = get_tg_influence("Бензиловый спирт", "material.db")
     a_1 = a[0]

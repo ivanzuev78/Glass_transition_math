@@ -1,22 +1,15 @@
 import os
 import sys
+from itertools import cycle
 from math import inf
 from typing import Optional
 
-from PyQt5 import uic, QtWidgets, QtGui, QtCore
-from PyQt5.QtGui import QImage, QPalette, QBrush
-from PyQt5.QtWidgets import (
-    QFileDialog,
-    QComboBox,
-    QLineEdit,
-    QSpacerItem,
-    QLabel,
-    QCheckBox,
-    QGridLayout,
-)
-from itertools import cycle
 import openpyxl as opx
 from pandas import DataFrame
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5.QtGui import QBrush, QImage, QPalette
+from PyQt5.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QGridLayout,
+                             QLabel, QLineEdit, QSpacerItem)
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
@@ -109,8 +102,10 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         # Составим словарь соотношений
         for index, name in enumerate(self.name_list):
             if len(self.name_list) > index + 1:
-                for next_name in self.name_list[index+1:]:
-                    self.sootnoshenie[frozenset([name, next_name])] = self.percent_list[index] / self.percent_list[index+1]
+                for next_name in self.name_list[index + 1 :]:
+                    self.sootnoshenie[frozenset([name, next_name])] = (
+                        self.percent_list[index] / self.percent_list[index + 1]
+                    )
 
         print(self.sootnoshenie)
         oImage = QImage("fon.jpg")
@@ -452,8 +447,10 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                     self.previousPercents[line] = self.percents[line]
 
                 # self.count_EW()
-                self.main_window.set_percents_from_receipt_window(self.komponent,
-                                                                  [self.percents[i] for i in range(len(self.percents))])
+                self.main_window.set_percents_from_receipt_window(
+                    self.komponent,
+                    [self.percents[i] for i in range(len(self.percents))],
+                )
 
         return wrapper
 
@@ -586,8 +583,10 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                     self.previousPercents[line] = self.percents[line]
 
                 # self.count_EW()
-                self.main_window.set_percents_from_receipt_window(self.komponent,
-                                                                  [self.percents[i] for i in range(len(self.percents))])
+                self.main_window.set_percents_from_receipt_window(
+                    self.komponent,
+                    [self.percents[i] for i in range(len(self.percents))],
+                )
 
         return wrapper
 
@@ -679,4 +678,3 @@ class ChoosePairReactWindow(
         ):
             self.main_window.sintez_pair_label.setText("Ступенчатый синтез")
         a0.accept()
-

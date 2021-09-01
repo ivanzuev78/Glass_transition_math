@@ -1,32 +1,23 @@
 import os
-import sys
-from copy import copy
-from pathlib import Path
-from typing import Union, Callable, Optional
-from collections import defaultdict
-
-from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from PyQt5.QtGui import QPixmap, QImage, QPalette, QBrush
-from PyQt5.QtWidgets import *
-import pandas as pd
 import pickle
-
+import sys
+from collections import defaultdict
+from copy import copy
 from math import fabs
+from pathlib import Path
+from typing import Callable, Optional, Union
 
-# from Materials import *
-from Sintez_windows import SintezWindow, ChoosePairReactWindow
-from additional_classes import (
-    MyQLabel,
-    MyQGridLayout,
-    ReceiptCounter,
-    MyMainQTabWidget,
-)
-from additional_funcs import (
-    TgMaterialInfluence,
-    count_total_influence_df,
-)
-
+import pandas as pd
+from additional_classes import (MyMainQTabWidget, MyQGridLayout, MyQLabel,
+                                ReceiptCounter)
 from load_and_save import save_receipt
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
+from PyQt5.QtWidgets import *
+# from Materials import *
+from Sintez_windows import ChoosePairReactWindow, SintezWindow
+
+from additional_funcs import TgMaterialInfluence, count_total_influence_df
 
 DB_NAME = "material.db"
 # DB_NAME = "material_for_test.db"
