@@ -5,7 +5,7 @@ DB_NAME = "material.db"
 
 
 class InitClass:
-    def __init__(self):
+    def __init__(self, debug=False):
 
         self.data_driver = DataDriver(DB_NAME)
         # ==== Создаём главное окно ====
@@ -32,4 +32,5 @@ class InitClass:
         self.receipt_a.receipt_counter = self.receipt_counter
         self.receipt_b.receipt_counter = self.receipt_counter
 
-        self.my_main_window.show()
+        if not debug:
+            self.my_main_window.show()
