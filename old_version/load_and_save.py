@@ -2,8 +2,8 @@ import os
 from itertools import zip_longest
 
 import openpyxl as opx
-from PyQt5.QtWidgets import QFileDialog
 from openpyxl.styles import Alignment, Font
+from PyQt5.QtWidgets import QFileDialog
 
 
 def create_one_komponent_rows(

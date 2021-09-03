@@ -1,20 +1,13 @@
 from math import sqrt
 from typing import Optional
 
+import numpy as np
+from Materials import get_ew_by_name, normalize_df
+from pandas import DataFrame, Series
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (
-    QLabel,
-    QTabWidget,
-    QTableWidget,
-    QGridLayout,
-    QTableWidgetItem,
-    QSpacerItem,
-)
-from pandas import DataFrame, Series
-import numpy as np
-
-from Materials import normalize_df, get_ew_by_name
+from PyQt5.QtWidgets import (QGridLayout, QLabel, QSpacerItem, QTableWidget,
+                             QTableWidgetItem, QTabWidget)
 
 from additional_funcs import count_total_influence_df
 

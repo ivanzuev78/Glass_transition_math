@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import copy
 from itertools import cycle
 from typing import Union, Optional
 
@@ -7,7 +8,7 @@ from PyQt5.QtGui import QImage, QPalette, QBrush
 from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem, QGridLayout
 from pandas import Series
 
-from new_material_classes import Receipt, Material
+from new_material_classes import Material, Receipt
 
 DB_NAME = "material.db"
 # DB_NAME = "material_for_test.db"
@@ -74,7 +75,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.gridLayout_b.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
 
         with open("style.css", "r") as f:
-            self.style, self.style_combobox, self.style_red_but = f.read().split("$split$")
+            self.style, self.style_combobox, self.style_red_but = f.read().split(
+                "$split$"
+            )
         self.set_bottom_styles()
 
         self.types_of_items = self.data_driver.get_all_material_types()
@@ -111,9 +114,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.a_receipt_window: Optional[SintezWindow] = None
         self.b_receipt_window: Optional[SintezWindow] = None
 
-        self.pair_react_window: Optional[ChoosePairReactWindow] = None
-
-
+        self.pair_react_window: Optional[PairReactWindow] = None
 
         # ======================== Подключаем кнопки =======================================
 
@@ -128,12 +129,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
         self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
 
-        # ----------------------- Кнопки меню -----------------------------------
+        # ====================================== Кнопки меню =======================================
         self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
-
-
-
-
 
         self.debug_but.clicked.connect(self.debug)
 
@@ -141,14 +138,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # print(self.pair_react_window.checkboxes_a)
         # print(self.pair_react_window.labels_a)
         # print(self.material_list_a)
-        print(self.pair_react_window.checkboxes_a_means.items())
-        self.receipt_a.check_all_react()
+
+        self.receipt_a.receipt_counter.count_percent_df()
+        print(self.receipt_a.receipt_counter.percent_df)
 
     def set_bottom_styles(self):
         for widget in self.button_list + self.big_button_list:
             widget.setStyleSheet(self.style)
-        self.change_receipt_color('A', True)
-        self.change_receipt_color('B', True)
+        self.change_receipt_color("A", True)
+        self.change_receipt_color("B", True)
 
     def hide_top(self, komponent: str):
         if komponent == "A":
@@ -249,7 +247,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         )
 
         material_combobox.currentIndexChanged.connect(
-            self.change_type_name_material(material, materia_typel_combobox, material_combobox)
+            self.change_type_name_material(
+                material, materia_typel_combobox, material_combobox
+            )
         )
 
         check = QCheckBox()
@@ -331,7 +331,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             items_type.pop(-1).deleteLater()
             lock_check_boxes.pop(-1).deleteLater()
 
-
             if items:
                 final_label = QLabel("Итого")
                 final_label.setStyleSheet(self.style)
@@ -368,22 +367,18 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         if component == "A":
             self.final_a_numb_label.setText(f"{percent:.{2}f}")
             if percent != 100:
-                self.final_a_numb_label.setStyleSheet(
-                    "QLabel { color: red}")
+                self.final_a_numb_label.setStyleSheet("QLabel { color: red}")
                 self.a_receipt_but.setStyleSheet(self.style_red_but)
             else:
-                self.final_a_numb_label.setStyleSheet(
-                    "QLabel { color: green}")
+                self.final_a_numb_label.setStyleSheet("QLabel { color: green}")
                 self.a_receipt_but.setStyleSheet(self.style)
         elif component == "B":
             self.final_b_numb_label.setText(f"{percent:.{2}f}")
             if percent != 100:
-                self.final_b_numb_label.setStyleSheet(
-                    "QLabel { color: red}")
+                self.final_b_numb_label.setStyleSheet("QLabel { color: red}")
                 self.b_receipt_but.setStyleSheet(self.style_red_but)
             else:
-                self.final_b_numb_label.setStyleSheet(
-                    "QLabel { color: green}")
+                self.final_b_numb_label.setStyleSheet("QLabel { color: green}")
                 self.b_receipt_but.setStyleSheet(self.style)
 
     def set_ew(self, component, ew):
@@ -424,14 +419,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def add_receipt_window(self, komponent) -> callable:
         def wrapper():
             if komponent == "A":
-                if self.final_a_numb_label.text() == '100.00':
+                if self.final_a_numb_label.text() == "100.00":
                     if not self.a_receipt_window:
                         self.a_receipt_window = SintezWindow(self, "A")
 
                     self.a_receipt_window.show()
                     self.disable_receipt("A")
             elif komponent == "B":
-                if self.final_b_numb_label.text() == '100.00':
+                if self.final_b_numb_label.text() == "100.00":
                     if not self.b_receipt_window:
                         self.b_receipt_window = SintezWindow(self, "B")
                     self.b_receipt_window.show()
@@ -443,7 +438,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def add_pair_react_window(self):
         if not self.pair_react_window:
-            self.pair_react_window = ChoosePairReactWindow(self, self.receipt_a, self.receipt_b)
+            self.pair_react_window = PairReactWindow(
+                self, self.receipt_a, self.receipt_b
+            )
         self.pair_react_window.show()
 
     # =========================  ===========================
@@ -506,7 +503,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             widget.setText(f"{float(numb):.{2}f}")
 
     # Меняет список сырья при смене типа в рецептуре
-    def change_list_of_materials(self, material_combobox: QComboBox, material_type: QComboBox) -> callable:
+    def change_list_of_materials(
+        self, material_combobox: QComboBox, material_type: QComboBox
+    ) -> callable:
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
@@ -523,7 +522,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     @staticmethod
     def change_type_name_material(
-        material: Material, material_type_combobox: QComboBox, material_combobox: QComboBox
+        material: Material,
+        material_type_combobox: QComboBox,
+        material_combobox: QComboBox,
     ) -> callable:
         """
         :param material_combobox: QComboBox из строки рецептуры
@@ -531,14 +532,21 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         :param material: Объект Material
         :return: None
         """
+
         def wrapper():
-            material.set_type_and_name(material_type_combobox.currentText(), material_combobox.currentText())
+            material.set_type_and_name(
+                material_type_combobox.currentText(), material_combobox.currentText()
+            )
+
         return wrapper
 
     @staticmethod
-    def change_percent_material(material: Material, percent_line: QLineEdit) -> callable:
+    def change_percent_material(
+        material: Material, percent_line: QLineEdit
+    ) -> callable:
         def wrapper():
             material.percent = float(percent_line.text())
+
         return wrapper
 
     # Нормирует рецептуру
@@ -564,33 +572,36 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     continue
                 sum_all += material
             if sum_all:
-                for material, checkbox, percent_line in zip(material_lines, lock_checkbox, percent_lines):
+                for material, checkbox, percent_line in zip(
+                    material_lines, lock_checkbox, percent_lines
+                ):
                     if checkbox.isChecked():
                         continue
                     percent = round(float(material) / sum_all * total_sum_left, 2)
-                    percent_line.setText(
-                        f"{percent:.{2}f}"
-                    )
+                    percent_line.setText(f"{percent:.{2}f}")
                     material.percent = percent
                     sum_all_after += percent
                     if material is material_lines[-1]:
                         break
                     sum_all_without_last += percent
                 if sum_all_after != 100:
-                    for material, checkbox, percent_line in reversed(list(zip(material_lines, lock_checkbox, percent_lines))):
+                    for material, checkbox, percent_line in reversed(
+                        list(zip(material_lines, lock_checkbox, percent_lines))
+                    ):
                         current_numb = float(material)
                         if current_numb != 0 and not checkbox.isChecked():
-                            percent = round(current_numb + (total_sum_left - sum_all_after), 2)
-                            percent_line.setText(
-                                f"{percent:.{2}f}"
+                            percent = round(
+                                current_numb + (total_sum_left - sum_all_after), 2
                             )
+                            percent_line.setText(f"{percent:.{2}f}")
                             material.percent = percent
                             break
 
-            if komponent == 'A':
+            if komponent == "A":
                 self.receipt_a.set_sum_to_qt()
-            elif komponent == 'B':
+            elif komponent == "B":
                 self.receipt_b.set_sum_to_qt()
+
         return wrap
 
     def disable_receipt(self, komponent) -> None:
@@ -647,18 +658,20 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         else:
             return None
         receipt.scope_trigger = len(percents) - 1
-        for material, percent_line, percent in zip(material_lines, material_percent_lines, percents):
+        for material, percent_line, percent in zip(
+            material_lines, material_percent_lines, percents
+        ):
             percent_line.setText(str(percent))
             material.percent = percent
 
     def change_receipt_color(self, component: str, color_red: bool):
-        if component == 'A':
+        if component == "A":
             if color_red:
                 style = self.style_red_but
             else:
                 style = self.style
             self.a_receipt_but.setStyleSheet(style)
-        elif component == 'B':
+        elif component == "B":
             if color_red:
                 style = self.style_red_but
             else:
@@ -1094,8 +1107,10 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                     self.previousPercents[line] = self.percents[line]
 
                 # self.count_EW()
-                self.main_window.set_percents_from_receipt_window(self.komponent,
-                                                                  [self.percents[i] for i in range(len(self.percents))])
+                self.main_window.set_percents_from_receipt_window(
+                    self.komponent,
+                    [self.percents[i] for i in range(len(self.percents))],
+                )
 
         return wrapper
 
@@ -1247,11 +1262,13 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         self.close()
 
 
-class ChoosePairReactWindow(
+class PairReactWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/choose_pair_react.ui")[0]
 ):
-    def __init__(self, main_window: MyMainWindow, receipt_a: Receipt, receipt_b: Receipt):
-        super(ChoosePairReactWindow, self).__init__()
+    def __init__(
+        self, main_window: MyMainWindow, receipt_a: Receipt, receipt_b: Receipt
+    ):
+        super(PairReactWindow, self).__init__()
         self.setupUi(self)
 
         oImage = QImage("fon.jpg")
@@ -1277,8 +1294,8 @@ class ChoosePairReactWindow(
         self.gridLayout_a.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
         self.gridLayout_b.addItem(QSpacerItem(100, 10), 100, 0, 100, 2)
 
-        self.update_component('A')
-        self.update_component('B')
+        self.update_component("A")
+        self.update_component("B")
 
     def update_component(self, component):
         if component == "A":
@@ -1286,16 +1303,33 @@ class ChoosePairReactWindow(
                 self.labels_a.pop(0).deleteLater()
                 self.checkboxes_a.pop(0).deleteLater()
             for pair in self.receipt_a.all_pairs_material:
-                self.add_line(pair, self.gridLayout_a, self.labels_a, self.checkboxes_a, self.checkboxes_a_means)
+                self.add_line(
+                    pair,
+                    self.gridLayout_a,
+                    self.labels_a,
+                    self.checkboxes_a,
+                    self.checkboxes_a_means,
+                )
         elif component == "B":
             while self.labels_b:
                 self.labels_b.pop(0).deleteLater()
                 self.checkboxes_b.pop(0).deleteLater()
             for pair in self.receipt_b.all_pairs_material:
-                self.add_line(pair, self.gridLayout_b, self.labels_b, self.checkboxes_b, self.checkboxes_b_means)
+                self.add_line(
+                    pair,
+                    self.gridLayout_b,
+                    self.labels_b,
+                    self.checkboxes_b,
+                    self.checkboxes_b_means,
+                )
 
-    def add_line(self,
-        pair: tuple, layout: QGridLayout, labels_list: list, checkboxes_list: list, checkboxes_means: defaultdict
+    def add_line(
+        self,
+        pair: tuple,
+        layout: QGridLayout,
+        labels_list: list,
+        checkboxes_list: list,
+        checkboxes_means: defaultdict,
     ):
         label = QLabel()
         label.setText(f"{pair[0]} + {pair[1]}")
@@ -1306,7 +1340,9 @@ class ChoosePairReactWindow(
         checkbox.setFixedWidth(20)
         checkbox.setFixedHeight(20)
 
-        checkbox.stateChanged.connect(self.change_checkbox_state(checkbox, checkboxes_means, pair))
+        checkbox.stateChanged.connect(
+            self.change_checkbox_state(checkbox, checkboxes_means, pair)
+        )
         # TODO Добавить функцию пересчёта при смене пары
         checkboxes_list.append(checkbox)
 
@@ -1314,21 +1350,24 @@ class ChoosePairReactWindow(
         layout.addWidget(checkbox, row_count + 1, 0)
         layout.addWidget(label, row_count + 1, 1)
 
-    def change_checkbox_state(self, checkbox: QCheckBox, checkboxes_means: defaultdict, pair: tuple):
+    def change_checkbox_state(
+        self, checkbox: QCheckBox, checkboxes_means: defaultdict, pair: tuple
+    ):
         def wrapper():
             checkboxes_means[f"{pair[0]}-{pair[1]}"] = checkbox.isChecked()
             self.get_react_pairs(pair[0].receipt.component)
+
         return wrapper
 
     def get_react_pairs(self, component):
         if component == "A":
             checkboxes_list = self.checkboxes_a
             all_pairs = self.receipt_a.all_pairs_material
-            pairs_to_react = self.pairs_to_react_a
+            pairs_to_react = copy(self.pairs_to_react_a)
         elif component == "B":
             checkboxes_list = self.checkboxes_b
             all_pairs = self.receipt_b.all_pairs_material
-            pairs_to_react = self.pairs_to_react_b
+            pairs_to_react = copy(self.pairs_to_react_b)
         else:
             return None
 

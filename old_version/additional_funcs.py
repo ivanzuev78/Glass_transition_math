@@ -1,15 +1,14 @@
 from collections import defaultdict
 from copy import copy
-from typing import Union, Dict
+from typing import Dict, Union
 
 import pandas as pd
+from Materials import get_influence_func, get_tg_influence, normalize_df
+from pandas import DataFrame
 from PyQt5 import QtCore
 from PyQt5.QtCore import QRect
-from PyQt5.QtGui import QImage, QPalette, QBrush, QColor
-from PyQt5.QtWidgets import QFrame, QTabWidget, QTableWidget, QTableWidgetItem
-from pandas import DataFrame
-
-from Materials import get_tg_influence, get_influence_func, normalize_df
+from PyQt5.QtGui import QBrush, QColor, QImage, QPalette
+from PyQt5.QtWidgets import QFrame, QTableWidget, QTableWidgetItem, QTabWidget
 
 
 class TgMaterialInfluence:

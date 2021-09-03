@@ -1,12 +1,8 @@
 import sys
 
-from PyQt5.QtWidgets import QApplication
-
-from Window_maker import MyMainWindow
-
-
 import pytest
-
+from PyQt5.QtWidgets import QApplication
+from Window_maker import MyMainWindow
 
 # @pytest.fixture()
 # def filename():
