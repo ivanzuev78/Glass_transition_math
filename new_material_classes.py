@@ -153,11 +153,10 @@ class Receipt:
         if self.sum_percent == 100.0:
             self.update_all_parameters()
 
-            # TODO Команда, вызывающая расчёты
-            ...
         else:
             # TODO Сброс всех полей с параметрами (Стеклование, соотношение и т.д.)
             # Возможно нужно будет сбросить что-то в ReceiptCounter
+            self.receipt_counter.drop_labels()
             ...
 
     def __iter__(self):
@@ -173,6 +172,7 @@ class Receipt:
         if self.sum_percent == 100:
             self.count_ew()
             self.receipt_counter.count_mass_ratio()
+            self.receipt_counter.count_tg()
         else:
             ...
 
@@ -241,8 +241,9 @@ class ReceiptCounter:
     @tg.setter
     def tg(self, value):
         # TODO сеттер для передачи значений в окна
-        if isinstance(value, float):
-            self.__tg = value
+        self.__tg = value
+        self.main_window.set_tg(value)
+        print(value)
 
     @property
     def mass_ratio(self):
@@ -262,12 +263,12 @@ class ReceiptCounter:
         self.mass_ratio = None
 
     def count_percent_df(self):
-        # TODO реализовать логику расчёта percent_df
         if (
             not (self.receipt_a.ew and self.receipt_b.ew)
             or self.receipt_a.ew * self.receipt_b.ew >= 0
         ):
             self.percent_df = None
+            return None
 
         def count_reaction_in_komponent(
             names_list, eq_list, pair_react: List[Tuple[Material, Material]]
@@ -437,13 +438,40 @@ class ReceiptCounter:
         self.percent_df = copy(percent_df)
 
     def count_tg(self):
-        ...
+        self.count_percent_df()
         if self.percent_df is None:
-            self.count_percent_df()
-            if self.percent_df is None:
-                return None
+            return None
         if self.tg_df is None:
-            self.count_percent_df()
+            self.get_tg_df()
+
+        percent_df = self.percent_df
+        tg_df = self.tg_df
+        # Получаем все пары, которые не имеют стекла
+        all_pairs_na = []
+        for name in tg_df:
+            pairs_a = tg_df[tg_df[name].isna()]
+            par = [(resin, name) for resin in list(pairs_a.index)]
+            all_pairs_na += par
+        # TODO реализовать обработку отсутствующих пар стёкол
+
+        all_pairs_na_dict = {}
+        # Убираем в матрице процентов отсутствующие пары
+        for resin, amine in all_pairs_na:
+            if amine in percent_df.columns and resin in percent_df.index:
+                # all_pairs_na_dict[(resin, amine)] = percent_df[amine][resin]
+                percent_df[amine][resin] = 0.0
+
+        # self.all_pairs_na_tg = all_pairs_na_dict
+        percent_df = normalize_df(percent_df)
+
+        # Сотрирует строки и столбцы. В данный момент не актуально
+        # tg_df = tg_df[df_eq_matrix.columns.values.tolist()]
+        # tg_df = tg_df.T
+        # tg_df = tg_df[df_eq_matrix.index.tolist()].T
+
+        total_tg_df = tg_df * percent_df
+        primary_tg = sum(total_tg_df.sum())
+        self.tg = primary_tg
         # TODO продолжить
 
     def get_tg_df(self):
@@ -457,6 +485,14 @@ class ReceiptCounter:
                 if name not in self.percent_df.index.tolist():
                     tg_df = tg_df.drop(name)
         self.tg_df = tg_df
+
+    def drop_labels(self):
+        """
+        Убирает все расчёты, когда одна из сумм рецептуры не равна 100
+        :return:
+        """
+        self.mass_ratio = None
+        self.tg = None
 
 
 class DataDriver:
