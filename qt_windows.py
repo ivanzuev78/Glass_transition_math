@@ -153,31 +153,33 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.add_a_line()
         self.add_a_line()
+
+        self.material_percent_lines_a[0].setText('50.00')
+        self.material_list_a[0].percent = 50
+        self.material_percent_lines_a[1].setText('50.00')
+        self.material_list_a[1].percent = 50
+
         self.material_a_types[0].setCurrentIndex(2)
         self.material_a_types[1].setCurrentIndex(2)
         self.material_comboboxes_a[1].setCurrentIndex(1)
-        self.material_percent_lines_a[0].setText('50.00')
-        self.material_percent_lines_a[1].setText('50.00')
-        self.material_list_a[0].percent = 50
-        self.material_list_a[1].percent = 50
 
         # self.normalise_func('A')
-        self.to_float('A')
+        # self.to_float('A')
         self.normalise_func('A')
 
         self.add_b_line()
         self.add_b_line()
+
+
+        self.material_percent_lines_b[0].setText('50.00')
+        self.material_list_b[0].percent = 50
+        self.material_percent_lines_b[1].setText('50.00')
+        self.material_list_b[1].percent = 50
+
         self.material_b_types[0].setCurrentIndex(1)
         self.material_b_types[1].setCurrentIndex(1)
         self.material_comboboxes_b[0].setCurrentIndex(1)
         self.material_comboboxes_b[1].setCurrentIndex(4)
-
-        self.material_percent_lines_b[0].setText('50.00')
-        self.material_percent_lines_b[1].setText('50.00')
-        self.material_list_b[0].percent = 50
-        self.material_list_b[1].percent = 50
-
-
 
     def set_bottom_styles(self):
         for widget in self.button_list + self.big_button_list:
@@ -451,6 +453,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 f"Соотношение по массе:\n\t{numb_a} : {numb_b}"
             )
 
+    def set_tg(self, value):
+        if value is None:
+            self.tg_main_label.setText(f"Стеклование базовое:\n\tотсутствует")
+        else:
+            self.tg_main_label.setText(f"Стеклование базовое:\n\t{round(value, 1)}°C")
+
+
     # ========================= Окна ===========================
 
     def add_receipt_window(self, komponent) -> callable:
@@ -566,6 +575,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         material_combobox: QComboBox,
     ) -> callable:
         """
+        Функция, которая вызывается при смене индекса QComboBox с названием материала
         :param material_combobox: QComboBox из строки рецептуры
         :param material_type_combobox: QComboBox из строки рецептуры
         :param material: Объект Material
@@ -577,6 +587,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 material_type_combobox.currentText(), material_combobox.currentText()
             )
 
+            material.receipt.receipt_counter.count_percent_df()
+            material.receipt.receipt_counter.get_tg_df()
         return wrapper
 
     @staticmethod
