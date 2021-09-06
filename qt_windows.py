@@ -4,7 +4,7 @@ from itertools import cycle
 from typing import Optional, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
-from PyQt5.QtGui import QBrush, QImage, QPalette
+from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QLabel,
                              QLineEdit, QSpacerItem)
 
@@ -26,6 +26,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oimage))
         self.setPalette(palette)
+
+        pixmap = QPixmap("icons/lock.png")
+        self.label_lock_a.setPixmap(pixmap)
+        self.label_lock_b.setPixmap(pixmap)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("icons/update.png"))
+        self.update_but.setIcon(icon)
 
         self.button_list = [
             self.a_receipt_but,
