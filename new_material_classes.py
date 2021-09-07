@@ -216,7 +216,7 @@ class ReceiptCounter:
         self.tg_df: Optional[DataFrame] = None
 
         # TODO прописать ссылки на окна для передачи параметров
-        self.data_driver: DataDriver = self.main_window.data_driver
+        self.data_driver = self.main_window.data_driver
         self.pair_react_window: Optional[PairReactWindow] = None
 
     @property
@@ -490,54 +490,3 @@ class ReceiptCounter:
 
 
 
-class DataDriver:
-    def __init__(self, db_name: str):
-        self.db_name = db_name
-
-    def get_ew_by_name(self, mat_type: str, material: str):
-        if material == "":
-            return None
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        if mat_type == "Epoxy":
-            return cursor.execute(
-                f"SELECT EEW FROM Epoxy WHERE name == '{material}'"
-            ).fetchall()[0][0]
-        elif mat_type == "Amine":
-            return cursor.execute(
-                f"SELECT AHEW FROM Amine WHERE name == '{material}'"
-            ).fetchall()[0][0]
-        else:
-            return math.inf
-
-    def get_all_material_types(self) -> List[str]:
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        all_material = [
-            i[0] for i in cursor.fetchall() if i[0] not in ("Tg", "Tg_influence")
-        ]
-        all_material.insert(0, all_material.pop(all_material.index("None")))
-        return all_material
-
-    def get_all_material_of_one_type(self, material_type: str) -> List[str]:
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute(f"SELECT name FROM {material_type}")
-        all_material = [i[0] for i in cursor.fetchall()]
-        return all_material
-
-    def get_tg_df(self) -> DataFrame:
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute("SELECT Name FROM Epoxy")
-        epoxy_name = [name[0] for name in cursor.fetchall()]
-        cursor.execute("SELECT Name FROM Amine")
-        amine_name = [name[0] for name in cursor.fetchall()]
-        cursor.execute("SELECT * FROM Tg")
-        all_tg = cursor.fetchall()
-        df_tg_main = DataFrame(index=epoxy_name, columns=amine_name)
-        for tg in all_tg:
-            df_tg_main[tg[1]][tg[0]] = tg[2]
-        connection.close()
-        return df_tg_main

@@ -1,6 +1,11 @@
+import math
 import pickle
+import sqlite3
 from math import exp
+from os.path import exists
 from typing import List
+
+from pandas import DataFrame
 
 
 class DataMaterial:
@@ -11,12 +16,17 @@ class DataMaterial:
         self.path = None
 
     def save(self):
+        file_name = r'data/' + f'{self.mat_type}_{self.name}_{self.ew}'
+        if not exists(file_name):
+            with open(file_name, 'wb') as file:
+                pickle.dump(self, file)
         ...
 
     def create_new(self, name, mat_type, ew):
         self.name = name
         self.mat_type = mat_type
         self.ew = ew
+        self.save()
 
     def load(self, path):
         ...
@@ -145,9 +155,13 @@ class DataProfile:
 
 
 class ProfileManager:
-    def __init__(self, path: str):
-        self.profile_list = []
+    def __init__(self, path: str, profile_list=None):
+        if profile_list is not None:
+            self.profile_list = profile_list
+        else:
+            self.profile_list = []
         self.path = path
+        self.save_profile_manager()
 
     def load_profile_manager(self) -> None:
         with open(self.path, 'rb') as file:
@@ -162,3 +176,70 @@ class ProfileManager:
 
     def remove_profile(self, profile: DataProfile) -> None:
         self.profile_list.remove(profile)
+
+
+class DataDriver:
+    def __init__(self, db_name: str, profile_manager: DataProfile):
+        self.db_name = db_name
+        self.profile_manager = profile_manager
+
+    def get_ew_by_name(self, mat_type: str, material: str):
+        if material == "":
+            return None
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        if mat_type == "Epoxy":
+            return cursor.execute(
+                f"SELECT EEW FROM Epoxy WHERE name == '{material}'"
+            ).fetchall()[0][0]
+        elif mat_type == "Amine":
+            return cursor.execute(
+                f"SELECT AHEW FROM Amine WHERE name == '{material}'"
+            ).fetchall()[0][0]
+        else:
+            return math.inf
+
+    def get_all_material_types(self) -> List[str]:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        all_material = [
+            i[0] for i in cursor.fetchall() if i[0] not in ("Tg", "Tg_influence")
+        ]
+        all_material.insert(0, all_material.pop(all_material.index("None")))
+        return all_material
+
+    def get_all_material_of_one_type(self, material_type: str) -> List[str]:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT name FROM {material_type}")
+        all_material = [i[0] for i in cursor.fetchall()]
+        return all_material
+
+    def get_tg_df(self) -> DataFrame:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute("SELECT Name FROM Epoxy")
+        epoxy_name = [name[0] for name in cursor.fetchall()]
+        cursor.execute("SELECT Name FROM Amine")
+        amine_name = [name[0] for name in cursor.fetchall()]
+        cursor.execute("SELECT * FROM Tg")
+        all_tg = cursor.fetchall()
+        df_tg_main = DataFrame(index=epoxy_name, columns=amine_name)
+        for tg in all_tg:
+            df_tg_main[tg[1]][tg[0]] = tg[2]
+        connection.close()
+        return df_tg_main
+
+    def add_material_to_profile_manager(self, material: DataMaterial):
+        self.profile_manager.add_material(material)
+
+    def migrate_db(self):
+        for mat_type in self.get_all_material_types():
+            for name in self.get_all_material_of_one_type(mat_type):
+                ew = self.get_ew_by_name(mat_type, name)
+                material = DataMaterial()
+                material.create_new(name, mat_type, ew)
+
+                self.add_material_to_profile_manager(material)
+
