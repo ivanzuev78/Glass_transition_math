@@ -69,10 +69,7 @@ class Material:
     def set_type_and_name(self, mat_type: str, name: str) -> None:
         self.mat_type = mat_type
         self.name = name
-        self.set_ew()
-
-    def set_ew(self):
-        self.ew = self.receipt.data_driver.get_ew_by_name(self.mat_type, self.name)
+        self.ew = self.receipt.data_driver.get_ew_by_name(mat_type, name)
         self.receipt.update_all_parameters()
 
     def __str__(self):
@@ -149,15 +146,7 @@ class Receipt:
                 return None
         self.sum_percent = round(sum(self.materials), 2)
         self.set_sum_to_qt()
-        self.count_ew()
-        if self.sum_percent == 100.0:
-            self.update_all_parameters()
-
-        else:
-            # TODO Сброс всех полей с параметрами (Стеклование, соотношение и т.д.)
-            # Возможно нужно будет сбросить что-то в ReceiptCounter
-            self.receipt_counter.drop_labels()
-            ...
+        self.update_all_parameters()
 
     def __iter__(self):
         for material in self.materials:
@@ -169,12 +158,8 @@ class Receipt:
         Предполагается, что сумма процентов уже посчитана
         :return:
         """
-        if self.sum_percent == 100:
-            self.count_ew()
-            self.receipt_counter.count_mass_ratio()
-            self.receipt_counter.count_tg()
-        else:
-            ...
+        self.count_ew()
+        self.receipt_counter.update_labels()
 
     def count_ew(self):
         if self.sum_percent == 100:
@@ -261,6 +246,7 @@ class ReceiptCounter:
                 self.mass_ratio = -self.receipt_a.ew / self.receipt_b.ew
                 return None
         self.mass_ratio = None
+        self.drop_labels()
 
     def count_percent_df(self):
         if (
@@ -493,6 +479,15 @@ class ReceiptCounter:
         """
         self.mass_ratio = None
         self.tg = None
+
+    def update_labels(self):
+        if self.receipt_a.sum_percent == 100 and self.receipt_b.sum_percent == 100:
+            self.count_mass_ratio()
+            self.count_tg()
+            self.count_percent_df()
+        else:
+            self.drop_labels()
+
 
 
 class DataDriver:
