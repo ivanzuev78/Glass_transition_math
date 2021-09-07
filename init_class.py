@@ -1,3 +1,6 @@
+import configparser
+from os.path import exists
+
 from new_material_classes import DataDriver, Receipt, ReceiptCounter
 from qt_windows import MyMainWindow, PairReactWindow
 
@@ -7,7 +10,14 @@ DB_NAME = "material.db"
 class InitClass:
     def __init__(self, debug=False):
 
-        self.data_driver = DataDriver(DB_NAME)
+        src_ini_setting = 'settings.ini'
+        if not exists(src_ini_setting):
+            print(f'\n\n\n[CALC]: ФАЙЛ С НАСТРОЙКАМИ {src_ini_setting} НЕ НАЙДЕН')
+            exit(1)
+        config = configparser.ConfigParser()
+        config.read(src_ini_setting)
+
+        self.data_driver = DataDriver(config['profile']['old_db'])
         # ==== Создаём главное окно ====
         self.my_main_window = MyMainWindow(self.data_driver, debug=debug)
 
