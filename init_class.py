@@ -1,8 +1,10 @@
 import configparser
+import pickle
 from os.path import exists
 
-from new_material_classes import DataDriver, Receipt, ReceiptCounter
-from qt_windows import MyMainWindow, PairReactWindow
+from data_classes import ProfileManager, DataProfile, DataDriver
+from new_material_classes import Receipt, ReceiptCounter
+from qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
 DB_NAME = "material.db"
 
@@ -16,8 +18,18 @@ class InitClass:
             exit(1)
         config = configparser.ConfigParser()
         config.read(src_ini_setting)
+        if exists(config['profile']['profile_manager']):
+            with open(config['profile']['profile_manager'], 'rb') as file:
+                self.profile_manager = ProfileManager(config['profile']['profile_manager'], pickle.load(file))
+        else:
+            self.profile_manager = ProfileManager(config['profile']['profile_manager'])
+            # TODO убрать заглушку создания профиля
+            self.profile_manager.profile_list.append(DataProfile('Ivan'))
 
-        self.data_driver = DataDriver(config['profile']['old_db'])
+        self.data_driver = DataDriver(config['profile']['old_db'], self.profile_manager.profile_list[0])
+        # self.data_driver.migrate_db()
+        # self.profile_manager.save_profile_manager()
+
         # ==== Создаём главное окно ====
         self.my_main_window = MyMainWindow(self.data_driver, debug=debug)
 
@@ -43,5 +55,7 @@ class InitClass:
         self.receipt_a.receipt_counter = self.receipt_counter
         self.receipt_b.receipt_counter = self.receipt_counter
 
+        self.profile_manager_window = ProfileManagerWindow(self.my_main_window, self.profile_manager)
+
         if not debug:
-            self.my_main_window.show()
+            self.profile_manager_window.show()

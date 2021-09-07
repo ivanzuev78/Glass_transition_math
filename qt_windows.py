@@ -8,6 +8,8 @@ from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QLabel,
                              QLineEdit, QSpacerItem)
 
+from additional_funcs import set_qt_stile
+from data_classes import ProfileManager
 from new_material_classes import Material, Receipt
 
 DB_NAME = "material.db"
@@ -182,6 +184,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_comboboxes_b[1].setCurrentIndex(4)
 
     def set_bottom_styles(self):
+        # TODO Заменить set_bottom_styles на вынесенную функцию
         for widget in self.button_list + self.big_button_list:
             widget.setStyleSheet(self.style)
         self.change_receipt_color("A", True)
@@ -1288,3 +1291,27 @@ class PairReactWindow(
         ):
             self.main_window.sintez_pair_label.setText("Ступенчатый синтез")
         a0.accept()
+
+
+class ProfileManagerWindow(
+    QtWidgets.QMainWindow, uic.loadUiType("windows/profile_manager_window.ui")[0]
+):
+    def __init__(
+        self, main_window: MyMainWindow, profile_manager: ProfileManager
+    ):
+        super(ProfileManagerWindow, self).__init__()
+        self.setupUi(self)
+
+        self.profile_manager = profile_manager
+        self.main_window = main_window
+
+        self.choose_profile_but.clicked.connect(self.choose_profile)
+
+        self.buttons = ['choose_profile_but', 'add_profile_but', 'remove_profile_but']
+
+        # Вынести путь к стилю в настройки
+        set_qt_stile(self.buttons, 'style.css', self)
+
+    def choose_profile(self):
+        self.close()
+        self.main_window.show()
