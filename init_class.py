@@ -67,7 +67,7 @@ class InitClass:
 
         self.profile_manager_window = ProfileManagerWindow(self.my_main_window, self.profile_manager)
 
-        print(self.__geta)
+
 
         if not debug:
             self.profile_manager_window.show()
