@@ -14,8 +14,17 @@ class InitClass:
 
         src_ini_setting = 'settings.ini'
         if not exists(src_ini_setting):
-            print(f'\n\n\n[CALC]: ФАЙЛ С НАСТРОЙКАМИ {src_ini_setting} НЕ НАЙДЕН')
-            exit(1)
+            print(f'ФАЙЛ С НАСТРОЙКАМИ {src_ini_setting} НЕ НАЙДЕН\nУстановленны настройки по умолчанию')
+            # Создаем файл с настройками по умолчанию
+            with open(src_ini_setting, 'w') as file:
+                file.write('[profile]\n')
+                file.write('profile_manager=profile_manager.prmn\n')
+                # TODO Убрать после полной миграции с ДБ на prmn
+                file.write('old_db=material.db\n')
+                file.write('[style]\n')
+                file.write('style_path=style.css\n')
+
+        # Парсим данные
         config = configparser.ConfigParser()
         config.read(src_ini_setting)
         if exists(config['profile']['profile_manager']):
@@ -27,6 +36,7 @@ class InitClass:
             self.profile_manager.profile_list.append(DataProfile('Ivan'))
 
         self.data_driver = DataDriver(config['profile']['old_db'], self.profile_manager.profile_list[0])
+
         # self.data_driver.migrate_db()
         # self.profile_manager.save_profile_manager()
 
