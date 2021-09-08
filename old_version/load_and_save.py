@@ -6,7 +6,7 @@ from openpyxl.styles import Alignment, Font
 from PyQt5.QtWidgets import QFileDialog
 
 
-def create_one_komponent_rows(
+def create_one_component_rows(
     name: str,
     mat_type_list: list,
     mat_list: list,
@@ -70,7 +70,7 @@ def save_receipt(
     ws = wb.active
 
     if save_a and save_b:
-        rows_a, ew_string_a = create_one_komponent_rows(
+        rows_a, ew_string_a = create_one_component_rows(
             name_a,
             mat_type_a_list,
             mat_a_list,
@@ -80,7 +80,7 @@ def save_receipt(
             "А",
             True,
         )
-        rows_b, ew_string_b = create_one_komponent_rows(
+        rows_b, ew_string_b = create_one_component_rows(
             name_b,
             mat_type_b_list,
             mat_b_list,
@@ -101,7 +101,7 @@ def save_receipt(
         # ws["B2"] = ew_string_a
         # ws["H2"] = ew_string_b
     elif save_a:
-        rows_a, ew_string_a = create_one_komponent_rows(
+        rows_a, ew_string_a = create_one_component_rows(
             name_a,
             mat_type_a_list,
             mat_a_list,
@@ -116,7 +116,7 @@ def save_receipt(
         # ws["B2"] = ew_string_a
         filename = name_a
     elif save_b:
-        rows_b, ew_string_b = create_one_komponent_rows(
+        rows_b, ew_string_b = create_one_component_rows(
             name_b,
             mat_type_b_list,
             mat_b_list,

@@ -13,11 +13,11 @@ from PyQt5.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QGridLayout,
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
-    def __init__(self, main_window: "MainWindow", komponent):
+    def __init__(self, main_window: "MainWindow", component):
         super(SintezWindow, self).__init__()
         self.setupUi(self)
         self.main_window = main_window
-        self.komponent = komponent
+        self.component = component
         self.horizontalSlider = {}
         self.line_percent = {}
         self.line_EW = {}
@@ -46,9 +46,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         self.material_comboboxes = []
         self.material_percent_lines = []
 
-        self.label.setText("Компонент " + komponent)
+        self.label.setText("Компонент " + component)
 
-        if komponent == "A":
+        if component == "A":
             self.setWindowTitle("Редактирование рецептуры Компонента А")
             self.label.setText("Редактирование рецептуры Компонента А")
             self.main_window_material_comboboxes = (
@@ -59,7 +59,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 self.main_window.material_percent_lines_a
             )
 
-        elif komponent == "B":
+        elif component == "B":
             self.setWindowTitle("Редактирование рецептуры Компонента Б")
             self.label.setText("Редактирование рецептуры Компонента Б")
             self.main_window_material_comboboxes = (
@@ -94,7 +94,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 index,
                 self.main_window_material_types[index].currentText(),
                 widget.currentText(),
-                komponent,
+                component,
                 percent,
             )
 
@@ -235,8 +235,8 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         line = QLineEdit()
         line.setText(self.main_window_material_percent_lines[numb_of_line].text())
-        # line.editingFinished.connect(lambda: self.to_float(komponent))
-        # line.editingFinished.connect(lambda: self.count_sum(komponent))
+        # line.editingFinished.connect(lambda: self.to_float(component))
+        # line.editingFinished.connect(lambda: self.count_sum(component))
 
         items_type.append(materia_type_combobox)
         items.append(material_combobox)
@@ -248,7 +248,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         # grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
         # grid.addWidget(final_label_numb, row_count + 2, 2)
-        # self.count_sum(komponent)
+        # self.count_sum(component)
         line.setFixedWidth(60)
         self.line_percent[numb_of_line] = line
         # self.line_name_of_component[numb_of_line] = QComboBox(self.centralwidget)
@@ -448,7 +448,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
                 # self.count_EW()
                 self.main_window.set_percents_from_receipt_window(
-                    self.komponent,
+                    self.component,
                     [self.percents[i] for i in range(len(self.percents))],
                 )
 
@@ -584,7 +584,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
                 # self.count_EW()
                 self.main_window.set_percents_from_receipt_window(
-                    self.komponent,
+                    self.component,
                     [self.percents[i] for i in range(len(self.percents))],
                 )
 
@@ -598,12 +598,12 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
             self.horizontalSlider[line].setSliderPosition(self.percents[line] * 100)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        if self.komponent == "A":
+        if self.component == "A":
             self.main_window.a_receipt_window = None
-        if self.komponent == "B":
+        if self.component == "B":
             self.main_window.b_receipt_window = None
 
-        self.main_window.enable_receipt(self.komponent)
+        self.main_window.enable_receipt(self.component)
         self.close()
 
 
@@ -654,13 +654,13 @@ class ChoosePairReactWindow(
         layout.addWidget(checkbox, row_count + 1, 0)
         layout.addWidget(label, row_count + 1, 1)
 
-    def get_react_pairs(self, komponent):
-        if komponent == "A":
+    def get_react_pairs(self, component):
+        if component == "A":
             checkboxes_list = self.checkboxes_a
             all_pairs = self.all_pairs_a
             self.pairs_to_react_a = []
             pairs_to_react = self.pairs_to_react_a
-        elif komponent == "B":
+        elif component == "B":
             checkboxes_list = self.checkboxes_b
             all_pairs = self.all_pairs_b
             self.pairs_to_react_b = []

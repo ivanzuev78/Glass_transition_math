@@ -256,7 +256,7 @@ class ReceiptCounter:
             self.percent_df = None
             return None
 
-        def count_reaction_in_komponent(
+        def count_reaction_in_component(
             names_list, eq_list, pair_react: List[Tuple[Material, Material]]
         ):
 
@@ -328,8 +328,8 @@ class ReceiptCounter:
         if sum(b_eq) > 0:
             pairs_b = [(i[1], i[0]) for i in pairs_b]
 
-        a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, pairs_a)
-        b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, pairs_b)
+        a_eq, a_result_eq_table = count_reaction_in_component(a_names, a_eq, pairs_a)
+        b_eq, b_result_eq_table = count_reaction_in_component(b_names, b_eq, pairs_b)
 
         a_names_only_react = []
         a_eq_only_react = []

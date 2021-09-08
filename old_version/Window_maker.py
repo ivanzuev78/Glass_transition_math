@@ -117,7 +117,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # Доля избытка. Число от 0. Расчёт: % + % * extra_ratio -> % * (extra_ratio + 1)
         self.extra_ratio = None
-        self.extra_ratio_komponent = "A"
+        self.extra_ratio_component = "A"
         self.radioButton_A.toggled.connect(self.extra_radiobutton_changer("A"))
         self.radioButton_B.toggled.connect(self.extra_radiobutton_changer("B"))
 
@@ -672,7 +672,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     def create_df_percent(self):
         # Вспомогательная функция, которая учитывает ступенчатый синтез
-        def count_reaction_in_komponent(names_list, eq_list, pair_react):
+        def count_reaction_in_component(names_list, eq_list, pair_react):
 
             # TODO Реализовать интерфейс для выбора взаимодействующий веществ (есть) + проверка, что все прореагировали
             # pair_react = [('KER-828', 'ИФДА'), ('KER-828', 'MXDA')]
@@ -776,8 +776,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         if sum(b_eq) > 0:
             pairs_b = [(i[1], i[0]) for i in pairs_b]
 
-        a_eq, a_result_eq_table = count_reaction_in_komponent(a_names, a_eq, pairs_a)
-        b_eq, b_result_eq_table = count_reaction_in_komponent(b_names, b_eq, pairs_b)
+        a_eq, a_result_eq_table = count_reaction_in_component(a_names, a_eq, pairs_a)
+        b_eq, b_result_eq_table = count_reaction_in_component(b_names, b_eq, pairs_b)
 
         a_names_only_react = []
         a_eq_only_react = []
@@ -949,7 +949,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             final_receipt_with_extra[name] += percent
             receipt_types[name] = mat_type.currentText()
 
-            if self.extra_ratio and self.extra_ratio_komponent == "A":
+            if self.extra_ratio and self.extra_ratio_component == "A":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
                 final_receipt_with_extra[name] += extra_percent
@@ -968,7 +968,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             final_receipt_with_extra[name] += percent
             receipt_types[name] = mat_type.currentText()
 
-            if self.extra_ratio and self.extra_ratio_komponent == "B":
+            if self.extra_ratio and self.extra_ratio_component == "B":
                 extra_percent = percent * self.extra_ratio
                 extra_material[name] += extra_percent
                 final_receipt_with_extra[name] += extra_percent
@@ -1254,9 +1254,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.set_receipt_to_counter("B")()
 
     # Удаляет последнюю строку в рецептуре
-    def del_line(self, komponent: str) -> None:
+    def del_line(self, component: str) -> None:
 
-        if komponent == "A":
+        if component == "A":
             items_type = self.material_a_types
             items = self.material_comboboxes_a
             items_lines = self.material_percent_lines_a
@@ -1269,7 +1269,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.final_a_numb_label.deleteLater()
                 self.final_a_numb_label = None
 
-        elif komponent == "B":
+        elif component == "B":
             items_type = self.material_b_types
             items = self.material_comboboxes_b
             items_lines = self.material_percent_lines_b
@@ -1305,7 +1305,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     final_label, row_count + 1, 1, alignment=QtCore.Qt.AlignRight
                 )
                 grid.addWidget(final_label_numb, row_count + 1, 2)
-                if komponent == "A":
+                if component == "A":
                     self.final_a = final_label
                     self.final_a_numb_label = final_label_numb
                     # self.count_sum("A")
@@ -1314,7 +1314,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     self.final_b_numb_label = final_label_numb
                     # self.count_sum("B")
             else:
-                self.hide_top(komponent)
+                self.hide_top(component)
 
         self.reset_choose_pair_react_window()
 
@@ -1326,8 +1326,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.del_line("B")
         self.set_receipt_to_counter("B")()
 
-    def disable_receipt(self, komponent) -> None:
-        if komponent == "A":
+    def disable_receipt(self, component) -> None:
+        if component == "A":
             self.add_A_but.setEnabled(False)
             self.del_A_but.setEnabled(False)
             for i in range(len(self.material_comboboxes_a)):
@@ -1337,7 +1337,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.lock_checkboxies_a[i].setEnabled(False)
                 self.normalise_A.setEnabled(False)
 
-        elif komponent == "B":
+        elif component == "B":
             self.add_B_but.setEnabled(False)
             self.del_B_but.setEnabled(False)
             for i in range(len(self.material_comboboxes_b)):
@@ -1347,8 +1347,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.lock_checkboxies_b[i].setEnabled(False)
                 self.normalise_B.setEnabled(False)
 
-    def enable_receipt(self, komponent) -> None:
-        if komponent == "A":
+    def enable_receipt(self, component) -> None:
+        if component == "A":
             self.add_A_but.setEnabled(True)
             self.del_A_but.setEnabled(True)
             for i in range(len(self.material_comboboxes_a)):
@@ -1358,7 +1358,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.lock_checkboxies_a[i].setEnabled(True)
                 self.normalise_A.setEnabled(True)
 
-        elif komponent == "B":
+        elif component == "B":
             self.add_B_but.setEnabled(True)
             self.del_B_but.setEnabled(True)
             for i in range(len(self.material_comboboxes_b)):
@@ -1369,14 +1369,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.normalise_B.setEnabled(True)
 
     # Прячет шапку рецептуры, когда нет компонентов
-    def hide_top(self, komponent: str):
-        if komponent == "A":
+    def hide_top(self, component: str):
+        if component == "A":
             self.label_3.hide()
             self.label_5.hide()
             self.normalise_A.hide()
             self.label_lock_a.hide()
             self.a_ew = 0
-        if komponent == "B":
+        if component == "B":
             self.label_4.hide()
             self.label_6.hide()
             self.normalise_B.hide()
@@ -1384,14 +1384,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.ew_b = 0
 
     # Отображает шапку рецептуры, когда есть компоненты
-    def show_top(self, komponent: str):
-        if komponent == "A":
+    def show_top(self, component: str):
+        if component == "A":
             self.label_3.show()
             self.label_5.show()
             self.normalise_A.show()
             self.label_lock_a.show()
 
-        if komponent == "B":
+        if component == "B":
             self.label_4.show()
             self.label_6.show()
             self.normalise_B.show()
@@ -1438,15 +1438,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.hide()
         self.tg_view_window.show()
 
-    def add_receipt_window(self, komponent) -> callable:
+    def add_receipt_window(self, component) -> callable:
         def wrapper():
-            if komponent == "A":
+            if component == "A":
                 if not self.a_receipt_window:
                     self.a_receipt_window = SintezWindow(self, "A")
 
                 self.a_receipt_window.show()
                 self.disable_receipt("A")
-            elif komponent == "B":
+            elif component == "B":
                 if not self.b_receipt_window:
                     self.b_receipt_window = SintezWindow(self, "B")
                 self.b_receipt_window.show()
@@ -1465,10 +1465,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.pair_react_list_a = self.get_all_pairs_react("A")
         self.pair_react_list_b = self.get_all_pairs_react("B")
 
-    def set_percents_from_receipt_window(self, komponent, percents):
-        if komponent == "A":
+    def set_percents_from_receipt_window(self, component, percents):
+        if component == "A":
             material_percent_lines = self.material_percent_lines_a
-        elif komponent == "B":
+        elif component == "B":
             material_percent_lines = self.material_percent_lines_b
         else:
             return None
@@ -1512,11 +1512,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.tggg_with_correction = tggg_with_correction
         self.ttgg_with_extra = ttgg_with_extra
 
-    def get_all_pairs_react(self, komponent: str) -> Union[List, None]:
-        if komponent == "A":
+    def get_all_pairs_react(self, component: str) -> Union[List, None]:
+        if component == "A":
             material_types = self.material_a_types
             material_comboboxes = self.material_comboboxes_a
-        elif komponent == "B":
+        elif component == "B":
             material_types = self.material_b_types
             material_comboboxes = self.material_comboboxes_b
         else:
@@ -1571,10 +1571,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.final_b_numb_label.setText(f"{round(total_sum, 2)}")
 
     # Приводит все проценты в рецептуре к типу float и считает +-*/ если есть в строке
-    def to_float(self, komponent: str) -> None:
-        if komponent == "A":
+    def to_float(self, component: str) -> None:
+        if component == "A":
             items_lines = self.material_percent_lines_a
-        elif komponent == "B":
+        elif component == "B":
             items_lines = self.material_percent_lines_b
         else:
             return None
@@ -1619,15 +1619,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 numb = 0
             widget.setText(f"{float(numb):.{2}f}")
 
-    def set_ew(self, komponent):
-        if komponent == "A":
+    def set_ew(self, component):
+        if component == "A":
             if self.a_ew > 0:
                 self.eew_label.setText(f"EEW = {round(self.a_ew, 2)}")
             elif self.a_ew < 0:
                 self.eew_label.setText(f"AHEW = {-round(self.a_ew, 2)}")
             else:
                 self.eew_label.setText(f"No EW")
-        if komponent == "B":
+        if component == "B":
             if self.b_ew > 0:
                 self.ahew_label.setText(f"EEW = {round(self.b_ew, 2)}")
             elif self.b_ew < 0:
@@ -1635,15 +1635,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             else:
                 self.ahew_label.setText(f"No EW")
 
-    def set_ew(self, komponent):
-        if komponent == "A":
+    def set_ew(self, component):
+        if component == "A":
             if self.a_ew > 0:
                 self.eew_label.setText(f"EEW = {round(self.a_ew, 2)}")
             elif self.a_ew < 0:
                 self.eew_label.setText(f"AHEW = {-round(self.a_ew, 2)}")
             else:
                 self.eew_label.setText(f"No EW")
-        if komponent == "B":
+        if component == "B":
             if self.b_ew > 0:
                 self.ahew_label.setText(f"EEW = {round(self.b_ew, 2)}")
             elif self.b_ew < 0:
@@ -1665,16 +1665,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         return wrapper
 
     # Нормирует рецептуру
-    def normalise_func(self, komponent: str) -> callable:
-        if komponent == "A":
+    def normalise_func(self, component: str) -> callable:
+        if component == "A":
             items_lines = self.material_percent_lines_a
             lock_checkbox = self.lock_checkboxies_a
-        elif komponent == "B":
+        elif component == "B":
             items_lines = self.material_percent_lines_b
             lock_checkbox = self.lock_checkboxies_b
 
         def wrap():
-            self.to_float(komponent)
+            self.to_float(component)
             sum_all = 0
             total_sum_left = 100
             for index, widget in enumerate(items_lines):
@@ -1707,7 +1707,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                                 f"{round(current_numb + (total_sum_left - sum_all), 2):.{2}f}"
                             )
                             break
-            self.count_sum(komponent)
+            self.count_sum(component)
 
             # self.count_all_parameters()
 
@@ -1716,7 +1716,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     # Выбирает по какому компоненту считать избыток
     def extra_radiobutton_changer(self, mat_type: str) -> Callable:
         def wrapper():
-            self.extra_ratio_komponent = mat_type
+            self.extra_ratio_component = mat_type
             self.count_extra_labels()
             self.count_extra_parameters()
 
@@ -1770,13 +1770,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if float(line_text) != 0:
                 self.extra_ratio = float(line_text) / 100
 
-                if self.extra_ratio_komponent == "A":
+                if self.extra_ratio_component == "A":
                     text = "Компонент A\n"
                     if self.a_ew:
                         ew = self.a_ew * (self.extra_ratio + 1)
                     else:
                         ew = 0
-                elif self.extra_ratio_komponent == "B":
+                elif self.extra_ratio_component == "B":
                     text = "Компонент Б\n"
                     if self.a_ew:
                         ew = self.ew_b * (self.extra_ratio + 1)
@@ -1794,10 +1794,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
                 self.extra_ew_label.setText(text + text_2)
 
-                if self.extra_ratio_komponent == "A":
+                if self.extra_ratio_component == "A":
                     ew_a = ew
                     ew_b = self.ew_b
-                elif self.extra_ratio_komponent == "B":
+                elif self.extra_ratio_component == "B":
                     ew_a = self.a_ew
                     ew_b = ew
                 else:

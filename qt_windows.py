@@ -1,7 +1,7 @@
 from collections import defaultdict
 from copy import copy
 from itertools import cycle
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
@@ -183,26 +183,39 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_comboboxes_b[0].setCurrentIndex(1)
         self.material_comboboxes_b[1].setCurrentIndex(4)
 
-    def set_bottom_styles(self):
+    def set_bottom_styles(self) -> None:
+        """
+        Устанавливает стили кнопок в окне
+        """
         # TODO Заменить set_bottom_styles на вынесенную функцию
         for widget in self.button_list + self.big_button_list:
             widget.setStyleSheet(self.style)
-        self.change_receipt_color("A", True)
-        self.change_receipt_color("B", True)
+        self.change_receipt_color("A", color_red=True)
+        self.change_receipt_color("B", color_red=True)
 
-    def hide_top(self, komponent: str):
-        if komponent == "A":
+    def hide_top(self, component: str) -> None:
+        """
+        Прячем верх рецептуры, когда нет компонентов
+        :param component:
+        :return:
+        """
+        if component == "A":
             self.label_3.hide()
             self.label_5.hide()
             self.normalise_A.hide()
             self.label_lock_a.hide()
-        elif komponent == "B":
+        elif component == "B":
             self.label_4.hide()
             self.label_6.hide()
             self.normalise_B.hide()
             self.label_lock_b.hide()
 
     def add_line(self, component: str) -> None:
+        """
+        Добавляет строку компонента в рецептуру
+        :param component: А или Б
+        :return:
+        """
         final_label = QLabel("Итого")
         final_label.setStyleSheet(self.style)
         final_label.setFont((QtGui.QFont("Times New Roman", self.font_size)))
@@ -316,23 +329,24 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.add_line("B")
 
     # Отображает шапку рецептуры, когда есть компоненты
-    def show_top(self, komponent: str):
-        if komponent == "A":
+    def show_top(self, component: str):
+        """Отображает шапку рецептуры, когда есть компоненты"""
+        if component == "A":
             self.label_3.show()
             self.label_5.show()
             self.normalise_A.show()
             self.label_lock_a.show()
 
-        if komponent == "B":
+        if component == "B":
             self.label_4.show()
             self.label_6.show()
             self.normalise_B.show()
             self.label_lock_b.show()
 
     # Удаляет последнюю строку в рецептуре
-    def del_line(self, komponent: str) -> None:
-
-        if komponent == "A":
+    def del_line(self, component: str) -> None:
+        """Удаляет последнюю строку в рецептуре"""
+        if component == "A":
             if len(self.material_list_a) == 0:
                 return None
             items_type = self.material_a_types
@@ -348,7 +362,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.final_a_numb_label = None
             self.receipt_a.remove_material()
 
-        elif komponent == "B":
+        elif component == "B":
             if len(self.material_list_b) == 0:
                 return None
             items_type = self.material_b_types
@@ -388,16 +402,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     final_label, row_count + 1, 1, alignment=QtCore.Qt.AlignRight
                 )
                 grid.addWidget(final_label_numb, row_count + 1, 2)
-                if komponent == "A":
+                if component == "A":
                     self.final_a = final_label
                     self.final_a_numb_label = final_label_numb
                     self.receipt_a.count_sum()
-                elif komponent == "B":
+                elif component == "B":
                     self.final_b = final_label
                     self.final_b_numb_label = final_label_numb
                     self.receipt_b.count_sum()
             else:
-                self.hide_top(komponent)
+                self.hide_top(component)
 
     def del_a_line(self) -> None:
         self.del_line("A")
@@ -405,7 +419,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def del_b_line(self) -> None:
         self.del_line("B")
 
-    def set_sum(self, percent: float, component: str):
+    def set_sum(self, percent: float, component: str) -> None:
+        """
+        Устанавливает значение в строк Итого в конце рецептуры
+        Если значение != 100, то красит красным
+        :param percent: Сумма процентов рецептуры
+        :param component: рецептура А или Б
+        """
         if component == "A":
             self.final_a_numb_label.setText(f"{percent:.{2}f}")
             if percent != 100:
@@ -423,7 +443,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.final_b_numb_label.setStyleSheet("QLabel { color: green}")
                 self.b_receipt_but.setStyleSheet(self.style)
 
-    def set_ew(self, component, ew):
+    def set_ew(self, component: str, ew: Union[float, None]) -> None:
+        """
+        Устанавливает EW соответствующей рецептуре
+        :param component: рецептура А или Б
+        :param ew: Эквивалентный вес рецептуры
+        """
         if component == "A":
             if ew is None:
                 self.eew_label.setText(f"No EW")
@@ -440,7 +465,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             elif ew < 0:
                 self.ahew_label.setText(f"AHEW = {-round(ew, 2)}")
 
-    def set_mass_ratio(self, value):
+    def set_mass_ratio(self, value: Union[float, None]) -> None:
+        """
+        Устанавливает Массовое соотношение в соответствующий лейбл
+        :param value: Значение соотношения.
+        """
         if value is None:
             self.mass_ratio_label.setText(f"Продукты не реагируют")
         elif value >= 1:
@@ -456,25 +485,33 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 f"Соотношение по массе:\n\t{numb_a} : {numb_b}"
             )
 
-    def set_tg(self, value):
+    def set_tg(self, value) -> None:
+        """
+        Устанавливает базовое стеклование в соответствующий лейбл
+        :param value: Значение базового стеклования
+        """
         if value is None:
             self.tg_main_label.setText(f"Стеклование базовое:\n\tотсутствует")
         else:
             self.tg_main_label.setText(f"Стеклование базовое:\n\t{round(value, 1)}°C")
 
-
     # ========================= Окна ===========================
 
-    def add_receipt_window(self, komponent) -> callable:
+    def add_receipt_window(self, component: str) -> callable:
+        """
+        Функция для вызова окна редактирования рецептуры. Обёрнута замыканием для вызова триггером кнопки.
+        :param component: рецептура А или Б
+        :return:
+        """
         def wrapper():
-            if komponent == "A":
+            if component == "A":
                 if self.final_a_numb_label.text() == "100.00":
                     if not self.a_receipt_window:
                         self.a_receipt_window = SintezWindow(self, "A")
                     if not self.debug_flag:
                         self.a_receipt_window.show()
                     self.disable_receipt("A")
-            elif komponent == "B":
+            elif component == "B":
                 if self.final_b_numb_label.text() == "100.00":
                     if not self.b_receipt_window:
                         self.b_receipt_window = SintezWindow(self, "B")
@@ -486,7 +523,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         return wrapper
 
-    def add_pair_react_window(self):
+    def add_pair_react_window(self) -> None:
+        """
+        Функция для вызова окна редактирования пар
+        """
         if not self.pair_react_window:
             self.pair_react_window = PairReactWindow(
                 self, self.receipt_a, self.receipt_b
@@ -497,7 +537,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     # =========================  ===========================
 
     @staticmethod
-    def isfloat(value):
+    def isfloat(value) -> bool:
+        """Проверяет число на возможность приведения к float"""
         try:
             float(value)
             return True
@@ -505,10 +546,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             return False
 
     # Приводит все проценты в рецептуре к типу float и считает +-*/ если есть в строке
-    def to_float(self, komponent: str) -> None:
-        if komponent == "A":
+    def to_float(self, component: str) -> None:
+        """Приводит все проценты в рецептуре к типу float и считает +-*/ если есть в строке"""
+        if component == "A":
             items_lines = self.material_percent_lines_a
-        elif komponent == "B":
+        elif component == "B":
             items_lines = self.material_percent_lines_b
         else:
             return None
@@ -557,6 +599,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def change_list_of_materials(
         self, material_combobox: QComboBox, material_type: QComboBox
     ) -> callable:
+        """Меняет список сырья при смене типа в рецептуре
+        Обёрнута в замыкание для вызова триггером"""
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
@@ -565,7 +609,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         return wrapper
 
-    def add_material_to_receipt(self, material, component):
+    def add_material_to_receipt(self, material: Material, component: str) -> None:
+        """
+        Добавляет материал в рецептуру
+        :param material: Добавляемый материал
+        :param component: Рецептура А или Б
+        """
         if component == "A":
             self.receipt_a.add_material(material)
         elif component == "B":
@@ -579,6 +628,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     ) -> callable:
         """
         Функция, которая вызывается при смене индекса QComboBox с названием материала
+        Обёрнута в замыкание для вызова триггером
         :param material_combobox: QComboBox из строки рецептуры
         :param material_type_combobox: QComboBox из строки рецептуры
         :param material: Объект Material
@@ -598,18 +648,28 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def change_percent_material(
         material: Material, percent_line: QLineEdit
     ) -> callable:
+        """
+        Меняет процент в материале, который хранится в рецептуре
+        :param material:
+        :param percent_line:
+        :return:
+        """
         def wrapper():
             material.percent = float(percent_line.text())
-
         return wrapper
 
     # Нормирует рецептуру
-    def normalise_func(self, komponent: str) -> callable:
-        if komponent == "A":
+    def normalise_func(self, component: str) -> callable:
+        """
+        Нормирует рецептуру
+        Обёрнута в замыкание для вызова триггером
+        :param component: Рецептура А или Б
+        """
+        if component == "A":
             material_lines = self.material_list_a
             lock_checkbox = self.lock_checkboxies_a
             percent_lines = self.material_percent_lines_a
-        elif komponent == "B":
+        elif component == "B":
             material_lines = self.material_list_b
             lock_checkbox = self.lock_checkboxies_b
             percent_lines = self.material_percent_lines_b
@@ -651,15 +711,19 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                             material.percent = percent
                             break
 
-            if komponent == "A":
+            if component == "A":
                 self.receipt_a.set_sum_to_qt()
-            elif komponent == "B":
+            elif component == "B":
                 self.receipt_b.set_sum_to_qt()
 
         return wrap
 
-    def disable_receipt(self, komponent) -> None:
-        if komponent == "A":
+    def disable_receipt(self, component: str) -> None:
+        """
+        Делает рецептуру неактивной на время показа окна редактирования рецептуры
+        :param component: Рецептура А или Б
+        """
+        if component == "A":
             self.add_A_but.setEnabled(False)
             self.del_A_but.setEnabled(False)
             for i in range(len(self.material_comboboxes_a)):
@@ -669,7 +733,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.lock_checkboxies_a[i].setEnabled(False)
                 self.normalise_A.setEnabled(False)
 
-        elif komponent == "B":
+        elif component == "B":
             self.add_B_but.setEnabled(False)
             self.del_B_but.setEnabled(False)
             for i in range(len(self.material_comboboxes_b)):
@@ -679,8 +743,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.lock_checkboxies_b[i].setEnabled(False)
                 self.normalise_B.setEnabled(False)
 
-    def enable_receipt(self, komponent) -> None:
-        if komponent == "A":
+    def enable_receipt(self, component: str) -> None:
+        """
+        Делает рецептуру активной после закрытия окна редактирования рецептуры
+        :param component: Рецептура А или Б
+        """
+        if component == "A":
             self.add_A_but.setEnabled(True)
             self.del_A_but.setEnabled(True)
             for i in range(len(self.material_comboboxes_a)):
@@ -690,7 +758,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.lock_checkboxies_a[i].setEnabled(True)
                 self.normalise_A.setEnabled(True)
 
-        elif komponent == "B":
+        elif component == "B":
             self.add_B_but.setEnabled(True)
             self.del_B_but.setEnabled(True)
             for i in range(len(self.material_comboboxes_b)):
@@ -700,7 +768,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.lock_checkboxies_b[i].setEnabled(True)
                 self.normalise_B.setEnabled(True)
 
-    def set_percents_from_receipt_window(self, component, percents):
+    def set_percents_from_receipt_window(self, component: str, percents: List[float]):
+        """
+        Устанавливает проценты из окна редактирования рецептуры.
+        scope_trigger позволяет подождать, когда все значения передадутся,
+        чтобы лишние разы не рассчитывать все параметры
+        :param component: Рецептура А или Б
+        :param percents: Список процентов для установки
+        """
         if component == "A":
             material_percent_lines = self.material_percent_lines_a
             material_lines = self.material_list_a
@@ -734,11 +809,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
-    def __init__(self, main_window: MyMainWindow, komponent):
+    def __init__(self, main_window: MyMainWindow, component):
         super(SintezWindow, self).__init__()
         self.setupUi(self)
         self.main_window = main_window
-        self.komponent = komponent
+        self.component = component
         self.horizontalSlider = {}
         self.line_percent = {}
         self.line_EW = {}
@@ -764,9 +839,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         self.material_comboboxes = []
         self.material_percent_lines = []
 
-        self.label.setText("Компонент " + komponent)
+        self.label.setText("Компонент " + component)
 
-        if komponent == "A":
+        if component == "A":
             self.setWindowTitle("Редактирование рецептуры Компонента А")
             self.label.setText("Редактирование рецептуры Компонента А")
             self.main_window_material_comboboxes = (
@@ -777,7 +852,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 self.main_window.material_percent_lines_a
             )
 
-        elif komponent == "B":
+        elif component == "B":
             self.setWindowTitle("Редактирование рецептуры Компонента Б")
             self.label.setText("Редактирование рецептуры Компонента Б")
             self.main_window_material_comboboxes = (
@@ -803,12 +878,11 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 index,
                 self.main_window_material_types[index].currentText(),
                 widget.currentText(),
-                komponent,
+                component,
                 percent,
             )
 
         oImage = QImage("fon.jpg")
-        # sImage = oImage.scaled(QSize(self.window_height, self.window_width))
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)
@@ -828,6 +902,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         # self.line_2.setObjectName("line_2")
 
     def change_font(self):
+        """
+        Меняет размер шрифта для соответствия в основном окне
+        """
         font = QtGui.QFont("Times New Roman", self.main_window.font_size)
         big_bold_font = QtGui.QFont("Times New Roman", self.main_window.font_size_big)
         # big_bold_font.setBold(True)
@@ -933,8 +1010,8 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         line = QLineEdit()
         line.setText(self.main_window_material_percent_lines[numb_of_line].text())
-        # line.editingFinished.connect(lambda: self.to_float(komponent))
-        # line.editingFinished.connect(lambda: self.count_sum(komponent))
+        # line.editingFinished.connect(lambda: self.to_float(component))
+        # line.editingFinished.connect(lambda: self.count_sum(component))
 
         items_type.append(materia_type_combobox)
         items.append(material_combobox)
@@ -946,7 +1023,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         # grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
         # grid.addWidget(final_label_numb, row_count + 2, 2)
-        # self.count_sum(komponent)
+        # self.count_sum(component)
         line.setFixedWidth(60)
         self.line_percent[numb_of_line] = line
         # self.line_name_of_component[numb_of_line] = QComboBox(self.centralwidget)
@@ -1145,7 +1222,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
                 # self.count_EW()
                 self.main_window.set_percents_from_receipt_window(
-                    self.komponent,
+                    self.component,
                     [self.percents[i] for i in range(len(self.percents))],
                 )
 
@@ -1159,12 +1236,12 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
             self.horizontalSlider[line].setSliderPosition(self.percents[line] * 100)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        if self.komponent == "A":
+        if self.component == "A":
             self.main_window.a_receipt_window = None
-        if self.komponent == "B":
+        if self.component == "B":
             self.main_window.b_receipt_window = None
 
-        self.main_window.enable_receipt(self.komponent)
+        self.main_window.enable_receipt(self.component)
         self.close()
 
 
