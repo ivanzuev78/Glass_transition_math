@@ -199,7 +199,7 @@ class DataDriver:
         else:
             return math.inf
 
-    def get_all_material_types(self) -> List[str]:
+    def get_all_material_types_old(self) -> List[str]:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
@@ -209,12 +209,19 @@ class DataDriver:
         all_material.insert(0, all_material.pop(all_material.index("None")))
         return all_material
 
-    def get_all_material_of_one_type(self, material_type: str) -> List[str]:
+    def get_all_material_types(self) -> List[str]:
+        return self.profile_manager.get_all_types()
+
+
+    def get_all_material_of_one_type_old(self, material_type: str) -> List[str]:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT name FROM {material_type}")
         all_material = [i[0] for i in cursor.fetchall()]
         return all_material
+
+    def get_all_material_of_one_type(self, mat_type: str) -> List[str]:
+        return [mat.name for mat in self.profile_manager.get_materials_by_type(mat_type)]
 
     def get_tg_df(self) -> DataFrame:
         connection = sqlite3.connect(self.db_name)
@@ -235,8 +242,8 @@ class DataDriver:
         self.profile_manager.add_material(material)
 
     def migrate_db(self):
-        for mat_type in self.get_all_material_types():
-            for name in self.get_all_material_of_one_type(mat_type):
+        for mat_type in self.get_all_material_types_old():
+            for name in self.get_all_material_of_one_type_old(mat_type):
                 ew = self.get_ew_by_name(mat_type, name)
                 material = DataMaterial()
                 material.create_new(name, mat_type, ew)
