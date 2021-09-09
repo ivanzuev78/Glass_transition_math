@@ -3,7 +3,7 @@ import pickle
 from os.path import exists
 
 from data_classes import ProfileManager, Profile, DataDriver
-from new_material_classes import Receipt, ReceiptCounter
+from material_classes import Receipt, ReceiptCounter
 from qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
 DB_NAME = "material.db"

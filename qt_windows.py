@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QLabel,
 
 from additional_funcs import set_qt_stile
 from data_classes import ProfileManager
-from new_material_classes import Material, Receipt
+from material_classes import Material, Receipt
 
 DB_NAME = "material.db"
 # DB_NAME = "material_for_test.db"
