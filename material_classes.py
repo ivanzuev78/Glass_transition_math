@@ -438,8 +438,8 @@ class ReceiptCounter:
             pairs_a = tg_df[tg_df[name].isna()]
             par = [(resin, name) for resin in list(pairs_a.index)]
             all_pairs_na += par
-        # TODO реализовать обработку отсутствующих пар стёкол
 
+        # TODO реализовать обработку отсутствующих пар стёкол
         all_pairs_na_dict = {}
         # Убираем в матрице процентов отсутствующие пары
         for resin, amine in all_pairs_na:
@@ -460,7 +460,7 @@ class ReceiptCounter:
         self.tg = primary_tg
         # TODO продолжить
 
-    def get_tg_df(self):
+    def get_tg_df(self) -> None:
         tg_df = self.data_driver.get_tg_df()
         if self.percent_df is not None:
             # дропаем неиспользуемые колонки и строки стеклования
@@ -472,7 +472,7 @@ class ReceiptCounter:
                     tg_df = tg_df.drop(name)
         self.tg_df = tg_df
 
-    def drop_labels(self):
+    def drop_labels(self) -> None:
         """
         Убирает все расчёты, когда одна из сумм рецептуры не равна 100
         :return:
@@ -480,7 +480,11 @@ class ReceiptCounter:
         self.mass_ratio = None
         self.tg = None
 
-    def update_labels(self):
+    def update_labels(self) -> None:
+        """
+        Пересчитывает все показатели в программе
+        :return:
+        """
         if self.receipt_a.sum_percent == 100 and self.receipt_b.sum_percent == 100:
             self.count_mass_ratio()
             self.count_tg()

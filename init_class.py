@@ -2,8 +2,8 @@ import configparser
 import pickle
 from os.path import exists
 
-from data_classes import ProfileManager, DataProfile, DataDriver
-from new_material_classes import Receipt, ReceiptCounter
+from data_classes import ProfileManager, Profile, DataDriver
+from material_classes import Receipt, ReceiptCounter
 from qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
 DB_NAME = "material.db"
@@ -33,7 +33,7 @@ class InitClass:
         else:
             self.profile_manager = ProfileManager(config['profile']['profile_manager'])
             # TODO убрать заглушку создания профиля
-            self.profile_manager.profile_list.append(DataProfile('Ivan'))
+            self.profile_manager.profile_list.append(Profile('Ivan'))
 
         self.data_driver = DataDriver(config['profile']['old_db'], self.profile_manager.profile_list[0])
 
