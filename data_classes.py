@@ -16,6 +16,7 @@ class DataMaterial:
         self.path = None
 
     def save(self):
+        # TODO Вынести путь в конфигуратор и сделать автоматическое создание папки, если её нет.
         file_name = r'data/' + f'{self.mat_type}_{self.name}_{self.ew}'
         if not exists(file_name):
             with open(file_name, 'wb') as file:
@@ -86,7 +87,7 @@ class DataGlass:
     """
 
 
-class DataProfile:
+class Profile:
     def __init__(self, profile_name: str):
         self.profile_name = profile_name
         # {тип: [список материалов]}
@@ -140,13 +141,13 @@ class DataProfile:
         """
         return list(self._materials.keys())
 
-    def copy_profile(self, profile_name: str) -> "DataProfile":
+    def copy_profile(self, profile_name: str) -> "Profile":
         """
         Функция для копирования профиля
         :param profile_name: Имя нового пользователя
         :return: Новый профиль
         """
-        new_dp = DataProfile(profile_name)
+        new_dp = Profile(profile_name)
         for mat_type in self._materials:
             materials = self.get_materials_by_type(mat_type)
             for material in materials:
@@ -171,15 +172,15 @@ class ProfileManager:
         with open(self.path, 'wb') as file:
             pickle.dump(self.profile_list, file)
 
-    def add_profile(self, profile: DataProfile) -> None:
+    def add_profile(self, profile: Profile) -> None:
         self.profile_list.append(profile)
 
-    def remove_profile(self, profile: DataProfile) -> None:
+    def remove_profile(self, profile: Profile) -> None:
         self.profile_list.remove(profile)
 
 
 class DataDriver:
-    def __init__(self, db_name: str, profile_manager: DataProfile):
+    def __init__(self, db_name: str, profile_manager: Profile):
         self.db_name = db_name
         self.profile_manager = profile_manager
 
@@ -211,7 +212,6 @@ class DataDriver:
 
     def get_all_material_types(self) -> List[str]:
         return self.profile_manager.get_all_types()
-
 
     def get_all_material_of_one_type_old(self, material_type: str) -> List[str]:
         connection = sqlite3.connect(self.db_name)
