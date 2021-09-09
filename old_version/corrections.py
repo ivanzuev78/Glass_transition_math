@@ -164,3 +164,9 @@ class TgCorrectionManager:
         Включает коррекцию для конкретного материала в работу
         :return:
         """
+
+    def turn_off_correction(self):
+        """
+        Выключает коррекцию для конкретного материала в работу
+        :return:
+        """
