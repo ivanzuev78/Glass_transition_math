@@ -15,10 +15,10 @@ class Correction:
         self.k_exp = 0
         self.polynomial_coefficients = []
 
-    def add_polynomial_coefficient(self, coef: float, power: int) -> None:
+    def edit_polynomial_coefficient(self, coef: float, power: int) -> None:
         """
         Позволяет добавить коэффициент при любой степени Х в полиноме
-        :param coef: Значение кожффициента
+        :param coef: Значение коэффициента
         :param power: Степень икса, перед которой стоит этот коэффициент
         :return: None
         """
@@ -67,7 +67,7 @@ class TgCorrectionMaterial:
     """ """
 
     def __init__(self, name):
-        self.inf_material_name = name
+        self.name = name  # Название материала, который влияет на систему
         self.correction_funcs = defaultdict(dict)
         self.global_correction = {}
 
@@ -81,6 +81,7 @@ class TgCorrectionMaterial:
         :param x_max: Верхний предел применения функции
         :param pair: Пара, на которую идет влияние. Если нет, то будет влиять на всю систему
         """
+        # TODO добавить обработку случаев, когда границы накладываются
         if pair is not None:
             self.correction_funcs[pair][(x_min, x_max)] = correction
         else:
@@ -127,9 +128,39 @@ class TgCorrectionMaterial:
                 return {"value": self.global_correction[limit](value), "code": 2}
         return {"value": 0.0, "code": 3}
 
+    def __add__(self, other):
+        """
+        Функционал для объединения коррекций.
+        Может объединять только коррекции для одного материала.
+        :param other:
+        :return:
+        """
+        if isinstance(other, TgCorrectionMaterial):
+            if self.name == other.name:
+                for pair in other.correction_funcs.keys():
+                    for limit, correction in other.correction_funcs[pair].items():
+                        self.add_correction(correction=correction, pair=pair, x_min=limit[0], x_max=limit[1])
+                for limit, correction in other.global_correction.items():
+                    self.add_correction(correction=correction, x_min=limit[0], x_max=limit[1])
+
 
 class TgCorrectionManager:
     def __init__(self):
         self.all_corrections_materials = []
         self.all_corrections_funcs = []
         self.used_corrections_materials = {}
+
+    def add_tg_correction_material(self, correction_material: TgCorrectionMaterial) -> None:
+        """
+        Добавляет коррекцию материала в менеджер
+        :param correction_material:
+        :return:
+        """
+        self.all_corrections_materials.append(correction_material)
+        self.used_corrections_materials[correction_material.name] = correction_material
+
+    def turn_on_correction(self):
+        """
+        Включает коррекцию для конкретного материала в работу
+        :return:
+        """
