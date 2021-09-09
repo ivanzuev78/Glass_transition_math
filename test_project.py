@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QApplication
 
 from init_class import InitClass
 
+
 @pytest.fixture
 def receipt():
     app = QApplication(sys.argv)
@@ -17,14 +18,14 @@ def receipt():
     self.material_a_types[0].setCurrentIndex(2)
     self.material_a_types[1].setCurrentIndex(2)
     self.material_comboboxes_a[1].setCurrentIndex(1)
-    self.material_percent_lines_a[0].setText('50.00')
-    self.material_percent_lines_a[1].setText('50.00')
+    self.material_percent_lines_a[0].setText("50.00")
+    self.material_percent_lines_a[1].setText("50.00")
     self.material_list_a[0].percent = 50
     self.material_list_a[1].percent = 50
 
     # self.normalise_func('A')
-    self.to_float('A')
-    self.normalise_func('A')
+    self.to_float("A")
+    self.normalise_func("A")
 
     self.add_b_line()
     self.add_b_line()
@@ -33,8 +34,8 @@ def receipt():
     self.material_comboboxes_b[0].setCurrentIndex(1)
     self.material_comboboxes_b[1].setCurrentIndex(4)
 
-    self.material_percent_lines_b[0].setText('50.00')
-    self.material_percent_lines_b[1].setText('50.00')
+    self.material_percent_lines_b[0].setText("50.00")
+    self.material_percent_lines_b[1].setText("50.00")
     self.material_list_b[0].percent = 50
     self.material_list_b[1].percent = 50
 
@@ -46,6 +47,7 @@ def receipt():
 def test_ew_a(receipt):
     self = receipt
     assert self.receipt_a.ew == 183.91304347826087
+
 
 def test_ew_b(receipt):
     self = receipt

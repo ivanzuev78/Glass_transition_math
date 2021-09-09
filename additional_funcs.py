@@ -1,6 +1,6 @@
 import numpy as np
-from PyQt5.QtGui import QImage, QPalette, QBrush
 from pandas import DataFrame
+from PyQt5.QtGui import QBrush, QImage, QPalette
 
 
 def normalize_df(df: DataFrame) -> DataFrame:

@@ -17,9 +17,9 @@ class DataMaterial:
 
     def save(self):
         # TODO Вынести путь в конфигуратор и сделать автоматическое создание папки, если её нет.
-        file_name = r'data/' + f'{self.mat_type}_{self.name}_{self.ew}'
+        file_name = r"data/" + f"{self.mat_type}_{self.name}_{self.ew}"
         if not exists(file_name):
-            with open(file_name, 'wb') as file:
+            with open(file_name, "wb") as file:
                 pickle.dump(self, file)
         ...
 
@@ -38,9 +38,6 @@ class DataMaterial:
         data["mat_type"] = self.mat_type
         data["ew"] = self.ew
         return data
-
-
-
 
 
 class DataGlass:
@@ -127,11 +124,11 @@ class ProfileManager:
         self.save_profile_manager()
 
     def load_profile_manager(self) -> None:
-        with open(self.path, 'rb') as file:
+        with open(self.path, "rb") as file:
             self.profile_list = pickle.load(file)
 
     def save_profile_manager(self) -> None:
-        with open(self.path, 'wb') as file:
+        with open(self.path, "wb") as file:
             pickle.dump(self.profile_list, file)
 
     def add_profile(self, profile: Profile) -> None:
@@ -183,7 +180,9 @@ class DataDriver:
         return all_material
 
     def get_all_material_of_one_type(self, mat_type: str) -> List[str]:
-        return [mat.name for mat in self.profile_manager.get_materials_by_type(mat_type)]
+        return [
+            mat.name for mat in self.profile_manager.get_materials_by_type(mat_type)
+        ]
 
     def get_tg_df(self) -> DataFrame:
         connection = sqlite3.connect(self.db_name)
@@ -211,4 +210,3 @@ class DataDriver:
                 material.create_new(name, mat_type, ew)
 
                 self.add_material_to_profile_manager(material)
-

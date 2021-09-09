@@ -491,6 +491,3 @@ class ReceiptCounter:
             self.count_percent_df()
         else:
             self.drop_labels()
-
-
-

@@ -2,7 +2,7 @@ import configparser
 import pickle
 from os.path import exists
 
-from data_classes import ProfileManager, Profile, DataDriver
+from data_classes import DataDriver, Profile, ProfileManager
 from material_classes import Receipt, ReceiptCounter
 from qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
@@ -12,30 +12,36 @@ DB_NAME = "material.db"
 class InitClass:
     def __init__(self, debug=False):
 
-        src_ini_setting = 'settings.ini'
+        src_ini_setting = "settings.ini"
         if not exists(src_ini_setting):
-            print(f'ФАЙЛ С НАСТРОЙКАМИ {src_ini_setting} НЕ НАЙДЕН\nУстановленны настройки по умолчанию')
+            print(
+                f"ФАЙЛ С НАСТРОЙКАМИ {src_ini_setting} НЕ НАЙДЕН\nУстановленны настройки по умолчанию"
+            )
             # Создаем файл с настройками по умолчанию
-            with open(src_ini_setting, 'w') as file:
-                file.write('[profile]\n')
-                file.write('profile_manager=profile_manager.prmn\n')
+            with open(src_ini_setting, "w") as file:
+                file.write("[profile]\n")
+                file.write("profile_manager=profile_manager.prmn\n")
                 # TODO Убрать после полной миграции с ДБ на prmn
-                file.write('old_db=material.db\n')
-                file.write('[style]\n')
-                file.write('style_path=style.css\n')
+                file.write("old_db=material.db\n")
+                file.write("[style]\n")
+                file.write("style_path=style.css\n")
 
         # Парсим данные
         config = configparser.ConfigParser()
         config.read(src_ini_setting)
-        if exists(config['profile']['profile_manager']):
-            with open(config['profile']['profile_manager'], 'rb') as file:
-                self.profile_manager = ProfileManager(config['profile']['profile_manager'], pickle.load(file))
+        if exists(config["profile"]["profile_manager"]):
+            with open(config["profile"]["profile_manager"], "rb") as file:
+                self.profile_manager = ProfileManager(
+                    config["profile"]["profile_manager"], pickle.load(file)
+                )
         else:
-            self.profile_manager = ProfileManager(config['profile']['profile_manager'])
+            self.profile_manager = ProfileManager(config["profile"]["profile_manager"])
             # TODO убрать заглушку создания профиля
-            self.profile_manager.profile_list.append(Profile('Ivan'))
+            self.profile_manager.profile_list.append(Profile("Ivan"))
 
-        self.data_driver = DataDriver(config['profile']['old_db'], self.profile_manager.profile_list[0])
+        self.data_driver = DataDriver(
+            config["profile"]["old_db"], self.profile_manager.profile_list[0]
+        )
 
         # self.data_driver.migrate_db()
         # self.profile_manager.save_profile_manager()
@@ -65,9 +71,9 @@ class InitClass:
         self.receipt_a.receipt_counter = self.receipt_counter
         self.receipt_b.receipt_counter = self.receipt_counter
 
-        self.profile_manager_window = ProfileManagerWindow(self.my_main_window, self.profile_manager)
-
-
+        self.profile_manager_window = ProfileManagerWindow(
+            self.my_main_window, self.profile_manager
+        )
 
         if not debug:
             self.profile_manager_window.show()
