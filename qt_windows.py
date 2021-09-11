@@ -1,13 +1,8 @@
 from collections import defaultdict
 from copy import copy
 from itertools import cycle
-from typing import Union, Optional
 from typing import Optional, Union, List
 
-from PyQt5 import uic, QtWidgets, QtCore, QtGui
-from PyQt5.QtGui import QImage, QPalette, QBrush
-from PyQt5.QtWidgets import QLabel, QComboBox, QLineEdit, QCheckBox, QSpacerItem, QGridLayout
-from pandas import Series
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QLabel,
@@ -15,7 +10,7 @@ from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QLabel,
 
 from additional_funcs import set_qt_stile
 from data_classes import ProfileManager
-from new_material_classes import Material, Receipt
+from material_classes import Material, Receipt
 
 DB_NAME = "material.db"
 # DB_NAME = "material_for_test.db"
@@ -161,9 +156,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.add_a_line()
         self.add_a_line()
 
-        self.material_percent_lines_a[0].setText('50.00')
+        self.material_percent_lines_a[0].setText("50.00")
         self.material_list_a[0].percent = 50
-        self.material_percent_lines_a[1].setText('50.00')
+        self.material_percent_lines_a[1].setText("50.00")
         self.material_list_a[1].percent = 50
 
         self.material_a_types[0].setCurrentIndex(2)
@@ -172,15 +167,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # self.normalise_func('A')
         # self.to_float('A')
-        self.normalise_func('A')
+        self.normalise_func("A")
 
         self.add_b_line()
         self.add_b_line()
 
-
-        self.material_percent_lines_b[0].setText('50.00')
+        self.material_percent_lines_b[0].setText("50.00")
         self.material_list_b[0].percent = 50
-        self.material_percent_lines_b[1].setText('50.00')
+        self.material_percent_lines_b[1].setText("50.00")
         self.material_list_b[1].percent = 50
 
         self.material_b_types[0].setCurrentIndex(1)
@@ -508,6 +502,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         :param component: рецептура А или Б
         :return:
         """
+
         def wrapper():
             if component == "A":
                 if self.final_a_numb_label.text() == "100.00":
@@ -606,6 +601,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     ) -> callable:
         """Меняет список сырья при смене типа в рецептуре
         Обёрнута в замыкание для вызова триггером"""
+
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
@@ -647,6 +643,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
             material.receipt.receipt_counter.count_percent_df()
             material.receipt.receipt_counter.get_tg_df()
+
         return wrapper
 
     @staticmethod
@@ -659,8 +656,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         :param percent_line:
         :return:
         """
+
         def wrapper():
             material.percent = float(percent_line.text())
+
         return wrapper
 
     # Нормирует рецептуру
@@ -874,9 +873,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
             self.style, self.style_combobox, _ = f.read().split("$split$")
 
         self.numb_of_components = len(self.main_window_material_comboboxes)
-
-        self.percent_list = []
-        self.name_list = []
 
         for index, widget in enumerate(self.main_window_material_comboboxes):
             percent = float(self.main_window_material_percent_lines[index].text())
@@ -1526,9 +1522,7 @@ class PairReactWindow(
 class ProfileManagerWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/profile_manager_window.ui")[0]
 ):
-    def __init__(
-        self, main_window: MyMainWindow, profile_manager: ProfileManager
-    ):
+    def __init__(self, main_window: MyMainWindow, profile_manager: ProfileManager):
         super(ProfileManagerWindow, self).__init__()
         self.setupUi(self)
 
@@ -1537,10 +1531,10 @@ class ProfileManagerWindow(
 
         self.choose_profile_but.clicked.connect(self.choose_profile)
 
-        self.buttons = ['choose_profile_but', 'add_profile_but', 'remove_profile_but']
+        self.buttons = ["choose_profile_but", "add_profile_but", "remove_profile_but"]
 
         # Вынести путь к стилю в настройки
-        set_qt_stile(self.buttons, 'style.css', self)
+        set_qt_stile(self.buttons, "style.css", self)
 
     def choose_profile(self):
         self.close()
