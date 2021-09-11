@@ -7,6 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QLabel,
                              QLineEdit, QSpacerItem)
+from pandas import Series
 
 from additional_funcs import set_qt_stile
 from data_classes import ProfileManager
@@ -874,6 +875,9 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         self.numb_of_components = len(self.main_window_material_comboboxes)
 
+        self.percent_list = []
+        self.name_list = []
+
         for index, widget in enumerate(self.main_window_material_comboboxes):
             percent = float(self.main_window_material_percent_lines[index].text())
             self.percents[index] = percent
@@ -1107,7 +1111,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
     #     else:
     #         self.EW = 0
 
-    def try_to_change_old(self, numb_of_line, source):
+    def try_to_change(self, numb_of_line, source):
         def wrapper():
             if self.slider_is_pushed[numb_of_line]:
                 # Фиксируем слайдер, если пытаются двигать отмеченный
@@ -1246,7 +1250,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         return wrapper
 
-    def try_to_change(self, numb_of_line, source):
+    def try_to_change_new(self, numb_of_line, source):
         def wrapper():
             if self.slider_is_pushed[numb_of_line]:
                 # Фиксируем слайдер, если пытаются двигать отмеченный
@@ -1278,7 +1282,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                         return None
 
                 delta = round(new_value - previos_value, 2)
-
 
                 if delta > 0:
                     change_way_is_up = True
@@ -1318,7 +1321,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                     self.horizontalSlider[numb_of_line].setSliderPosition(
                         self.percents[numb_of_line] * 100
                     )
-                    self.main_window.set_percents_from_receipt_window(self.komponent,
+                    self.main_window.set_percents_from_receipt_window(self.component,
                                                                       [self.percents[i] for i in
                                                                        range(len(self.percents))])
                     return None
@@ -1356,10 +1359,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
                 while delta > 0.01:
                     pass
-
                 # Функция, меняющая компоненты без сохранения EW
-
-
         return wrapper
 
     @staticmethod
