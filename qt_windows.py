@@ -1402,7 +1402,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 t_index = 0
 
                 while delta >= 0.01:
-
+                    # TODO Поиграться с диапазонами. Учитывать проценты для определения шага
                     if delta > 50:
                         step = 10
                     elif delta > 10:
