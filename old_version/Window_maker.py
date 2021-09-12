@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 import pandas as pd
-from additional_classes import (MyMainQTabWidget, MyQGridLayout, MyQLabel,
-                                ReceiptCounter)
+from additional_classes import MyMainQTabWidget, MyQGridLayout, MyQLabel, ReceiptCounter
 from load_and_save import save_receipt
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
 from PyQt5.QtWidgets import *
+
 # from Materials import *
 from Sintez_windows import ChoosePairReactWindow, SintezWindow
 

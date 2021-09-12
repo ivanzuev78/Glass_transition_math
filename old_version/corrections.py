@@ -139,9 +139,16 @@ class TgCorrectionMaterial:
             if self.name == other.name:
                 for pair in other.correction_funcs.keys():
                     for limit, correction in other.correction_funcs[pair].items():
-                        self.add_correction(correction=correction, pair=pair, x_min=limit[0], x_max=limit[1])
+                        self.add_correction(
+                            correction=correction,
+                            pair=pair,
+                            x_min=limit[0],
+                            x_max=limit[1],
+                        )
                 for limit, correction in other.global_correction.items():
-                    self.add_correction(correction=correction, x_min=limit[0], x_max=limit[1])
+                    self.add_correction(
+                        correction=correction, x_min=limit[0], x_max=limit[1]
+                    )
 
 
 class TgCorrectionManager:
@@ -150,7 +157,9 @@ class TgCorrectionManager:
         self.all_corrections_funcs = []
         self.used_corrections_materials = {}
 
-    def add_tg_correction_material(self, correction_material: TgCorrectionMaterial) -> None:
+    def add_tg_correction_material(
+        self, correction_material: TgCorrectionMaterial
+    ) -> None:
         """
         Добавляет коррекцию материала в менеджер
         :param correction_material:

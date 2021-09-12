@@ -8,8 +8,15 @@ import openpyxl as opx
 from pandas import DataFrame
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette
-from PyQt5.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QGridLayout,
-                             QLabel, QLineEdit, QSpacerItem)
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFileDialog,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QSpacerItem,
+)
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):

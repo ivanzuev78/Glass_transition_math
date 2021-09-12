@@ -6,8 +6,14 @@ from Materials import get_ew_by_name, normalize_df
 from pandas import DataFrame, Series
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import (QGridLayout, QLabel, QSpacerItem, QTableWidget,
-                             QTableWidgetItem, QTabWidget)
+from PyQt5.QtWidgets import (
+    QGridLayout,
+    QLabel,
+    QSpacerItem,
+    QTableWidget,
+    QTableWidgetItem,
+    QTabWidget,
+)
 
 from additional_funcs import count_total_influence_df
 
