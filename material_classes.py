@@ -228,7 +228,6 @@ class ReceiptCounter:
         # TODO сеттер для передачи значений в окна
         self.__tg = value
         self.main_window.set_tg(value)
-        print(value)
 
     @property
     def mass_ratio(self):
