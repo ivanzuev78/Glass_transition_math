@@ -20,6 +20,7 @@ from pandas import Series
 from additional_funcs import set_qt_stile
 from data_classes import ProfileManager
 from debug_funcs import debug_percent
+from edit_db_windows import EditMaterialWindow
 from material_classes import Material, Receipt
 
 DB_NAME = "material.db"
@@ -154,6 +155,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
 
         self.debug_but.clicked.connect(self.debug)
+        self.update_but.clicked.connect(self.debug_2)
 
     def debug(self) -> None:
         # print(self.pair_react_window.checkboxes_a)
@@ -191,6 +193,27 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_b_types[1].setCurrentIndex(1)
         self.material_comboboxes_b[0].setCurrentIndex(1)
         self.material_comboboxes_b[1].setCurrentIndex(4)
+
+    def debug_2(self) -> None:
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Data for plotting
+        t = np.arange(0.0, 2.0, 0.01)
+        s = 1 + np.sin(2 * np.pi * t)
+
+        fig, ax = plt.subplots()
+        ax.plot(t, s)
+
+        ax.set(
+            xlabel="time (s)",
+            ylabel="voltage (mV)",
+            title="About as simple as it gets, folks",
+        )
+        ax.grid()
+
+        fig.savefig("test.png")
+        plt.show()
 
     def set_bottom_styles(self) -> None:
         """
@@ -1656,20 +1679,42 @@ class PairReactWindow(
 class ProfileManagerWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/profile_manager_window.ui")[0]
 ):
-    def __init__(self, main_window: MyMainWindow, profile_manager: ProfileManager):
+    def __init__(
+        self,
+        profiles_names: List,
+        main_window: MyMainWindow,
+        profile_manager: ProfileManager,
+    ):
         super(ProfileManagerWindow, self).__init__()
         self.setupUi(self)
 
         self.profile_manager = profile_manager
         self.main_window = main_window
 
+        # Добавляем имена из БД
+        for name in profiles_names:
+            self.profile_widget.addItem(name)
+
         self.choose_profile_but.clicked.connect(self.choose_profile)
+        self.edit_profile_but.clicked.connect(self.edit_materials)
 
-        self.buttons = ["choose_profile_but", "add_profile_but", "remove_profile_but"]
-
+        self.buttons = [
+            "choose_profile_but",
+            "add_profile_but",
+            "remove_profile_but",
+            "edit_profile_but",
+        ]
         # Вынести путь к стилю в настройки
-        set_qt_stile(self.buttons, "style.css", self)
+        set_qt_stile("style.css", self, buttons=self.buttons)
+
+        self.edit_material_window = None
 
     def choose_profile(self):
+        # TODO Реализовать логику по подключению данных профиля
         self.close()
         self.main_window.show()
+
+    def edit_materials(self):
+        self.edit_material_window = EditMaterialWindow(profile_window=self)
+        self.close()
+        self.edit_material_window.show()

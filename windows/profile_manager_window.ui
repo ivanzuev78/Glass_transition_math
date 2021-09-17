@@ -79,6 +79,19 @@
      <string>Выбрать пользователя</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="edit_profile_but">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>250</y>
+      <width>161</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Редактировать пользователя</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

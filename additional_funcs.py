@@ -15,7 +15,7 @@ def normalize(array: np.array) -> np.array:
     return array / array.sum()
 
 
-def set_qt_stile(buttons, style_path, window):
+def set_qt_stile(style_path, window, buttons=(), comboboxes=()):
     oImage = QImage("fon.jpg")
     palette = QPalette()
     palette.setBrush(QPalette.Window, QBrush(oImage))
@@ -26,3 +26,6 @@ def set_qt_stile(buttons, style_path, window):
 
     for but in buttons:
         window.__getattribute__(but).setStyleSheet(style)
+
+    for combobox in comboboxes:
+        window.__getattribute__(combobox).setStyleSheet(style_combobox)

@@ -2,7 +2,7 @@ import configparser
 import pickle
 from os.path import exists
 
-from data_classes import DataDriver, Profile, ProfileManager
+from data_classes import DataDriver, Profile, ProfileManager, ORMDataBase
 from material_classes import Receipt, ReceiptCounter
 from qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
@@ -26,9 +26,13 @@ class InitClass:
                 file.write("[style]\n")
                 file.write("style_path=style.css\n")
 
+        db = ORMDataBase()
+
         # Парсим данные
         config = configparser.ConfigParser()
         config.read(src_ini_setting)
+
+        # TODO Вырезать нахрен этот профиль. Заменить на чтение из базы данных
         if exists(config["profile"]["profile_manager"]):
             with open(config["profile"]["profile_manager"], "rb") as file:
                 self.profile_manager = ProfileManager(
@@ -38,6 +42,9 @@ class InitClass:
             self.profile_manager = ProfileManager(config["profile"]["profile_manager"])
             # TODO убрать заглушку создания профиля
             self.profile_manager.profile_list.append(Profile("Ivan"))
+
+        # TODO заглушка на профиль
+        pr = db.read_profile("Ivan")
 
         self.data_driver = DataDriver(
             config["profile"]["old_db"], self.profile_manager.profile_list[0]
@@ -72,7 +79,7 @@ class InitClass:
         self.receipt_b.receipt_counter = self.receipt_counter
 
         self.profile_manager_window = ProfileManagerWindow(
-            self.my_main_window, self.profile_manager
+            db.get_all_profiles(), self.my_main_window, self.profile_manager
         )
 
         if not debug:

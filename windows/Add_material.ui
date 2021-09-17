@@ -37,7 +37,7 @@
      <string>Название</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="mat_name">
+   <widget class="QLineEdit" name="name_lineEdit">
     <property name="geometry">
      <rect>
       <x>160</x>
@@ -65,7 +65,7 @@
      <string>Тип вещества</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="mat_type">
+   <widget class="QComboBox" name="type_comboBox">
     <property name="geometry">
      <rect>
       <x>160</x>
@@ -75,7 +75,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QLineEdit" name="mat_EW">
+   <widget class="QLineEdit" name="ew_lineEdit">
     <property name="geometry">
      <rect>
       <x>160</x>

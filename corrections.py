@@ -8,11 +8,11 @@ class Correction:
     f(x) = k_e * exp(k_exp * x) + k0 + k1 * x + k2 * x2 ...
     """
 
-    def __init__(self):
-        self.name = ""
-        self.comment = ""
-        self.k_e = 0
-        self.k_exp = 0
+    def __init__(self, cor_name, cor_comment, k_e, k_exp):
+        self.name = cor_name
+        self.comment = cor_comment
+        self.k_e = k_e
+        self.k_exp = k_exp
         self.polynomial_coefficients = []
 
     def edit_polynomial_coefficient(self, coef: float, power: int) -> None:
@@ -22,7 +22,7 @@ class Correction:
         :param power: Степень икса, перед которой стоит этот коэффициент
         :return: None
         """
-        while len(self.polynomial_coefficients) < power:
+        while len(self.polynomial_coefficients) <= power:
             self.polynomial_coefficients.append(0.0)
         self.polynomial_coefficients[power] = coef
 
