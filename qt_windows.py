@@ -13,14 +13,14 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QLabel,
     QLineEdit,
-    QSpacerItem,
+    QSpacerItem, QListWidget,
 )
 from pandas import Series
 
 from additional_funcs import set_qt_stile
 from data_classes import ProfileManager
 from debug_funcs import debug_percent
-from edit_db_windows import EditMaterialWindow
+from edit_db_windows import EditDataWindow
 from material_classes import Material, Receipt
 
 DB_NAME = "material.db"
@@ -28,12 +28,12 @@ DB_NAME = "material.db"
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
-    def __init__(self, data_driver, db_name=DB_NAME, debug=False):
+    def __init__(self, profile, db_name=DB_NAME, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
 
         self.db_name = db_name
-        self.data_driver = data_driver
+        self.profile = profile
         self.debug_flag = debug
         oimage = QImage("fon.jpg")
         palette = QPalette()
@@ -102,9 +102,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             )
         self.set_bottom_styles()
 
-        self.types_of_items = self.data_driver.get_all_material_types()
+        self.types_of_items = self.profile.get_all_types()
         self.list_of_item_names = {
-            material: self.data_driver.get_all_material_of_one_type(material)
+            material: self.profile.get_mat_names_by_type(material)
             for material in self.types_of_items
         }
         # QLine со значением суммы в конце рецептуры
@@ -153,6 +153,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # ====================================== Кнопки меню =======================================
         self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
+        self.menu_prof_edit.triggered.connect(self.add_profile_edit_window)
 
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
@@ -195,25 +196,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_comboboxes_b[1].setCurrentIndex(4)
 
     def debug_2(self) -> None:
-        import matplotlib.pyplot as plt
-        import numpy as np
-
-        # Data for plotting
-        t = np.arange(0.0, 2.0, 0.01)
-        s = 1 + np.sin(2 * np.pi * t)
-
-        fig, ax = plt.subplots()
-        ax.plot(t, s)
-
-        ax.set(
-            xlabel="time (s)",
-            ylabel="voltage (mV)",
-            title="About as simple as it gets, folks",
-        )
-        ax.grid()
-
-        fig.savefig("test.png")
-        plt.show()
+        global profile
+        print(profile)
 
     def set_bottom_styles(self) -> None:
         """
@@ -297,16 +281,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         row_count = len(items)
 
         material_combobox = QComboBox()
-        material_combobox.addItems(self.list_of_item_names["None"])
         material_combobox.setFixedWidth(120)
         material_combobox.setFixedHeight(20)
         material_combobox.setStyleSheet(self.style_combobox)
         material_combobox.setFont((QtGui.QFont("Times New Roman", self.font_size)))
 
         materia_typel_combobox = QComboBox()
-        materia_typel_combobox.addItems(self.types_of_items)
         materia_typel_combobox.setFixedWidth(60)
-
         materia_typel_combobox.currentIndexChanged.connect(
             self.change_list_of_materials(material_combobox, materia_typel_combobox)
         )
@@ -317,6 +298,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             receipt,
         )
 
+        materia_typel_combobox.addItems(self.types_of_items)
         materia_typel_combobox.setFixedHeight(20)
         materia_typel_combobox.setFont(QtGui.QFont("Times New Roman", self.font_size))
         materia_typel_combobox.setStyleSheet(self.style_combobox)
@@ -568,6 +550,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             )
         if not self.debug_flag:
             self.pair_react_window.show()
+
+    def add_profile_edit_window(self):
+        self.profile_edit_window = EditDataWindow(self, self.profile)
+        self.profile_edit_window.show()
+        self.close()
+
 
     # =========================  ===========================
 
@@ -1056,6 +1044,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         )
 
         # Подцепить соответствующие вещества
+        # TODO Переделать комбобоксы на строки без права смены материала
         material_combobox.addItems(self.main_window.list_of_item_names[mat_type])
         material_combobox.setCurrentIndex(
             self.main_window_material_comboboxes[numb_of_line].currentIndex()
@@ -1681,18 +1670,16 @@ class ProfileManagerWindow(
 ):
     def __init__(
         self,
-        profiles_names: List,
-        main_window: MyMainWindow,
-        profile_manager: ProfileManager,
+        profile_list: list,
+        init_class
     ):
         super(ProfileManagerWindow, self).__init__()
         self.setupUi(self)
-
-        self.profile_manager = profile_manager
-        self.main_window = main_window
-
+        self.profile_widget: QListWidget
+        self.profile_list = profile_list
+        self.init_class = init_class
         # Добавляем имена из БД
-        for name in profiles_names:
+        for name in profile_list:
             self.profile_widget.addItem(name)
 
         self.choose_profile_but.clicked.connect(self.choose_profile)
@@ -1708,13 +1695,20 @@ class ProfileManagerWindow(
         set_qt_stile("style.css", self, buttons=self.buttons)
 
         self.edit_material_window = None
+        self.main_window = None
+        self.profile_widget.setCurrentRow(0)
 
     def choose_profile(self):
         # TODO Реализовать логику по подключению данных профиля
+        prof_name = self.profile_list[self.profile_widget.currentIndex().row()]
+
         self.close()
-        self.main_window.show()
+        self.init_class.setup_program(prof_name)
+        # self.main_window.show()
 
     def edit_materials(self):
-        self.edit_material_window = EditMaterialWindow(profile_window=self)
+        prof_name = self.profile_list[self.profile_widget.currentIndex().row()]
+
+        self.edit_material_window = EditDataWindow(self, self.init_class.orm_db.read_profile(prof_name))
         self.close()
         self.edit_material_window.show()

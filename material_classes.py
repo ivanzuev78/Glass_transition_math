@@ -10,6 +10,7 @@ from pandas import DataFrame
 
 # import init_class
 from additional_funcs import normalize, normalize_df
+from data_classes import Profile
 
 
 class Material:
@@ -20,7 +21,7 @@ class Material:
         self.receipt = receipt
         self.__percent: float = 0.0
         receipt.add_material(self)
-        self.ew = self.receipt.data_driver.get_ew_by_name(mat_type, mat_name)
+        self.ew = self.receipt.profile.get_ew_by_name(mat_type, mat_name)
 
     @property
     def percent(self) -> float:
@@ -69,7 +70,7 @@ class Material:
     def set_type_and_name(self, mat_type: str, name: str) -> None:
         self.mat_type = mat_type
         self.name = name
-        self.ew = self.receipt.data_driver.get_ew_by_name(mat_type, name)
+        self.ew = self.receipt.profile.get_ew_by_name(mat_type, name)
         self.receipt.update_all_parameters()
 
     def __str__(self):
@@ -92,11 +93,11 @@ class Material:
 
 
 class Receipt:
-    def __init__(self, component: str, data_driver: "DataDriver"):
+    def __init__(self, component: str, profile: Profile):
         from qt_windows import MyMainWindow, PairReactWindow
 
         self.main_window: Optional[MyMainWindow] = None
-        self.data_driver = data_driver
+        self.profile = profile
         self.materials: List[Material] = []
         self.sum_percent: float = 0.0
         self.component = component
@@ -166,7 +167,8 @@ class Receipt:
             inversed_ew = 0
             for material in self.materials:
                 if material.mat_type in ("Epoxy", "Amine"):
-                    inversed_ew += material.percent / material.ew
+                    if material.ew != 0:
+                        inversed_ew += material.percent / material.ew
             if inversed_ew:
                 self.ew = 100 / inversed_ew
             else:
@@ -216,7 +218,7 @@ class ReceiptCounter:
         self.tg_df: Optional[DataFrame] = None
 
         # TODO прописать ссылки на окна для передачи параметров
-        self.data_driver = self.main_window.data_driver
+        self.profile = self.main_window.profile
         self.pair_react_window: Optional[PairReactWindow] = None
 
     @property
@@ -309,14 +311,14 @@ class ReceiptCounter:
         a_types = [material.mat_type for material in self.receipt_a]
         a_names = [material.name for material in self.receipt_a]
         a_eq = [
-            material.percent / material.ew * self.mass_ratio
+            material.percent / material.ew * self.mass_ratio if material.ew * self.mass_ratio != 0 else 0
             for material in self.receipt_a
         ]
 
         # Получаем все названия и % эпоксидки в Компоненте B
         b_types = [material.mat_type for material in self.receipt_b]
         b_names = [material.name for material in self.receipt_b]
-        b_eq = [material.percent / material.ew for material in self.receipt_b]
+        b_eq = [material.percent / material.ew if material.ew != 0 else 0 for material in self.receipt_b]
 
         total_eq = math.fabs(sum(a_eq))
 
@@ -397,6 +399,8 @@ class ReceiptCounter:
                     df_eq_matrix[pair[0]] = [
                         0 for _ in range(len(df_eq_matrix.index.tolist()))
                     ]
+
+                # TODO тут что-то ломается. KeyError
                 df_eq_matrix[pair[0]][pair[1]] += pair[2]
 
         if b_type == "Amine":
@@ -415,6 +419,12 @@ class ReceiptCounter:
                     df_eq_matrix[pair[0]] = [
                         0 for _ in range(len(df_eq_matrix.index.tolist()))
                     ]
+
+                if pair[1] not in df_eq_matrix.index.values.tolist():
+                    df_eq_matrix.loc[pair[1]] = [
+                        0 for _ in range(len(df_eq_matrix.columns.tolist()))
+                    ]
+
                 df_eq_matrix[pair[0]][pair[1]] += pair[2]
 
         percent_df = normalize_df(df_eq_matrix)
@@ -460,7 +470,7 @@ class ReceiptCounter:
         # TODO продолжить
 
     def get_tg_df(self) -> None:
-        tg_df = self.data_driver.get_tg_df()
+        tg_df = self.profile.get_tg_df()
         if self.percent_df is not None:
             # дропаем неиспользуемые колонки и строки стеклования
             for name in tg_df:

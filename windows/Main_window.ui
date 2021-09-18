@@ -760,6 +760,7 @@ c избытком</string>
     <addaction name="menu_add_mat"/>
     <addaction name="menu_add_tg"/>
     <addaction name="menu_add_tg_inf"/>
+    <addaction name="menu_prof_edit"/>
    </widget>
    <widget class="QMenu" name="menu_3">
     <property name="title">
@@ -879,6 +880,11 @@ c избытком</string>
   <action name="menu_pair_table">
    <property name="text">
     <string>Таблица пар</string>
+   </property>
+  </action>
+  <action name="menu_prof_edit">
+   <property name="text">
+    <string>Настройки профиля</string>
    </property>
   </action>
  </widget>

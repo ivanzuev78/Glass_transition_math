@@ -10,28 +10,30 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QWidget,
+    QWidget, QPushButton,
 )
 
 from additional_funcs import set_qt_stile
-from data_classes import DataMaterial
+from data_classes import DataMaterial, Profile
 
 
-class EditMaterialWindow(QWidget):
-    def __init__(self, profile_window: "ProfileManagerWindow" = None):
+class EditDataWindow(QWidget):
+    def __init__(self, main_window=None, profile: Profile = None):
         super().__init__()
         self.title = "PyQt5 drag and drop"
         self.left = 500
         self.top = 400
         self.width = 800
         self.height = 500
+        self.profile = profile
         self.initUI()
-        self.profile_window = profile_window
+        self.main_window = main_window
         self.close_to_edit_material = False
 
-        self.buttons = []
+        self.buttons = ["add_mat_but"]
         # Вынести путь к стилю в настройки
-        set_qt_stile("style.css", self, comboboxes=self.buttons)
+        set_qt_stile("style.css", self, buttons=self.buttons)
+
 
     def initUI(self):
         self.setWindowTitle(self.title)
@@ -43,6 +45,12 @@ class EditMaterialWindow(QWidget):
         self.profile_material_widget = ProfileMaterialWidget(self)
         self.profile_material_widget.move(10, 30)
 
+        self.add_mat_but = QPushButton(self)
+        self.add_mat_but.move(630, 30)
+        self.add_mat_but.resize(120, 25)
+        self.add_mat_but.setText('Добавить материал')
+
+
         self.profile_material_widget.data_material_widget = self.data_material_widget
         self.data_material_widget.profile_material_widget = self.profile_material_widget
 
@@ -51,8 +59,8 @@ class EditMaterialWindow(QWidget):
         self.show()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        if self.profile_window is not None and not self.close_to_edit_material:
-            self.profile_window.show()
+        if self.main_window is not None and not self.close_to_edit_material:
+            self.main_window.show()
             del self
 
     def faf(self):
@@ -65,19 +73,29 @@ class EditMaterialWindow(QWidget):
 
 
 class ProfileMaterialWidget(QListWidget):
-    def __init__(self, parent):
+    def __init__(self, parent: EditDataWindow):
         super().__init__(parent)
-        self.main_window = parent
+        self.edit_window = parent
         self.setAcceptDrops(True)
         # self.setDragEnabled(True)
         self.resize(200, 450)
         self.data_material_widget: Optional[
             DataMaterialWidget
         ] = parent.data_material_widget
+        prof: Profile = self.edit_window.profile
+
         self.profile_materials = []
         self.profile_materials_names = []
+        for mat_type in prof.get_all_types():
+            self.profile_materials += prof.get_materials_by_type(mat_type)
+            self.profile_materials_names += prof.get_mat_names_by_type(mat_type)
+
+
+        self.addItems(self.profile_materials_names)
+
         self.currentItemChanged.connect(self.change_index_in_data_material_widget)
-        self.itemDoubleClicked.connect(self.data_material_widget.open_mat_editor)
+        # TODO Добавить вызов окна редактирования материала
+        # self.itemDoubleClicked.connect(self.data_material_widget.open_mat_editor)
 
     def change_index_in_data_material_widget(self):
         text = self.currentIndex().data()
@@ -125,26 +143,28 @@ class ProfileMaterialWidget(QListWidget):
         if text not in self.profile_materials_names:
             self.addItem(text)
             self.profile_materials_names.append(text)
+        # TODO Прикрепление материала в дб к профилю
 
 
 class DataMaterialWidget(QListWidget):
-    def __init__(self, parent: EditMaterialWindow):
+    def __init__(self, parent: EditDataWindow):
         super().__init__(parent)
-        self.main_window = parent
+        self.edit_window = parent
 
         # self.setAcceptDrops(True)
         self.setDragEnabled(True)
         self.resize(200, 450)
         self.material_list = []
         self.names_list = []
+        self.orm_db = self.edit_window.profile.orm_db
+        for name, mat_type, ew, db_id in self.orm_db.get_all_materials():
+            self.names_list.append(name)
+            self.material_list.append(DataMaterial(name, mat_type, ew, db_id))
+            self.addItem(name)
+
         self.profile_material_widget: Optional[ProfileMaterialWidget] = None
         self.itemDoubleClicked.connect(self.open_mat_editor)
         self.currentItemChanged.connect(self.change_index_in_profile_material_widget)
-
-        # DEBUG
-        for i in range(200):
-            self.addItem(f"hare {i}")
-            self.names_list.append(f"hare {i}")
 
     def change_index_in_profile_material_widget(self):
         text = self.currentIndex().data()
@@ -153,10 +173,10 @@ class DataMaterialWidget(QListWidget):
             self.profile_material_widget.setCurrentRow(index)
 
     def open_mat_editor(self):
-        self.mat_editor = MatEditor(self.main_window)
+        self.mat_editor = CreateMaterialWindow(self.edit_window)
         self.mat_editor.show()
-        self.main_window.close_to_edit_material = True
-        self.main_window.close()
+        self.edit_window.close_to_edit_material = True
+        self.edit_window.close()
 
     def add_material(self, material: DataMaterial):
         self.material_list.append(material)
@@ -200,11 +220,11 @@ class DataMaterialWidget(QListWidget):
         # self.addItem()
 
 
-class MatEditor(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]):
+class CreateMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]):
     def __init__(
-        self, main_window: EditMaterialWindow, origin_material: DataMaterial = None
+        self, main_window: EditDataWindow, origin_material: DataMaterial = None
     ):
-        super(MatEditor, self).__init__()
+        super(CreateMaterialWindow, self).__init__()
         self.setupUi(self)
         self.main_window = main_window
         self.material = origin_material
@@ -247,5 +267,5 @@ class MatEditor(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    ex = EditMaterialWindow()
+    ex = EditDataWindow()
     sys.exit(app.exec_())

@@ -1,6 +1,7 @@
 import math
 import pickle
 import sqlite3
+from collections import defaultdict
 from math import exp
 from os.path import exists
 from typing import List, Tuple
@@ -17,28 +18,17 @@ class DataMaterial:
         self.ew = ew
         self.db_id = db_id
 
-    def save(self):
-        # TODO Вынести путь в конфигуратор и сделать автоматическое создание папки, если её нет.
-        file_name = r"data/" + f"{self.mat_type}_{self.name}_{self.ew}"
-        if not exists(file_name):
-            with open(file_name, "wb") as file:
-                pickle.dump(self, file)
-        ...
-
     def create_new(self, name, mat_type, ew):
         self.name = name
         self.mat_type = mat_type
         self.ew = ew
-        self.save()
-
-    def load(self, path):
-        ...
 
     def to_json(self):
         data = {}
         data["name"] = self.name
         data["mat_type"] = self.mat_type
         data["ew"] = self.ew
+        data['db_id'] = self.db_id
         return data
 
 
@@ -49,10 +39,11 @@ class DataGlass:
 
 
 class Profile:
-    def __init__(self, profile_name: str):
+    def __init__(self, profile_name: str, orm_db: "ORMDataBase"):
         self.profile_name = profile_name
         # {тип: [список материалов]}
-        self._materials = {}
+        self.materials = defaultdict(list)  # Тип: Список материалов данного типа
+        self.orm_db = orm_db
 
     def add_material(self, material: DataMaterial) -> None:
         """
@@ -60,10 +51,7 @@ class Profile:
         :param material:
         :return:
         """
-        mat_type: str = material.mat_type
-        if mat_type not in self._materials:
-            self._materials[mat_type] = []
-        self._materials[mat_type].append(material)
+        self.materials[material.mat_type].append(material)
 
     def remove_material(self, material: DataMaterial) -> None:
         """
@@ -72,20 +60,17 @@ class Profile:
         :return:
         """
         mat_type: str = material.mat_type
-        if mat_type in self._materials:
-            if material in self._materials[mat_type]:
-                self._materials[mat_type].remove(material)
+        if mat_type in self.materials:
+            if material in self.materials[mat_type]:
+                self.materials[mat_type].remove(material)
 
     def get_materials_by_type(self, mat_type: str) -> List[DataMaterial]:
         """
         Функция для получения всех материалов конкретного типа
-        :param mat_type: Тип мптериала
+        :param mat_type: Тип материала
         :return: Список материалов
         """
-        if mat_type in self._materials:
-            return self._materials[mat_type]
-        else:
-            return []
+        return self.materials[mat_type]
 
     def get_mat_names_by_type(self, mat_type: str) -> List[str]:
         """
@@ -100,7 +85,10 @@ class Profile:
         Функция для получения списка всех типов материала в профиле
         :return: список типов материалов
         """
-        return list(self._materials.keys())
+        all_types = list(mat_type for mat_type in self.materials.keys() if len(self.materials[mat_type]) > 0)
+        if len(all_types) > 0:
+            return all_types
+        return all_types
 
     def copy_profile(self, profile_name: str) -> "Profile":
         """
@@ -109,47 +97,43 @@ class Profile:
         :return: Новый профиль
         """
         new_dp = Profile(profile_name)
-        for mat_type in self._materials:
+        for mat_type in self.materials:
             materials = self.get_materials_by_type(mat_type)
             for material in materials:
                 new_dp.add_material(material)
         return new_dp
 
+    def get_ew_by_name(self, mat_type: str, material: str):
+        for mat in self.materials[mat_type]:
+            if mat.name == material:
+                return mat.ew
+        return 0
+
+    def get_tg_df(self) -> DataFrame:
+        df_tg_main = DataFrame(index=self.get_mat_names_by_type('Epoxy'), columns=self.get_mat_names_by_type('Amine'))
+        print(df_tg_main)
+        return df_tg_main
+
 
 class ProfileManager:
-    def __init__(self, path: str, profile_list=None):
+    def __init__(self, profile_list=None):
         if profile_list is not None:
             self.profile_list = profile_list
         else:
             self.profile_list = []
-        self.path = path
-        self.save_profile_manager()
-
-    def load_profile_manager(self) -> None:
-        with open(self.path, "rb") as file:
-            self.profile_list = pickle.load(file)
-
-    def save_profile_manager(self) -> None:
-        with open(self.path, "wb") as file:
-            pickle.dump(self.profile_list, file)
 
     def add_profile(self, profile: Profile) -> None:
         self.profile_list.append(profile)
 
     def remove_profile(self, profile: Profile) -> None:
-        self.profile_list.remove(profile)
+        if profile in self.profile_list:
+            self.profile_list.remove(profile)
 
 
 class DataDriver:
     def __init__(self, db_name: str, profile: Profile):
         self.db_name = db_name
         self.profile = profile
-
-    def get_ew_by_name(self, mat_type: str, material: str):
-        for mat in self.profile._materials[mat_type]:
-            if mat.name == material:
-                return mat.ew
-        return 0
 
     def get_ew_by_name_old(self, mat_type: str, material: str):
         if material == "":
@@ -205,24 +189,18 @@ class DataDriver:
         connection.close()
         return df_tg_main
 
-    def add_material_to_profile_manager(self, material: DataMaterial):
+    def add_material_to_profile(self, material: DataMaterial):
         self.profile.add_material(material)
 
-    def migrate_db(self):
-        for mat_type in self.get_all_material_types_old():
-            for name in self.get_all_material_of_one_type_old(mat_type):
-                ew = self.get_ew_by_name(mat_type, name)
-                material = DataMaterial(name, mat_type, ew, None)
-                self.add_material_to_profile_manager(material)
 
 
 class ORMDataBase:
-    def __init__(self):
-        self.db_name = "data.db"
+    def __init__(self, db_name):
+        self.db_name = db_name
         self.current_profile = None
 
     def read_profile(self, profile_name: str) -> Profile:
-        profile = Profile(profile_name)
+        profile = Profile(profile_name, self)
         for mat_id, correction_map_str in self.get_profile_material_map(profile_name):
             mat_name, mat_type, ew = self.get_material_by_id(mat_id)
             profile.add_material(DataMaterial(mat_name, mat_type, ew, mat_id))
@@ -360,3 +338,11 @@ class ORMDataBase:
             data = [self.current_profile.profile_name, mat_id]
             cursor.execute(insert, data)
             connection.commit()
+
+    def get_all_materials(self):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(
+            f"SELECT Name, Type, ew, id  FROM Materials"
+        )
+        return cursor.fetchall()
