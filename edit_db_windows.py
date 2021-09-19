@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QWidget, QPushButton,
+    QWidget,
+    QPushButton,
 )
 
 from additional_funcs import set_qt_stile
@@ -34,7 +35,6 @@ class EditDataWindow(QWidget):
         # Вынести путь к стилю в настройки
         set_qt_stile("style.css", self, buttons=self.buttons)
 
-
     def initUI(self):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
@@ -48,7 +48,7 @@ class EditDataWindow(QWidget):
         self.add_mat_but = QPushButton(self)
         self.add_mat_but.move(630, 30)
         self.add_mat_but.resize(120, 25)
-        self.add_mat_but.setText('Добавить материал')
+        self.add_mat_but.setText("Добавить материал")
 
         self.profile_material_widget.data_material_widget = self.data_material_widget
         self.data_material_widget.profile_material_widget = self.profile_material_widget
@@ -85,7 +85,9 @@ class ProfileMaterialWidget(QListWidget):
         self.orm_db = self.profile.orm_db
 
         self.profile_materials = []  # Все материалы в виде DataMaterial
-        self.profile_materials_names = []  # Все названия материалов (порядок совпадает с profile_materials)
+        self.profile_materials_names = (
+            []
+        )  # Все названия материалов (порядок совпадает с profile_materials)
         for mat_type in self.profile.get_all_types():
             self.profile_materials += self.profile.get_materials_by_type(mat_type)
             self.profile_materials_names += self.profile.get_mat_names_by_type(mat_type)
@@ -202,7 +204,9 @@ class DataMaterialWidget(QListWidget):
         # self.addItem()
 
 
-class CreateMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]):
+class CreateMaterialWindow(
+    QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]
+):
     def __init__(
         self, main_window: EditDataWindow, origin_material: DataMaterial = None
     ):

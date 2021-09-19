@@ -31,7 +31,8 @@ class InitClass:
         self.orm_db = ORMDataBase(self.config["profile"]["path_db"])
 
         self.profile_manager_window = ProfileManagerWindow(
-            self.orm_db.get_all_profiles(), self)
+            self.orm_db.get_all_profiles(), self
+        )
 
         if not debug:
             self.profile_manager_window.show()
@@ -72,4 +73,3 @@ class InitClass:
 
         if not self.debug:
             self.my_main_window.show()
-

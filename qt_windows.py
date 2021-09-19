@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QLabel,
     QLineEdit,
-    QSpacerItem, QListWidget,
+    QSpacerItem,
+    QListWidget,
 )
 from pandas import Series
 
@@ -168,15 +169,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.add_a_line()
         self.add_a_line()
-
+        self.material_a_types[0].setCurrentIndex(2)
+        self.material_a_types[1].setCurrentIndex(2)
+        self.material_comboboxes_a[0].setCurrentIndex(3)
+        self.material_comboboxes_a[1].setCurrentIndex(4)
         self.material_percent_lines_a[0].setText("50.00")
         self.material_list_a[0].percent = 50
         self.material_percent_lines_a[1].setText("50.00")
         self.material_list_a[1].percent = 50
-
-        self.material_a_types[0].setCurrentIndex(2)
-        self.material_a_types[1].setCurrentIndex(2)
-        self.material_comboboxes_a[1].setCurrentIndex(1)
 
         # self.normalise_func('A')
         # self.to_float('A')
@@ -184,16 +184,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.add_b_line()
         self.add_b_line()
-
+        # self.material_b_types[0].setCurrentIndex(2)
+        # self.material_b_types[1].setCurrentIndex(2)
+        self.material_comboboxes_b[0].setCurrentIndex(4)
+        self.material_comboboxes_b[1].setCurrentIndex(3)
         self.material_percent_lines_b[0].setText("50.00")
         self.material_list_b[0].percent = 50
         self.material_percent_lines_b[1].setText("50.00")
         self.material_list_b[1].percent = 50
-
-        self.material_b_types[0].setCurrentIndex(1)
-        self.material_b_types[1].setCurrentIndex(1)
-        self.material_comboboxes_b[0].setCurrentIndex(1)
-        self.material_comboboxes_b[1].setCurrentIndex(4)
 
     def debug_2(self) -> None:
         global profile
@@ -556,7 +554,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.profile_edit_window.show()
         self.close()
 
-
     # =========================  ===========================
 
     @staticmethod
@@ -664,7 +661,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         elif component == "B":
             self.receipt_b.add_material(material)
 
-
     @staticmethod
     def change_type_name_material(
         material: Material,
@@ -684,9 +680,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             material.set_type_and_name(
                 material_type_combobox.currentText(), material_combobox.currentText()
             )
-
-            material.receipt.receipt_counter.count_percent_df()
-            material.receipt.receipt_counter.get_tg_df()
 
         return wrapper
 
@@ -1689,11 +1682,7 @@ class PairReactWindow(
 class ProfileManagerWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/profile_manager_window.ui")[0]
 ):
-    def __init__(
-        self,
-        profile_list: list,
-        init_class
-    ):
+    def __init__(self, profile_list: list, init_class):
         super(ProfileManagerWindow, self).__init__()
         self.setupUi(self)
         self.profile_widget: QListWidget
@@ -1730,6 +1719,8 @@ class ProfileManagerWindow(
     def edit_materials(self):
         prof_name = self.profile_list[self.profile_widget.currentIndex().row()]
 
-        self.edit_material_window = EditDataWindow(self, self.init_class.orm_db.read_profile(prof_name))
+        self.edit_material_window = EditDataWindow(
+            self, self.init_class.orm_db.read_profile(prof_name)
+        )
         self.close()
         self.edit_material_window.show()

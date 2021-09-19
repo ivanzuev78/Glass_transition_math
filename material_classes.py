@@ -45,6 +45,8 @@ class Material:
             if self.mat_type == "Amine":
                 value = -value
             self.__ew = value
+        else:
+            self.__ew = 0
 
     @property
     def name(self) -> str:
@@ -310,14 +312,19 @@ class ReceiptCounter:
         a_types = [material.mat_type for material in self.receipt_a]
         a_names = [material.name for material in self.receipt_a]
         a_eq = [
-            material.percent / material.ew * self.mass_ratio if material.ew * self.mass_ratio != 0 else 0
+            material.percent / material.ew * self.mass_ratio
+            if material.ew * self.mass_ratio != 0
+            else 0
             for material in self.receipt_a
         ]
 
         # Получаем все названия и % эпоксидки в Компоненте B
         b_types = [material.mat_type for material in self.receipt_b]
         b_names = [material.name for material in self.receipt_b]
-        b_eq = [material.percent / material.ew if material.ew != 0 else 0 for material in self.receipt_b]
+        b_eq = [
+            material.percent / material.ew if material.ew != 0 else 0
+            for material in self.receipt_b
+        ]
 
         total_eq = math.fabs(sum(a_eq))
 
@@ -435,11 +442,11 @@ class ReceiptCounter:
         self.count_percent_df()
         if self.percent_df is None:
             return None
-        if self.tg_df is None:
-            self.get_tg_df()
 
-        percent_df = self.percent_df
-        tg_df = self.tg_df
+        self.get_tg_df()
+
+        percent_df = copy(self.percent_df)
+        tg_df = copy(self.tg_df)
         # Получаем все пары, которые не имеют стекла
         all_pairs_na = []
         for name in tg_df:
@@ -447,7 +454,7 @@ class ReceiptCounter:
             par = [(resin, name) for resin in list(pairs_a.index)]
             all_pairs_na += par
 
-        # TODO реализовать обработку отсутствующих пар стёкол
+        # TODO реализовать обработку отсутствующих пар стёкол (вывод индикатора)
         all_pairs_na_dict = {}
         # Убираем в матрице процентов отсутствующие пары
         for resin, amine in all_pairs_na:
@@ -469,7 +476,7 @@ class ReceiptCounter:
         # TODO продолжить
 
     def get_tg_df(self) -> None:
-        tg_df = self.profile.get_tg_df()
+        tg_df = copy(self.profile.get_tg_df())
         if self.percent_df is not None:
             # дропаем неиспользуемые колонки и строки стеклования
             for name in tg_df:
@@ -496,6 +503,5 @@ class ReceiptCounter:
         if self.receipt_a.sum_percent == 100 and self.receipt_b.sum_percent == 100:
             self.count_mass_ratio()
             self.count_tg()
-            self.count_percent_df()
         else:
             self.drop_labels()

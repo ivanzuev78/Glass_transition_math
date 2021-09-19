@@ -28,7 +28,7 @@ class DataMaterial:
         data["name"] = self.name
         data["mat_type"] = self.mat_type
         data["ew"] = self.ew
-        data['db_id'] = self.db_id
+        data["db_id"] = self.db_id
         return data
 
 
@@ -41,12 +41,16 @@ class DataGlass:
 class Profile:
     def __init__(self, profile_name: str, orm_db: "ORMDataBase"):
         from qt_windows import MyMainWindow
+
         self.profile_name = profile_name
         # {тип: [список материалов]}
-        self.materials: Dict[str, List[DataMaterial]] = defaultdict(list)  # Тип: Список материалов данного типа
+        self.materials: Dict[str, List[DataMaterial]] = defaultdict(
+            list
+        )  # Тип: Список материалов данного типа
         self.id_name_dict: Dict[int, DataMaterial] = {}
         self.orm_db = orm_db
         self.my_main_window: Optional[MyMainWindow] = None
+        self.tg_df = None
 
     def add_material(self, material: DataMaterial) -> None:
         """
@@ -58,6 +62,9 @@ class Profile:
         self.id_name_dict[material.db_id] = material
         if self.my_main_window is not None:
             self.my_main_window.update_list_of_material_names()
+        # Если материал Амин или Эпоксид, обнуляем tg_df
+        if self.tg_df is not None and material.mat_type in ("Amine", "Epoxy"):
+            self.tg_df = None
 
     def remove_material(self, material: DataMaterial) -> None:
         """
@@ -73,6 +80,9 @@ class Profile:
             del self.id_name_dict[material.db_id]
         if self.my_main_window is not None:
             self.my_main_window.update_list_of_material_names()
+        # Если материал Амин или Эпоксид, обнуляем tg_df
+        if self.tg_df is not None and material.mat_type in ("Amine", "Epoxy"):
+            self.tg_df = None
 
     def get_materials_by_type(self, mat_type: str) -> List[DataMaterial]:
         """
@@ -95,7 +105,11 @@ class Profile:
         Функция для получения списка всех типов материала в профиле
         :return: список типов материалов
         """
-        all_types = list(mat_type for mat_type in self.materials.keys() if len(self.materials[mat_type]) > 0)
+        all_types = list(
+            mat_type
+            for mat_type in self.materials.keys()
+            if len(self.materials[mat_type]) > 0
+        )
         if len(all_types) > 0:
             return all_types
         return all_types
@@ -120,19 +134,21 @@ class Profile:
         return 0
 
     def get_tg_df(self) -> DataFrame:
-        df_tg_main = DataFrame(index=self.get_mat_names_by_type('Epoxy'), columns=self.get_mat_names_by_type('Amine'))
-        if 'Epoxy' in self.materials.keys() and "Amine" in self.materials.keys():
-            all_id_epoxy = [mat.db_id for mat in self.materials['Epoxy']]
-            all_id_amine = [mat.db_id for mat in self.materials['Amine']]
-            tg_list = self.orm_db.get_tg_by_material_id(all_id_epoxy, all_id_amine)
-            for epoxy_id, amine_id, tg_value in tg_list:
-                epoxy_name = self.id_name_dict[epoxy_id].name
-                amine_name = self.id_name_dict[amine_id].name
-                df_tg_main.loc[epoxy_name, amine_name] = tg_value
+        if self.tg_df is None:
+            self.tg_df = DataFrame(
+                index=self.get_mat_names_by_type("Epoxy"),
+                columns=self.get_mat_names_by_type("Amine"),
+            )
+            if "Epoxy" in self.materials.keys() and "Amine" in self.materials.keys():
+                all_id_epoxy = [mat.db_id for mat in self.materials["Epoxy"]]
+                all_id_amine = [mat.db_id for mat in self.materials["Amine"]]
+                tg_list = self.orm_db.get_tg_by_material_id(all_id_epoxy, all_id_amine)
+                for epoxy_id, amine_id, tg_value in tg_list:
+                    epoxy_name = self.id_name_dict[epoxy_id].name
+                    amine_name = self.id_name_dict[amine_id].name
+                    self.tg_df.loc[epoxy_name, amine_name] = tg_value
 
-
-        print(df_tg_main)
-        return df_tg_main
+        return self.tg_df
 
 
 class ProfileManager:
@@ -277,10 +293,9 @@ class ORMDataBase:
     def get_tg_by_material_id(self, epoxy_id, amine_id):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        epoxy_str = "".join([f'{i}, ' for i in epoxy_id])[:-2]
-        amine_str = "".join([f'{i}, ' for i in amine_id])[:-2]
+        epoxy_str = "".join([f"{i}, " for i in epoxy_id])[:-2]
+        amine_str = "".join([f"{i}, " for i in amine_id])[:-2]
         string = f"SELECT Epoxy, Amine, Value FROM Tg WHERE Epoxy in ({epoxy_str}) AND Amine in ({amine_str})"
-        print(string)
         cursor.execute(string)
         return cursor.fetchall()
 
@@ -379,7 +394,5 @@ class ORMDataBase:
     def get_all_materials(self):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute(
-            f"SELECT Name, Type, ew, id  FROM Materials"
-        )
+        cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
         return cursor.fetchall()
