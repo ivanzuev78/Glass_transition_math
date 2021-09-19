@@ -55,7 +55,6 @@ class Material:
         # TODO сеттер на изменение материала
         if isinstance(value, str):
             self.__name = value
-            self.receipt.update_all_pairs_material()
 
     @property
     def mat_type(self) -> str:

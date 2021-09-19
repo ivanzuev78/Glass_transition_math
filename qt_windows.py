@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
 from pandas import Series
 
 from additional_funcs import set_qt_stile
-from data_classes import ProfileManager
+from data_classes import Profile
 from debug_funcs import debug_percent
 from edit_db_windows import EditDataWindow
 from material_classes import Material, Receipt
@@ -28,7 +28,7 @@ DB_NAME = "material.db"
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
-    def __init__(self, profile, db_name=DB_NAME, debug=False):
+    def __init__(self, profile: Profile, db_name=DB_NAME, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
 
@@ -102,11 +102,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             )
         self.set_bottom_styles()
 
-        self.types_of_items = self.profile.get_all_types()
-        self.list_of_item_names = {
-            material: self.profile.get_mat_names_by_type(material)
-            for material in self.types_of_items
-        }
+        self.types_of_items = []
+        self.update_list_of_material_types()
+        self.list_of_material_names = {}
+        self.update_list_of_material_names()
+
         # QLine со значением суммы в конце рецептуры
         self.final_a = None
         self.final_b = None
@@ -628,10 +628,30 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         def wrapper():
             material_combobox.clear()
             material_combobox.addItems(
-                self.list_of_item_names[material_type.currentText()]
+                self.list_of_material_names[material_type.currentText()]
             )
 
         return wrapper
+
+    def update_list_of_material_names(self):
+        """
+        Обновляет список материалов в окне
+        :return:
+        """
+        self.list_of_material_names = {
+            mat_type: self.profile.get_mat_names_by_type(mat_type)
+            for mat_type in self.types_of_items
+        }
+        # TODO Продумать, как добавить материалы в комбобоксы, и чтобы ничего не слетело
+
+    def update_list_of_material_types(self):
+        """
+        Обновляет список типов материала
+        Должен вызываться в момент добавления или удаления типов материала
+        :return:
+        """
+        self.types_of_items = self.profile.get_all_types()
+        # TODO Продумать, как добавить типы в комбобоксы, и чтобы ничего не слетело
 
     def add_material_to_receipt(self, material: Material, component: str) -> None:
         """
@@ -643,6 +663,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.receipt_a.add_material(material)
         elif component == "B":
             self.receipt_b.add_material(material)
+
 
     @staticmethod
     def change_type_name_material(
@@ -1045,7 +1066,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         # Подцепить соответствующие вещества
         # TODO Переделать комбобоксы на строки без права смены материала
-        material_combobox.addItems(self.main_window.list_of_item_names[mat_type])
+        material_combobox.addItems(self.main_window.list_of_material_names[mat_type])
         material_combobox.setCurrentIndex(
             self.main_window_material_comboboxes[numb_of_line].currentIndex()
         )

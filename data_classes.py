@@ -4,7 +4,7 @@ import sqlite3
 from collections import defaultdict
 from math import exp
 from os.path import exists
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Dict
 
 from pandas import DataFrame
 
@@ -40,10 +40,13 @@ class DataGlass:
 
 class Profile:
     def __init__(self, profile_name: str, orm_db: "ORMDataBase"):
+        from qt_windows import MyMainWindow
         self.profile_name = profile_name
         # {тип: [список материалов]}
-        self.materials = defaultdict(list)  # Тип: Список материалов данного типа
+        self.materials: Dict[str, List[DataMaterial]] = defaultdict(list)  # Тип: Список материалов данного типа
+        self.id_name_dict: Dict[int, DataMaterial] = {}
         self.orm_db = orm_db
+        self.my_main_window: Optional[MyMainWindow] = None
 
     def add_material(self, material: DataMaterial) -> None:
         """
@@ -52,6 +55,9 @@ class Profile:
         :return:
         """
         self.materials[material.mat_type].append(material)
+        self.id_name_dict[material.db_id] = material
+        if self.my_main_window is not None:
+            self.my_main_window.update_list_of_material_names()
 
     def remove_material(self, material: DataMaterial) -> None:
         """
@@ -63,6 +69,10 @@ class Profile:
         if mat_type in self.materials:
             if material in self.materials[mat_type]:
                 self.materials[mat_type].remove(material)
+        if material.db_id in self.id_name_dict:
+            del self.id_name_dict[material.db_id]
+        if self.my_main_window is not None:
+            self.my_main_window.update_list_of_material_names()
 
     def get_materials_by_type(self, mat_type: str) -> List[DataMaterial]:
         """
@@ -96,7 +106,7 @@ class Profile:
         :param profile_name: Имя нового пользователя
         :return: Новый профиль
         """
-        new_dp = Profile(profile_name)
+        new_dp = Profile(profile_name, self.orm_db)
         for mat_type in self.materials:
             materials = self.get_materials_by_type(mat_type)
             for material in materials:
@@ -111,6 +121,16 @@ class Profile:
 
     def get_tg_df(self) -> DataFrame:
         df_tg_main = DataFrame(index=self.get_mat_names_by_type('Epoxy'), columns=self.get_mat_names_by_type('Amine'))
+        if 'Epoxy' in self.materials.keys() and "Amine" in self.materials.keys():
+            all_id_epoxy = [mat.db_id for mat in self.materials['Epoxy']]
+            all_id_amine = [mat.db_id for mat in self.materials['Amine']]
+            tg_list = self.orm_db.get_tg_by_material_id(all_id_epoxy, all_id_amine)
+            for epoxy_id, amine_id, tg_value in tg_list:
+                epoxy_name = self.id_name_dict[epoxy_id].name
+                amine_name = self.id_name_dict[amine_id].name
+                df_tg_main.loc[epoxy_name, amine_name] = tg_value
+
+
         print(df_tg_main)
         return df_tg_main
 
@@ -193,7 +213,6 @@ class DataDriver:
         self.profile.add_material(material)
 
 
-
 class ORMDataBase:
     def __init__(self, db_name):
         self.db_name = db_name
@@ -255,12 +274,15 @@ class ORMDataBase:
         )
         return cursor.fetchall()[0]
 
-    # ??????????????????????????????????
-    def get_tg_by_material_id(self, mat_id):
+    def get_tg_by_material_id(self, epoxy_id, amine_id):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute(f"SELECT * FROM Materials WHERE (id = '{mat_id}') ")
-        return cursor.fetchall()[0]
+        epoxy_str = "".join([f'{i}, ' for i in epoxy_id])[:-2]
+        amine_str = "".join([f'{i}, ' for i in amine_id])[:-2]
+        string = f"SELECT Epoxy, Amine, Value FROM Tg WHERE Epoxy in ({epoxy_str}) AND Amine in ({amine_str})"
+        print(string)
+        cursor.execute(string)
+        return cursor.fetchall()
 
     def get_correction_by_id(self, cor_map_id):
         """
@@ -316,6 +338,12 @@ class ORMDataBase:
         )
 
     def add_material(self, material: DataMaterial, profile: Profile = None):
+        """
+        Добавляет материал в базу. Если указан профиль, то привязывает материал к нему.
+        :param material:
+        :param profile:
+        :return:
+        """
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
@@ -329,15 +357,24 @@ class ORMDataBase:
         cursor.execute(insert, data)
         connection.commit()
         if profile is not None:
-            insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
-            data = [profile.profile_name, mat_id]
-            cursor.execute(insert, data)
-            connection.commit()
+            self.add_material_to_profile(material, profile)
         elif self.current_profile is not None:
-            insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
-            data = [self.current_profile.profile_name, mat_id]
-            cursor.execute(insert, data)
-            connection.commit()
+            self.add_material_to_profile(material, self.current_profile)
+
+    def add_material_to_profile(self, material: DataMaterial, profile: Profile):
+        """
+        Прикрепляет материал к профилю.
+        Материал должен быть базе данных.
+        :param material:
+        :param profile:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
+        data = [profile.profile_name, material.db_id]
+        cursor.execute(insert, data)
+        connection.commit()
 
     def get_all_materials(self):
         connection = sqlite3.connect(self.db_name)

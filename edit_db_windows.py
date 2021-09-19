@@ -50,7 +50,6 @@ class EditDataWindow(QWidget):
         self.add_mat_but.resize(120, 25)
         self.add_mat_but.setText('Добавить материал')
 
-
         self.profile_material_widget.data_material_widget = self.data_material_widget
         self.data_material_widget.profile_material_widget = self.profile_material_widget
 
@@ -82,14 +81,14 @@ class ProfileMaterialWidget(QListWidget):
         self.data_material_widget: Optional[
             DataMaterialWidget
         ] = parent.data_material_widget
-        prof: Profile = self.edit_window.profile
+        self.profile: Profile = self.edit_window.profile
+        self.orm_db = self.profile.orm_db
 
-        self.profile_materials = []
-        self.profile_materials_names = []
-        for mat_type in prof.get_all_types():
-            self.profile_materials += prof.get_materials_by_type(mat_type)
-            self.profile_materials_names += prof.get_mat_names_by_type(mat_type)
-
+        self.profile_materials = []  # Все материалы в виде DataMaterial
+        self.profile_materials_names = []  # Все названия материалов (порядок совпадает с profile_materials)
+        for mat_type in self.profile.get_all_types():
+            self.profile_materials += self.profile.get_materials_by_type(mat_type)
+            self.profile_materials_names += self.profile.get_mat_names_by_type(mat_type)
 
         self.addItems(self.profile_materials_names)
 
@@ -103,27 +102,6 @@ class ProfileMaterialWidget(QListWidget):
             index = self.data_material_widget.names_list.index(text)
             self.data_material_widget.setCurrentRow(index)
 
-    def mimeTypes(self):
-        mimetypes = super().mimeTypes()
-        mimetypes.append("qitem")
-        return mimetypes
-
-    def mimeData(self, my_list: Iterable, lwi: QListWidgetItem = None):
-        print("my_list", my_list)
-        mimedata = super().mimeData(my_list)
-
-        mimedata.setText("qqqqq")
-        return mimedata
-        pass
-
-    def dropMimeData(self, index, data, action):
-        print("dropMimeData")
-        if data.hasText():
-            self.addItem(data.text())
-            return True
-        else:
-            return super().dropMimeData(index, data, action)
-
     # вызывается при попадании в область
     def dragEnterEvent(self, e):
         # Позволяет перетащить объект в этот виджет
@@ -136,14 +114,17 @@ class ProfileMaterialWidget(QListWidget):
         e.accept()
 
     def dropEvent(self, e):
-        # e.accept()
-        e.ignore()
+        e.accept()
         index = int(e.mimeData().text())
-        text = self.data_material_widget.names_list[index]
-        if text not in self.profile_materials_names:
-            self.addItem(text)
-            self.profile_materials_names.append(text)
-        # TODO Прикрепление материала в дб к профилю
+        material: DataMaterial = self.data_material_widget.material_list[index]
+        mat_name = material.name
+        if mat_name not in self.profile_materials_names:
+            self.addItem(mat_name)
+            self.profile_materials_names.append(mat_name)
+            self.profile_materials.append(material)
+            # материала в дб к профилю
+            self.orm_db.add_material_to_profile(material, self.profile)
+            self.profile.add_material(material)
 
 
 class DataMaterialWidget(QListWidget):
@@ -154,8 +135,8 @@ class DataMaterialWidget(QListWidget):
         # self.setAcceptDrops(True)
         self.setDragEnabled(True)
         self.resize(200, 450)
-        self.material_list = []
-        self.names_list = []
+        self.material_list: List[DataMaterial] = []
+        self.names_list: List[str] = []
         self.orm_db = self.edit_window.profile.orm_db
         for name, mat_type, ew, db_id in self.orm_db.get_all_materials():
             self.names_list.append(name)
@@ -163,7 +144,8 @@ class DataMaterialWidget(QListWidget):
             self.addItem(name)
 
         self.profile_material_widget: Optional[ProfileMaterialWidget] = None
-        self.itemDoubleClicked.connect(self.open_mat_editor)
+        # TODO Добавить вызов окна редактирования материала
+        # self.itemDoubleClicked.connect(self.open_mat_editor)
         self.currentItemChanged.connect(self.change_index_in_profile_material_widget)
 
     def change_index_in_profile_material_widget(self):

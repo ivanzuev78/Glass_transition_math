@@ -39,17 +39,18 @@ class InitClass:
     def setup_program(self, profile_name: str):
         # новый профиль с БД
 
-        profile: Profile = self.orm_db.read_profile(profile_name)
+        self.profile: Profile = self.orm_db.read_profile(profile_name)
 
         # self.data_driver.migrate_db()
         # self.profile_manager.save_profile_manager()
 
         # ==== Создаём главное окно ====
-        self.my_main_window = MyMainWindow(profile, debug=self.debug)
+        self.my_main_window = MyMainWindow(self.profile, debug=self.debug)
+        self.profile.my_main_window = self.my_main_window
 
         # ============== Создаем рецептуры и передаём их в главное окно ==================
-        self.receipt_a = Receipt("A", profile)
-        self.receipt_b = Receipt("B", profile)
+        self.receipt_a = Receipt("A", self.profile)
+        self.receipt_b = Receipt("B", self.profile)
         self.receipt_a.set_main_window(self.my_main_window)
         self.receipt_b.set_main_window(self.my_main_window)
 
