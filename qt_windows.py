@@ -678,7 +678,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         def wrapper():
             material.set_type_and_name(
-                material_type_combobox.currentText(), material_combobox.currentText()
+                material_type_combobox.currentText(), material_combobox.currentIndex()
             )
 
         return wrapper

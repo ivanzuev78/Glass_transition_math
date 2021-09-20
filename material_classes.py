@@ -68,10 +68,11 @@ class Material:
         if isinstance(value, str):
             self.__mat_type = value
 
-    def set_type_and_name(self, mat_type: str, name: str) -> None:
+    def set_type_and_name(self, mat_type: str, mat_index: int) -> None:
         self.mat_type = mat_type
-        self.name = name
-        self.ew = self.receipt.profile.get_ew_by_name(mat_type, name)
+        material = self.receipt.profile.materials[mat_type][mat_index]
+        self.name = material.name
+        self.ew = material.ew
         self.receipt.update_all_parameters()
 
     def __str__(self):
