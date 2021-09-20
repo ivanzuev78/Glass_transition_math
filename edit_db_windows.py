@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import (
 )
 
 from additional_funcs import set_qt_stile
+from corrections import Correction
 from data_classes import DataMaterial, Profile
 
 
@@ -251,7 +252,48 @@ class CreateMaterialWindow(
         del self
 
 
+class EditCorrectionWindow(
+    QtWidgets.QMainWindow, uic.loadUiType("windows/edit_correction.ui")[0]
+):
+    def __init__(
+        self, previous_window, correction: Correction = None
+    ):
+        super(EditCorrectionWindow, self).__init__()
+        self.setupUi(self)
+        self.previos_window = previous_window
+        self.correction = correction
+        if correction is not None:
+            # TODO Загрузка коррекции в окно
+            ...
+
+        self.buttons = ["add_coef_but", "del_coef_but", "create_graph_but","save_but", "cancel_but"]
+        self.comboboxes = []
+        # Вынести путь к стилю в настройки
+        set_qt_stile(
+            "style.css", self, buttons=self.buttons, comboboxes=self.comboboxes
+        )
+
+        self.cancel_but.clicked.connect(self.closeEvent)
+
+    def save_data(self):
+        if self.material is not None:
+            # TODO Описать логику редактирования материала
+            ...
+        else:
+            # TODO Описать логику создания нового материала
+            name = self.name_lineEdit.text()
+            mat_type = self.type_comboBox.currentText()
+            ew = self.ew_lineEdit.text()
+            material = DataMaterial(name, mat_type, ew)
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.main_window.show()
+        self.main_window.close_to_edit_material = False
+        del self
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    ex = EditDataWindow()
+    ex = EditCorrectionWindow(None)
+    ex.show()
     sys.exit(app.exec_())

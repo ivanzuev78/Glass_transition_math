@@ -1,6 +1,6 @@
 from collections import defaultdict
 from math import exp
-from typing import Tuple
+from typing import Tuple, Iterable
 
 
 class Correction:
@@ -8,12 +8,17 @@ class Correction:
     f(x) = k_e * exp(k_exp * x) + k0 + k1 * x + k2 * x2 ...
     """
 
-    def __init__(self, cor_name, cor_comment, k_e, k_exp):
+    def __init__(self, cor_name: str, cor_comment: str, db_id: int = None, k_e: float = 0, k_exp: float = 0,
+                 polynomial_coefficients: Iterable = None):
         self.name = cor_name
         self.comment = cor_comment
         self.k_e = k_e
         self.k_exp = k_exp
-        self.polynomial_coefficients = []
+        if polynomial_coefficients is not None:
+            self.polynomial_coefficients = [c for c in polynomial_coefficients]
+        else:
+            self.polynomial_coefficients = []
+        self.db_id = db_id
 
     def edit_polynomial_coefficient(self, coef: float, power: int) -> None:
         """
