@@ -1695,14 +1695,8 @@ class ProfileManagerWindow(
         self.choose_profile_but.clicked.connect(self.choose_profile)
         self.edit_profile_but.clicked.connect(self.edit_materials)
 
-        self.buttons = [
-            "choose_profile_but",
-            "add_profile_but",
-            "remove_profile_but",
-            "edit_profile_but",
-        ]
         # Вынести путь к стилю в настройки
-        set_qt_stile("style.css", self, buttons=self.buttons)
+        set_qt_stile("style.css", self)
 
         self.edit_material_window = None
         self.main_window = None

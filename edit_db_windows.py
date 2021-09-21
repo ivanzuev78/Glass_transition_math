@@ -32,9 +32,8 @@ class EditDataWindow(QWidget):
         self.main_window = main_window
         self.close_to_edit_material = False
 
-        self.buttons = ["add_mat_but"]
         # Вынести путь к стилю в настройки
-        set_qt_stile("style.css", self, buttons=self.buttons)
+        set_qt_stile("style.css", self)
 
     def initUI(self):
         self.setWindowTitle(self.title)
@@ -55,7 +54,6 @@ class EditDataWindow(QWidget):
         self.data_material_widget.profile_material_widget = self.profile_material_widget
 
         # РАБОТАЕТ
-
         self.show()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
@@ -226,12 +224,9 @@ class CreateMaterialWindow(
             self.type_comboBox.setCurrentIndex(1)
             self.ew_lineEdit.setText(str(origin_material.ew))
 
-        self.buttons = ["type_comboBox", "save_but", "cancel_but"]
-        self.comboboxes = ["type_comboBox"]
         # Вынести путь к стилю в настройки
         set_qt_stile(
-            "style.css", self, buttons=self.buttons, comboboxes=self.comboboxes
-        )
+            "style.css", self)
 
         self.cancel_but.clicked.connect(self.closeEvent)
 
@@ -266,12 +261,9 @@ class EditCorrectionWindow(
             # TODO Загрузка коррекции в окно
             ...
 
-        self.buttons = ["add_coef_but", "del_coef_but", "create_graph_but","save_but", "cancel_but"]
-        self.comboboxes = []
         # Вынести путь к стилю в настройки
         set_qt_stile(
-            "style.css", self, buttons=self.buttons, comboboxes=self.comboboxes
-        )
+            "style.css", self)
 
         self.cancel_but.clicked.connect(self.closeEvent)
 
