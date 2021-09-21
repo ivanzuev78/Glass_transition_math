@@ -1,10 +1,9 @@
 import configparser
-import pickle
 from os.path import exists
 
-from data_classes import Profile, ProfileManager, ORMDataBase
-from material_classes import Receipt, ReceiptCounter
-from qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
+from res.data_classes import Profile, ORMDataBase
+from res.material_classes import Receipt, ReceiptCounter
+from res.qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
 DB_NAME = "material.db"
 
@@ -12,7 +11,7 @@ DB_NAME = "material.db"
 class InitClass:
     def __init__(self, debug=False):
         self.debug = debug
-        src_ini_setting = "settings.ini"
+        src_ini_setting = "../settings.ini"
         if not exists(src_ini_setting):
             print(
                 f"ФАЙЛ С НАСТРОЙКАМИ {src_ini_setting} НЕ НАЙДЕН\nУстановленны настройки по умолчанию"

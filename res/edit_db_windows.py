@@ -1,9 +1,7 @@
 import sys
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional
 
-from PyQt5 import QtCore, QtGui, QtWidgets, uic
-from PyQt5.QtCore import QMimeData
-from PyQt5.QtGui import QDropEvent
+from PyQt5 import QtGui, QtWidgets, uic
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
@@ -14,9 +12,9 @@ from PyQt5.QtWidgets import (
     QPushButton,
 )
 
-from additional_funcs import set_qt_stile
-from corrections import Correction
-from data_classes import DataMaterial, Profile
+from res.additional_funcs import set_qt_stile
+from res.corrections import Correction
+from res.data_classes import DataMaterial, Profile
 
 
 class EditDataWindow(QWidget):
@@ -270,8 +268,7 @@ class EditCorrectionWindow(
         self.comboboxes = []
         # Вынести путь к стилю в настройки
         set_qt_stile(
-            "style.css", self, buttons=self.buttons, comboboxes=self.comboboxes
-        )
+            "style.css", self)
 
         self.cancel_but.clicked.connect(self.closeEvent)
 
@@ -292,8 +289,25 @@ class EditCorrectionWindow(
         del self
 
 
+class EditMaterialWindow(
+    QtWidgets.QMainWindow, uic.loadUiType("windows/edit_material_with_corrections.ui")[0]
+):
+    def __init__(
+        self, previous_window
+    ):
+        super(EditMaterialWindow, self).__init__()
+        self.setupUi(self)
+        self.previos_window = previous_window
+        set_qt_stile(
+            "style.css", self)
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.previos_window.show()
+        self.previos_window.close_to_edit_material = False
+        del self
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    ex = EditCorrectionWindow(None)
+    ex = EditMaterialWindow(None)
     ex.show()
     sys.exit(app.exec_())

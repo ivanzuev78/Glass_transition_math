@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Dict
 
 from pandas import DataFrame
 
-from corrections import TgCorrectionMaterial, Correction
+from res.corrections import TgCorrectionMaterial, Correction
 
 
 class DataMaterial:
@@ -40,7 +40,7 @@ class DataGlass:
 
 class Profile:
     def __init__(self, profile_name: str, orm_db: "ORMDataBase"):
-        from qt_windows import MyMainWindow
+        from res.qt_windows import MyMainWindow
 
         self.profile_name = profile_name
         # {тип: [список материалов]}

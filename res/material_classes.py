@@ -1,16 +1,15 @@
 import math
-import sqlite3
 from collections import defaultdict
 from copy import copy
 from itertools import chain
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 from pandas import DataFrame
 
 # import init_class
-from additional_funcs import normalize, normalize_df
-from data_classes import Profile
+from res.additional_funcs import normalize, normalize_df
+from res.data_classes import Profile
 
 
 class Material:
@@ -96,7 +95,7 @@ class Material:
 
 class Receipt:
     def __init__(self, component: str, profile: Profile):
-        from qt_windows import MyMainWindow, PairReactWindow
+        from res.qt_windows import MyMainWindow, PairReactWindow
 
         self.main_window: Optional[MyMainWindow] = None
         self.profile = profile
@@ -208,7 +207,7 @@ class ReceiptCounter:
         main_window,
         extra_ratio: bool = False,
     ):
-        from qt_windows import MyMainWindow, PairReactWindow
+        from res.qt_windows import MyMainWindow, PairReactWindow
 
         self.main_window: Optional[MyMainWindow] = main_window
         self.receipt_a = receipt_a

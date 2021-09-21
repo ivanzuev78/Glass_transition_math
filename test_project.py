@@ -3,7 +3,7 @@ import sys
 import pytest
 from PyQt5.QtWidgets import QApplication
 
-from init_class import InitClass
+from res.init_class import InitClass
 
 
 @pytest.fixture
