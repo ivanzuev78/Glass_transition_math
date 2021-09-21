@@ -31,10 +31,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.profile = profile
         self.debug_flag = debug
-        oimage = QImage("fon.jpg")
-        palette = QPalette()
-        palette.setBrush(QPalette.Window, QBrush(oimage))
-        self.setPalette(palette)
+
+
+
+
 
         pixmap = QPixmap("icons/lock.png")
         self.label_lock_a.setPixmap(pixmap)
@@ -96,8 +96,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.style, self.style_combobox, self.style_red_but = f.read().split(
                 "$split$"
             )
-        self.set_bottom_styles()
 
+        set_qt_stile('style.css', self)
+        self.change_receipt_color("A", color_red=True)
+        self.change_receipt_color("B", color_red=True)
         self.types_of_items = []
         self.update_list_of_material_types()
         self.list_of_material_names = {}
@@ -112,7 +114,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.hide_top("A")
         self.hide_top("B")
 
-        # Контейнеры для хранения строк
+        # ========================  Контейнеры для хранения строк ========================
         self.material_a_types = []
         self.material_b_types = []
         self.material_comboboxes_a = []
@@ -192,15 +194,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         global profile
         print(profile)
 
-    def set_bottom_styles(self) -> None:
-        """
-        Устанавливает стили кнопок в окне
-        """
-        # TODO Заменить set_bottom_styles на вынесенную функцию
-        for widget in self.button_list + self.big_button_list:
-            widget.setStyleSheet(self.style)
-        self.change_receipt_color("A", color_red=True)
-        self.change_receipt_color("B", color_red=True)
+
+
 
     def hide_top(self, component: str) -> None:
         """
