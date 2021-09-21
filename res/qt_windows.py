@@ -34,12 +34,12 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
 
 
-        pixmap = QPixmap("../icons/lock.png")
+        pixmap = QPixmap("icons/lock.png")
         self.label_lock_a.setPixmap(pixmap)
         self.label_lock_b.setPixmap(pixmap)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("../icons/update.png"))
+        icon.addPixmap(QtGui.QPixmap("icons/update.png"))
         self.update_but.setIcon(icon)
 
         self.button_list = [
@@ -899,7 +899,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         else:
             raise TypeError
 
-        with open("../style.css", "r") as f:
+        with open("style.css", "r") as f:
             self.style, self.style_combobox, _ = f.read().split("$split$")
 
         self.numb_of_components = len(self.main_window_material_comboboxes)
@@ -922,7 +922,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 percent,
             )
 
-        oImage = QImage("../fon.jpg")
+        oImage = QImage("fon.jpg")
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)
@@ -1550,7 +1550,7 @@ class PairReactWindow(
         super(PairReactWindow, self).__init__()
         self.setupUi(self)
 
-        oImage = QImage("../fon.jpg")
+        oImage = QImage("fon.jpg")
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(oImage))
         self.setPalette(palette)

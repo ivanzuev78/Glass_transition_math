@@ -11,7 +11,7 @@ DB_NAME = "material.db"
 class InitClass:
     def __init__(self, debug=False):
         self.debug = debug
-        src_ini_setting = "../settings.ini"
+        src_ini_setting = "settings.ini"
         if not exists(src_ini_setting):
             print(
                 f"ФАЙЛ С НАСТРОЙКАМИ {src_ini_setting} НЕ НАЙДЕН\nУстановленны настройки по умолчанию"
