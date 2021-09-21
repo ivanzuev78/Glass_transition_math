@@ -236,25 +236,15 @@ class ORMDataBase:
 
     def read_profile(self, profile_name: str) -> Profile:
         profile = Profile(profile_name, self)
-        for mat_id, correction_map_str in self.get_profile_material_map(profile_name):
-            mat_name, mat_type, ew = self.get_material_by_id(mat_id)
-            profile.add_material(DataMaterial(mat_name, mat_type, ew, mat_id))
-            if correction_map_str is not None:
-                correction_material_id_list = map(
-                    lambda x: int(x), correction_map_str.split(",")
-                )
-                tg_correction_material = TgCorrectionMaterial(mat_name)
-                for cor_map_id in correction_material_id_list:
-                    correction, x_min, x_max, pair = self.get_correction_by_id(
-                        cor_map_id
-                    )
-                    tg_correction_material.add_correction(
-                        correction, x_min, x_max, pair
-                    )
-                # TODO Подключить коррекцию к профилю (нужно реализовать логику в самом профиле)
+        for mat_id in self.get_profile_material_map(profile_name):
+            mat_name, mat_type, ew = self.get_material_by_id(mat_id[0])
+            profile.add_material(DataMaterial(mat_name, mat_type, ew, mat_id[0]))
+
+
+            # TODO Подключить коррекцию к профилю (нужно реализовать логику в самом профиле)
         return profile
 
-    def get_all_profiles(self) -> List[str]:
+    def get_all_profiles(self) -> List[Tuple[int]]:
         """
         Получение всех профилей из базы
         """
@@ -264,7 +254,7 @@ class ORMDataBase:
         all_profiles = [res[0] for res in cursor.fetchall()]
         return all_profiles
 
-    def get_profile_material_map(self, profile: str) -> List[Tuple]:
+    def get_profile_material_map(self, profile: str) -> List[int]:
         """
         Получение списка всех материалов в профиле и их коррекций
         :param profile: Имя профиля
@@ -273,9 +263,10 @@ class ORMDataBase:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(
-            f"SELECT Material, CorrMat_map FROM Prof_mat_map WHERE (Profile = '{profile}') "
+            f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile}') "
         )
-        return cursor.fetchall()
+        res = cursor.fetchall()
+        return res
 
     def get_material_by_id(self, mat_id: int) -> Tuple:
         """
@@ -288,7 +279,8 @@ class ORMDataBase:
         cursor.execute(
             f"SELECT Name, Type, ew  FROM Materials WHERE (id = '{mat_id}') "
         )
-        return cursor.fetchall()[0]
+        result = cursor.fetchall()
+        return result[0]
 
     def get_tg_by_material_id(self, epoxy_id, amine_id):
         connection = sqlite3.connect(self.db_name)

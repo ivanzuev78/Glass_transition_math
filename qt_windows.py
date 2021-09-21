@@ -20,20 +20,15 @@ from pandas import Series
 
 from additional_funcs import set_qt_stile
 from data_classes import Profile
-from debug_funcs import debug_percent
 from edit_db_windows import EditDataWindow
 from material_classes import Material, Receipt
 
-DB_NAME = "material.db"
-# DB_NAME = "material_for_test.db"
-
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
-    def __init__(self, profile: Profile, db_name=DB_NAME, debug=False):
+    def __init__(self, profile: Profile, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
 
-        self.db_name = db_name
         self.profile = profile
         self.debug_flag = debug
         oimage = QImage("fon.jpg")
@@ -1451,7 +1446,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 if self.previousPercents == self.percents:
                     fix_loop += 1
 
-                debug_percent(current_percent_line)
                 delta -= step
                 delta = round(delta, 2)
                 for line in range(self.numb_of_components):
