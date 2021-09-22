@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 import numpy as np
 from PyQt5.QtWidgets import QPushButton, QComboBox
 from pandas import DataFrame
@@ -16,7 +18,7 @@ def normalize(array: np.array) -> np.array:
     return array / array.sum()
 
 
-def set_qt_stile(style_path, window):
+def set_qt_stile(style_path, window, *args):
     """
     Функция для установки стиля в окнах. Автоматически всё раскрашивает.
     :param style_path: Путь к файлу со стилями.
@@ -37,3 +39,17 @@ def set_qt_stile(style_path, window):
         elif isinstance(attr_instance, QComboBox):
             attr_instance.setStyleSheet(style_combobox)
 
+    # Проходимся по неименованым переданным аргументам, ищем, что бы раскрасить
+    for widget_list in args:
+        # Предполагается, что передаются списки объектов, которым нужно установить стиль
+        if isinstance(widget_list, Iterable):
+            for attr_instance in widget_list:
+                if isinstance(attr_instance, QPushButton):
+                    attr_instance.setStyleSheet(style)
+                elif isinstance(attr_instance, QComboBox):
+                    attr_instance.setStyleSheet(style_combobox)
+        # Но если вдруг это будут сами объекты, то им тоже попробуем установить стиль
+        elif isinstance(widget_list, QPushButton):
+            widget_list.setStyleSheet(style)
+        elif isinstance(widget_list, QComboBox):
+            widget_list.setStyleSheet(style_combobox)

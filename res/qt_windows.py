@@ -908,6 +908,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
         self.component_ratio = None
 
+        # Добавляем строки с компонентами
         for index, widget in enumerate(self.main_window_material_comboboxes):
             percent = float(self.main_window_material_percent_lines[index].text())
             self.percents.append(percent)
@@ -922,10 +923,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 percent,
             )
 
-        oImage = QImage("fon.jpg")
-        palette = QPalette()
-        palette.setBrush(QPalette.Window, QBrush(oImage))
-        self.setPalette(palette)
+        set_qt_stile('style.css', self)
 
         self.resize(680, 85 + 38 * len(self.material_types))
 
@@ -1550,10 +1548,7 @@ class PairReactWindow(
         super(PairReactWindow, self).__init__()
         self.setupUi(self)
 
-        oImage = QImage("fon.jpg")
-        palette = QPalette()
-        palette.setBrush(QPalette.Window, QBrush(oImage))
-        self.setPalette(palette)
+        set_qt_stile('style.css', self)
 
         self.main_window = main_window
         self.receipt_a = receipt_a

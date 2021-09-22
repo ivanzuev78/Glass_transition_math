@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import *
 from Sintez_windows import ChoosePairReactWindow, SintezWindow
 
 from additional_funcs import TgMaterialInfluence, count_total_influence_df
+from res.additional_funcs import set_qt_stile
 
 DB_NAME = "material.db"
 # DB_NAME = "material_for_test.db"
@@ -2016,22 +2017,7 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui
         self.cancel_but.clicked.connect(self.close)
         self.mat_type.addItems(self.main_window.types_of_items)
 
-        self.button_list = [self.save_but, self.cancel_but]
-        oImage = QImage("fon.jpg")
-        palette = QPalette()
-        palette.setBrush(QPalette.Window, QBrush(oImage))
-        self.setPalette(palette)
-
-        with open("style.css", "r") as f:
-            self.style, self.style_combobox = f.read().split("$split$")
-
-        self.mat_type.setStyleSheet(self.style_combobox)
-        self.set_button_stylizes()
-
-    def set_button_stylizes(self):
-
-        for widget in self.button_list:
-            widget.setStyleSheet(self.style)
+        set_qt_stile('style.css', self)
 
     def add_material(self):
         mat_type = self.mat_type.currentText()
