@@ -30,36 +30,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.profile = profile
         self.debug_flag = debug
 
-
-
-
-
-        pixmap = QPixmap("icons/lock.png")
-        self.label_lock_a.setPixmap(pixmap)
-        self.label_lock_b.setPixmap(pixmap)
-
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("icons/update.png"))
-        self.update_but.setIcon(icon)
-
-        self.button_list = [
-            self.a_receipt_but,
-            self.b_receipt_but,
-            self.debug_but,
-            self.normalise_A,
-            self.normalise_B,
-            self.update_but,
-            self.font_up_but,
-            self.font_down_but,
-            self.radioButton_A,
-            self.radioButton_B,
-        ]
-        self.big_button_list = [
-            self.add_A_but,
-            self.add_B_but,
-            self.del_A_but,
-            self.del_B_but,
-        ]
+        # TODO Вынести изменения шрифта в init_class, чтобы установка происходила через него и сразу всем
         self.all_labels = [
             self.mass_ratio_label,
             self.tg_main_label,
@@ -96,8 +67,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             )
 
         set_qt_stile('style.css', self)
-        self.change_receipt_color("A", color_red=True)
-        self.change_receipt_color("B", color_red=True)
+        self.set_inner_style()
+
         self.types_of_items = []
         self.update_list_of_material_types()
         self.list_of_material_names = {}
@@ -135,24 +106,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.pair_react_window: Optional[PairReactWindow] = None
 
         # ======================== Подключаем кнопки =======================================
+        self.connect_buttons()
 
-        self.add_A_but.clicked.connect(self.add_a_line)
-        self.add_B_but.clicked.connect(self.add_b_line)
-        self.del_A_but.clicked.connect(self.del_a_line)
-        self.del_B_but.clicked.connect(self.del_b_line)
-
-        self.normalise_A.clicked.connect(self.normalise_func("A"))
-        self.normalise_B.clicked.connect(self.normalise_func("B"))
-
-        self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
-        self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
-
-        # ====================================== Кнопки меню =======================================
-        self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
-        self.menu_prof_edit.triggered.connect(self.add_profile_edit_window)
-
-        self.debug_but.clicked.connect(self.debug)
-        self.update_but.clicked.connect(self.debug_2)
 
     def debug(self) -> None:
         # print(self.pair_react_window.checkboxes_a)
@@ -191,9 +146,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def debug_2(self) -> None:
         global profile
         print(profile)
-
-
-
 
     def hide_top(self, component: str) -> None:
         """
@@ -836,14 +788,56 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 style = self.style
             self.b_receipt_but.setStyleSheet(style)
 
+    def set_inner_style(self):
+        """
+        Устанавливает элементы стиля присуще только этому окну
+        :return:
+        """
+
+        self.change_receipt_color("A", color_red=True)
+        self.change_receipt_color("B", color_red=True)
+
+        pixmap = QPixmap("icons/lock.png")
+        self.label_lock_a.setPixmap(pixmap)
+        self.label_lock_b.setPixmap(pixmap)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("icons/update.png"))
+        self.update_but.setIcon(icon)
+
+    def connect_buttons(self):
+        """
+        Здесь происходит подключение всех кнопок
+        """
+        # ======================== Подключаем кнопки =======================================
+        self.add_A_but.clicked.connect(self.add_a_line)
+        self.add_B_but.clicked.connect(self.add_b_line)
+        self.del_A_but.clicked.connect(self.del_a_line)
+        self.del_B_but.clicked.connect(self.del_b_line)
+
+        self.normalise_A.clicked.connect(self.normalise_func("A"))
+        self.normalise_B.clicked.connect(self.normalise_func("B"))
+
+        self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
+        self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
+
+        # ====================================== Кнопки меню =======================================
+        self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
+        self.menu_prof_edit.triggered.connect(self.add_profile_edit_window)
+        # ====================================== Кнопки дебага =======================================
+        self.debug_but.clicked.connect(self.debug)
+        self.update_but.clicked.connect(self.debug_2)
+
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
     def __init__(self, main_window: MyMainWindow, component):
         super(SintezWindow, self).__init__()
-        self.lines_to_change = []
         self.setupUi(self)
+
         self.main_window = main_window
         self.component = component
+
+        self.lines_to_change = []
         self.horizontalSlider = {}
         self.line_percent = {}
         self.line_EW = {}
