@@ -2,8 +2,7 @@ from collections import defaultdict
 from copy import copy
 from itertools import cycle
 from math import inf
-from time import time
-from typing import Optional, Union, List, Tuple, Iterable
+from typing import Optional, Union, List, Iterable
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
@@ -16,30 +15,24 @@ from PyQt5.QtWidgets import (
     QSpacerItem,
     QListWidget,
 )
-from pandas import Series
 
-from additional_funcs import set_qt_stile
-from data_classes import Profile
-from debug_funcs import debug_percent
-from edit_db_windows import EditDataWindow
-from material_classes import Material, Receipt
-
-DB_NAME = "material.db"
-# DB_NAME = "material_for_test.db"
+from res.additional_funcs import set_qt_stile
+from res.data_classes import Profile
+from res.edit_db_windows import EditDataWindow
+from res.material_classes import Material, Receipt
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
-    def __init__(self, profile: Profile, db_name=DB_NAME, debug=False):
+    def __init__(self, profile: Profile, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
 
-        self.db_name = db_name
         self.profile = profile
         self.debug_flag = debug
-        oimage = QImage("fon.jpg")
-        palette = QPalette()
-        palette.setBrush(QPalette.Window, QBrush(oimage))
-        self.setPalette(palette)
+
+
+
+
 
         pixmap = QPixmap("icons/lock.png")
         self.label_lock_a.setPixmap(pixmap)
@@ -101,8 +94,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.style, self.style_combobox, self.style_red_but = f.read().split(
                 "$split$"
             )
-        self.set_bottom_styles()
 
+        set_qt_stile('style.css', self)
+        self.change_receipt_color("A", color_red=True)
+        self.change_receipt_color("B", color_red=True)
         self.types_of_items = []
         self.update_list_of_material_types()
         self.list_of_material_names = {}
@@ -117,7 +112,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.hide_top("A")
         self.hide_top("B")
 
-        # Контейнеры для хранения строк
+        # ========================  Контейнеры для хранения строк ========================
         self.material_a_types = []
         self.material_b_types = []
         self.material_comboboxes_a = []
@@ -197,15 +192,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         global profile
         print(profile)
 
-    def set_bottom_styles(self) -> None:
-        """
-        Устанавливает стили кнопок в окне
-        """
-        # TODO Заменить set_bottom_styles на вынесенную функцию
-        for widget in self.button_list + self.big_button_list:
-            widget.setStyleSheet(self.style)
-        self.change_receipt_color("A", color_red=True)
-        self.change_receipt_color("B", color_red=True)
+
+
 
     def hide_top(self, component: str) -> None:
         """
@@ -1451,7 +1439,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 if self.previousPercents == self.percents:
                     fix_loop += 1
 
-                debug_percent(current_percent_line)
                 delta -= step
                 delta = round(delta, 2)
                 for line in range(self.numb_of_components):

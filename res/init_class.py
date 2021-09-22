@@ -1,10 +1,9 @@
 import configparser
-import pickle
 from os.path import exists
 
-from data_classes import Profile, ProfileManager, ORMDataBase
-from material_classes import Receipt, ReceiptCounter
-from qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
+from res.data_classes import Profile, ORMDataBase
+from res.material_classes import Receipt, ReceiptCounter
+from res.qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
 DB_NAME = "material.db"
 
