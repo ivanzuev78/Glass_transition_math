@@ -13,16 +13,19 @@ from res.corrections import TgCorrectionMaterial, Correction
 
 class DataMaterial:
     def __init__(self, name, mat_type, ew, db_id=None):
+        self.name: str = name
+        self.mat_type: str = mat_type
+        self.ew: float = ew
+        self.db_id: int = db_id
+        self.corrections: List[Correction] = []
+
+    # Возможно, не используется
+    def create_new(self, name: str, mat_type: str, ew: float):
         self.name = name
         self.mat_type = mat_type
         self.ew = ew
-        self.db_id = db_id
 
-    def create_new(self, name, mat_type, ew):
-        self.name = name
-        self.mat_type = mat_type
-        self.ew = ew
-
+    # Возможно, не используется
     def to_json(self):
         data = {}
         data["name"] = self.name
@@ -30,6 +33,13 @@ class DataMaterial:
         data["ew"] = self.ew
         data["db_id"] = self.db_id
         return data
+
+    def add_correction(self, correction: Correction):
+        self.corrections.append(correction)
+
+    def remove_correction(self, correction: Correction):
+        if correction in self.corrections:
+            self.corrections.remove(correction)
 
 
 class DataGlass:

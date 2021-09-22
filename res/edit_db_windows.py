@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QWidget,
-    QPushButton,
+    QPushButton, QTextBrowser,
 )
 
 from res.additional_funcs import set_qt_stile
@@ -93,7 +93,7 @@ class ProfileMaterialWidget(QListWidget):
 
         self.currentItemChanged.connect(self.change_index_in_data_material_widget)
         # TODO Добавить вызов окна редактирования материала
-        # self.itemDoubleClicked.connect(self.data_material_widget.open_mat_editor)
+        self.itemDoubleClicked.connect(self.data_material_widget.open_mat_editor)
 
     def change_index_in_data_material_widget(self):
         text = self.currentIndex().data()
@@ -144,17 +144,19 @@ class DataMaterialWidget(QListWidget):
 
         self.profile_material_widget: Optional[ProfileMaterialWidget] = None
         # TODO Добавить вызов окна редактирования материала
-        # self.itemDoubleClicked.connect(self.open_mat_editor)
+        self.itemDoubleClicked.connect(self.open_mat_editor)
         self.currentItemChanged.connect(self.change_index_in_profile_material_widget)
 
     def change_index_in_profile_material_widget(self):
-        text = self.currentIndex().data()
-        if text in self.profile_material_widget.profile_materials_names:
-            index = self.profile_material_widget.profile_materials_names.index(text)
+        row = self.currentIndex().row()
+        material = self.material_list[row]
+        if material in self.profile_material_widget.profile_materials:
+            index = self.profile_material_widget.profile_materials.index(material)
             self.profile_material_widget.setCurrentRow(index)
 
     def open_mat_editor(self):
-        self.mat_editor = CreateMaterialWindow(self.edit_window)
+        material = self.material_list[self.currentIndex().row()]
+        self.mat_editor = EditMaterialWindow(self.edit_window, material)
         self.mat_editor.show()
         self.edit_window.close_to_edit_material = True
         self.edit_window.close()
@@ -286,13 +288,34 @@ class EditMaterialWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/edit_material_with_corrections.ui")[0]
 ):
     def __init__(
-        self, previous_window
+        self, previous_window: EditDataWindow,
+            material: DataMaterial = None
     ):
         super(EditMaterialWindow, self).__init__()
         self.setupUi(self)
         self.previos_window = previous_window
+        self.profile = previous_window.profile
+        self.material = material
         set_qt_stile(
             "style.css", self)
+        self.set_material()
+        self.corrections: List[Correction] = []
+
+    def set_material(self):
+        self.type_comboBox: QComboBox
+        self.corrections_listWidget: QListWidget
+        self.cor_textBrowser: QTextBrowser
+        types = self.profile.get_all_types()
+        self.type_comboBox.addItems(types)
+        if self.material is not None:
+            index = types.index(self.material.mat_type)
+            self.type_comboBox.setCurrentIndex(index)
+            self.name_lineEdit.setText(self.material.name)
+            self.ew_lineEdit.setText(str(self.material.ew))
+            self.corrections = self.material.corrections
+            for cor in self.corrections:
+                self.corrections_listWidget.addText(cor.name)
+                self.cor_textBrowser.setText(cor.comment)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.previos_window.show()
