@@ -333,7 +333,7 @@ class EditMaterialWindow(
         import numpy as np
         x_min, x_max = limit
         # Data for plotting
-        t = np.arange(x_min, x_max, 0.01)
+        t = np.arange(x_min, x_max, 0.1)
         s = [cor(x) for x in t]
 
         fig, ax = plt.subplots()
