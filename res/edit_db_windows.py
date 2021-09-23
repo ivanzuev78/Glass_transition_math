@@ -1,5 +1,5 @@
 import sys
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple, Union
 
 from PyQt5 import QtGui, QtWidgets, uic
 from PyQt5.QtWidgets import (
@@ -298,9 +298,10 @@ class EditMaterialWindow(
         self.material = material
         set_qt_stile(
             "style.css", self)
-        self.corrections: List[Correction] = []
+        self.corrections: List[Tuple[Correction, Tuple[float, float], Union[Tuple, None]]] = []
         self.set_material()
         self.corrections_listWidget.currentItemChanged.connect(self.change_row)
+        self.corrections_listWidget.itemDoubleClicked.connect(self.show_correction)
 
     def set_material(self):
         self.type_comboBox: QComboBox
@@ -318,15 +319,32 @@ class EditMaterialWindow(
                 corection, (x_min, x_max), pair = cor_data
                 self.corrections_listWidget.addItem(corection.name)
 
-            # self.cor_textBrowser.setText(corection.comment)
-
     def change_row(self):
         self.corrections_listWidget: QListWidget
         self.cor_textBrowser: QTextBrowser
         row_numb = self.corrections_listWidget.currentRow()
         cor = self.corrections[row_numb]
         self.cor_textBrowser.setText(cor[0].comment)
-        print(row_numb)
+
+    def show_correction(self):
+        row_numb: int = self.corrections_listWidget.currentRow()
+        cor, limit, pair = self.corrections[row_numb]
+        import matplotlib.pyplot as plt
+        import numpy as np
+        x_min, x_max = limit
+        # Data for plotting
+        t = np.arange(x_min, x_max, 0.01)
+        s = [cor(x) for x in t]
+
+        fig, ax = plt.subplots()
+        ax.plot(t, s)
+        string = "систему в целом "
+        ax.set(xlabel='Содержание вещества в системе, %', ylabel='Влияние на температуру стеклования, °С',
+               title=f"Влияние \'{self.material.name}\' на {pair if pair is not None else string }")
+        ax.grid()
+
+        fig.savefig("test.png")
+        plt.show()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.previos_window.show()

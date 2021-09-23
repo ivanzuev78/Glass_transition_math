@@ -71,13 +71,14 @@ class Profile:
         :param material:
         :return:
         """
-        self.materials[material.mat_type].append(material)
-        self.id_name_dict[material.db_id] = material
-        if self.my_main_window is not None:
-            self.my_main_window.update_list_of_material_names()
-        # Если материал Амин или Эпоксид, обнуляем tg_df
-        if self.tg_df is not None and material.mat_type in ("Amine", "Epoxy"):
-            self.tg_df = None
+        if material not in self.materials[material.mat_type]:
+            self.materials[material.mat_type].append(material)
+            self.id_name_dict[material.db_id] = material
+            if self.my_main_window is not None:
+                self.my_main_window.update_list_of_material_names()
+            # Если материал Амин или Эпоксид, обнуляем tg_df
+            if self.tg_df is not None and material.mat_type in ("Amine", "Epoxy"):
+                self.tg_df = None
 
     def remove_material(self, material: DataMaterial) -> None:
         """
@@ -246,15 +247,16 @@ class ORMDataBase:
     def __init__(self, db_name):
         self.db_name = db_name
         self.current_profile = None
+        # все материалы в базе {material_id: DataMaterial}
         self.all_materials = {}
         self.update_all_materials()
 
     def read_profile(self, profile_name: str) -> Profile:
         profile = Profile(profile_name, self)
         for mat_id in self.get_profile_materials(profile_name):
-            print('debug')
-            profile.add_material(self.all_materials[mat_id[0]])
+            profile.add_material(self.all_materials[mat_id])
             # TODO Подключить коррекцию к профилю (нужно реализовать логику в самом профиле)
+        self.current_profile = profile
         return profile
 
     def get_all_profiles(self) -> List[Tuple[int]]:
@@ -267,7 +269,7 @@ class ORMDataBase:
         all_profiles = [res[0] for res in cursor.fetchall()]
         return all_profiles
 
-    def get_profile_materials(self, profile: str) -> List[Tuple[int]]:
+    def get_profile_materials(self, profile: str) -> List[int]:
         """
         Получение списка всех материалов в профиле и их коррекций
         :param profile: Имя профиля
@@ -278,9 +280,9 @@ class ORMDataBase:
         cursor.execute(
             f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile}') "
         )
-        res = cursor.fetchall()
-        return res
+        return [i[0] for i in cursor.fetchall()]
 
+    # Пока не используется
     def get_material_by_id(self, mat_id: int) -> Tuple:
         """
         Получение материала по id. Используется после получения всех id материалов в профиле
@@ -293,7 +295,8 @@ class ORMDataBase:
             f"SELECT Name, Type, ew  FROM Materials WHERE (id = '{mat_id}') "
         )
         result = cursor.fetchall()
-        return result[0]
+        material = DataMaterial(*result[0], mat_id)
+        return material
 
     def get_tg_by_material_id(self, epoxy_id, amine_id):
         connection = sqlite3.connect(self.db_name)
@@ -394,6 +397,7 @@ class ORMDataBase:
             self.add_material_to_profile(material, profile)
         elif self.current_profile is not None:
             self.add_material_to_profile(material, self.current_profile)
+        self.all_materials[mat_id] = material
 
     def add_material_to_profile(self, material: DataMaterial, profile: Profile):
         """
@@ -409,6 +413,7 @@ class ORMDataBase:
         data = [profile.profile_name, material.db_id]
         cursor.execute(insert, data)
         connection.commit()
+        profile.add_material(material)
 
     def get_all_materials_data(self):
         connection = sqlite3.connect(self.db_name)

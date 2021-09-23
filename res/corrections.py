@@ -1,6 +1,6 @@
 from collections import defaultdict
 from math import exp
-from typing import Tuple, Iterable, List
+from typing import Tuple, Iterable, List, Union
 
 
 class Correction:
@@ -109,7 +109,7 @@ class TgCorrectionMaterial:
             if limit in self.global_correction.keys():
                 del self.global_correction[limit]
 
-    def get_all_corrections(self) -> List[List]:
+    def get_all_corrections(self) -> List[Tuple[Correction, Tuple[float, float], Union[Tuple, None]]]:
         """
         Возвращает список коррекций данного материала
         :return: [ [Correction, limits, pair] , [...], ... ]
@@ -119,10 +119,8 @@ class TgCorrectionMaterial:
             for limits, correction in cor_dict.items():
                 corrections.append([correction, limits, pair])
         for limits, correction in self.global_correction.items():
-            corrections.append([correction, limits, None])
+            corrections.append((correction, limits, None))
         return corrections
-
-
 
     def __call__(self, value: float, pair: Tuple[str] = None) -> dict:
         """
