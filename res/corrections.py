@@ -1,6 +1,6 @@
 from collections import defaultdict
 from math import exp
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, List
 
 
 class Correction:
@@ -8,7 +8,7 @@ class Correction:
     f(x) = k_e * exp(k_exp * x) + k0 + k1 * x + k2 * x2 ...
     """
 
-    def __init__(self, cor_name: str, cor_comment: str, db_id: int = None, k_e: float = 0, k_exp: float = 0,
+    def __init__(self, cor_name: str, cor_comment: str, k_e: float = 0, k_exp: float = 0, db_id: int = None,
                  polynomial_coefficients: Iterable = None):
         self.name = cor_name
         self.comment = cor_comment
@@ -108,6 +108,21 @@ class TgCorrectionMaterial:
         else:
             if limit in self.global_correction.keys():
                 del self.global_correction[limit]
+
+    def get_all_corrections(self) -> List[List]:
+        """
+        Возвращает список коррекций данного материала
+        :return: [ [Correction, limits, pair] , [...], ... ]
+        """
+        corrections = []
+        for pair, cor_dict in self.correction_funcs.items():
+            for limits, correction in cor_dict.items():
+                corrections.append([correction, limits, pair])
+        for limits, correction in self.global_correction.items():
+            corrections.append([correction, limits, None])
+        return corrections
+
+
 
     def __call__(self, value: float, pair: Tuple[str] = None) -> dict:
         """

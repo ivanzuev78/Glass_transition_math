@@ -17,7 +17,7 @@ class DataMaterial:
         self.mat_type: str = mat_type
         self.ew: float = ew
         self.db_id: int = db_id
-        self.corrections: List[Correction] = []
+        self.correction: TgCorrectionMaterial = TgCorrectionMaterial(name)
 
     # Возможно, не используется
     def create_new(self, name: str, mat_type: str, ew: float):
@@ -34,12 +34,15 @@ class DataMaterial:
         data["db_id"] = self.db_id
         return data
 
-    def add_correction(self, correction: Correction):
-        self.corrections.append(correction)
+    def add_correction(self, correction: Correction, x_min, x_max, pair):
+        self.correction.add_correction(correction, x_min, x_max, pair)
 
-    def remove_correction(self, correction: Correction):
-        if correction in self.corrections:
-            self.corrections.remove(correction)
+    def get_all_corrections(self):
+        return self.correction.get_all_corrections()
+
+    # def remove_correction(self, correction: Correction):
+    #     if correction in self.corrections:
+    #         self.corrections.remove(correction)
 
 
 class DataGlass:
@@ -243,14 +246,14 @@ class ORMDataBase:
     def __init__(self, db_name):
         self.db_name = db_name
         self.current_profile = None
+        self.all_materials = {}
+        self.update_all_materials()
 
     def read_profile(self, profile_name: str) -> Profile:
         profile = Profile(profile_name, self)
-        for mat_id in self.get_profile_material_map(profile_name):
-            mat_name, mat_type, ew = self.get_material_by_id(mat_id[0])
-            profile.add_material(DataMaterial(mat_name, mat_type, ew, mat_id[0]))
-
-
+        for mat_id in self.get_profile_materials(profile_name):
+            print('debug')
+            profile.add_material(self.all_materials[mat_id[0]])
             # TODO Подключить коррекцию к профилю (нужно реализовать логику в самом профиле)
         return profile
 
@@ -264,7 +267,7 @@ class ORMDataBase:
         all_profiles = [res[0] for res in cursor.fetchall()]
         return all_profiles
 
-    def get_profile_material_map(self, profile: str) -> List[int]:
+    def get_profile_materials(self, profile: str) -> List[Tuple[int]]:
         """
         Получение списка всех материалов в профиле и их коррекций
         :param profile: Имя профиля
@@ -299,6 +302,20 @@ class ORMDataBase:
         amine_str = "".join([f"{i}, " for i in amine_id])[:-2]
         string = f"SELECT Epoxy, Amine, Value FROM Tg WHERE Epoxy in ({epoxy_str}) AND Amine in ({amine_str})"
         cursor.execute(string)
+        return cursor.fetchall()
+
+    def get_all_corrections_of_one_material(self, mat_id: int):
+        """
+        Возвращает список коррекций поданного материала
+        :param mat_id: id материала
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        # Получаем информацию о одной функции
+        cursor.execute(
+            f"SELECT Correction FROM Mat_cor_map WHERE (Material = '{mat_id}') "
+        )
         return cursor.fetchall()
 
     def get_correction_by_id(self, cor_map_id):
@@ -340,7 +357,7 @@ class ORMDataBase:
         )
         polynom_coefs = cursor.fetchall()
 
-        correction = Correction(cor_name, cor_comment, k_e, k_exp)
+        correction = Correction(cor_name, cor_comment, k_e, k_exp, correction_id)
         for power, coef in polynom_coefs:
             correction.edit_polynomial_coefficient(coef, power)
 
@@ -393,8 +410,22 @@ class ORMDataBase:
         cursor.execute(insert, data)
         connection.commit()
 
-    def get_all_materials(self):
+    def get_all_materials_data(self):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
         return cursor.fetchall()
+
+    def update_all_materials(self):
+        self.all_materials = {}
+        for name, mat_type, ew, mat_id in self.get_all_materials_data():
+            material = DataMaterial(name, mat_type, ew, mat_id)
+            # Подключаем все коррекции
+            for correction_id in self.get_all_corrections_of_one_material(mat_id):
+                correction_id = correction_id[0]
+                correction, x_min, x_max, pair = self.get_correction_by_id(correction_id)
+                material.add_correction(correction, x_min, x_max, pair)
+            self.all_materials[mat_id] = material
+
+    def get_all_materials(self):
+        return [i for i in self.all_materials.values()]

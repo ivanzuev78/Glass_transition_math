@@ -134,13 +134,13 @@ class DataMaterialWidget(QListWidget):
         # self.setAcceptDrops(True)
         self.setDragEnabled(True)
         self.resize(200, 450)
-        self.material_list: List[DataMaterial] = []
-        self.names_list: List[str] = []
         self.orm_db = self.edit_window.profile.orm_db
-        for name, mat_type, ew, db_id in self.orm_db.get_all_materials():
-            self.names_list.append(name)
-            self.material_list.append(DataMaterial(name, mat_type, ew, db_id))
-            self.addItem(name)
+        self.material_list: List[DataMaterial] = self.orm_db.get_all_materials()
+        self.names_list: List[str] = []
+
+        for material in self.material_list:
+            self.addItem(material.name)
+            self.names_list.append(material.name)
 
         self.profile_material_widget: Optional[ProfileMaterialWidget] = None
         # TODO Добавить вызов окна редактирования материала
@@ -298,8 +298,9 @@ class EditMaterialWindow(
         self.material = material
         set_qt_stile(
             "style.css", self)
-        self.set_material()
         self.corrections: List[Correction] = []
+        self.set_material()
+        self.corrections_listWidget.currentItemChanged.connect(self.change_row)
 
     def set_material(self):
         self.type_comboBox: QComboBox
@@ -312,10 +313,20 @@ class EditMaterialWindow(
             self.type_comboBox.setCurrentIndex(index)
             self.name_lineEdit.setText(self.material.name)
             self.ew_lineEdit.setText(str(self.material.ew))
-            self.corrections = self.material.corrections
-            for cor in self.corrections:
-                self.corrections_listWidget.addText(cor.name)
-                self.cor_textBrowser.setText(cor.comment)
+            self.corrections = self.material.correction.get_all_corrections()
+            for cor_data in self.corrections:
+                corection, (x_min, x_max), pair = cor_data
+                self.corrections_listWidget.addItem(corection.name)
+
+            # self.cor_textBrowser.setText(corection.comment)
+
+    def change_row(self):
+        self.corrections_listWidget: QListWidget
+        self.cor_textBrowser: QTextBrowser
+        row_numb = self.corrections_listWidget.currentRow()
+        cor = self.corrections[row_numb]
+        self.cor_textBrowser.setText(cor[0].comment)
+        print(row_numb)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.previos_window.show()
