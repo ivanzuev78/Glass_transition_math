@@ -403,6 +403,8 @@ class ORMDataBase:
         """
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
+        if material.db_id in self.get_profile_materials(profile.profile_name):
+            return None
         insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
         data = [profile.profile_name, material.db_id]
         cursor.execute(insert, data)
@@ -433,22 +435,18 @@ class ORMDataBase:
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        # TODO Вставить название таблицы
-        cursor.execute(f"SELECT id FROM *Вставить название таблицы*")
+        cursor.execute(f"SELECT id FROM Corrections")
         all_id = cursor.fetchall()
         cor_id = max(all_id, key=lambda x: int(x[0]))[0] + 1
         correction.db_id = cor_id
-
         data = [cor_id, correction.name, correction.comment, correction.k_e, correction.k_exp]
-        # TODO Вставить название таблицы и столбцов
-        insert = f"INSERT INTO Materials (id, name, type, ew) VALUES (?, ?, ?, ?);"
+        insert = f"INSERT INTO Corrections (id, Name, Comment, k_e, k_exp) VALUES (?, ?, ?, ?, ?);"
         cursor.execute(insert, data)
         # Добавляем коэффициенты в таблицу полиномиальных коэффициентов
         for power, coef in enumerate(correction.polynomial_coefficients):
             if coef != 0.0:
                 data = [cor_id, power, coef]
-                # TODO Вставить название таблицы и столбцов
-                insert = f"INSERT INTO *Вставить название таблицы* (*cor_id*, power, coef) VALUES (?, ?, ?);"
+                insert = f"INSERT INTO corr_poly_coef_map (Correction, Power, coef) VALUES (?, ?, ?);"
                 cursor.execute(insert, data)
-
+        connection.commit()
 
