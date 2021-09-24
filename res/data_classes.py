@@ -283,7 +283,7 @@ class ORMDataBase:
         return [i[0] for i in cursor.fetchall()]
 
     # Пока не используется
-    def get_material_by_id(self, mat_id: int) -> Tuple:
+    def get_material_by_id(self, mat_id: int) -> DataMaterial:
         """
         Получение материала по id. Используется после получения всех id материалов в профиле
         :param mat_id:
@@ -333,14 +333,8 @@ class ORMDataBase:
         cursor.execute(
             f"SELECT Material_id, Amine,  Epoxy, x_max, x_min, Correction FROM CorrectionMaterial_map WHERE (id = '{cor_map_id}') "
         )
-        (
-            material_id,
-            amine_id,
-            epoxy_id,
-            x_max,
-            x_min,
-            correction_id,
-        ) = cursor.fetchall()[0]
+
+        material_id, amine_id, epoxy_id, x_max, x_min, correction_id, = cursor.fetchall()[0]
 
         # Если есть амин, значит коррекция для пары, а не на всю систему
         if amine_id is not None:
@@ -366,7 +360,7 @@ class ORMDataBase:
 
         # tg_correction_material.add_correction(correction, x_min, x_max,
         #                                       (amine_name, epoxy_name) if amine_id is not None else None)
-
+        # TODO Возможно, стоит привязывать коррекцию к материалу по id, а не по названию
         return (
             correction,
             x_min,
@@ -434,3 +428,27 @@ class ORMDataBase:
 
     def get_all_materials(self):
         return [i for i in self.all_materials.values()]
+
+    def add_correction(self, correction: Correction):
+
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        # TODO Вставить название таблицы
+        cursor.execute(f"SELECT id FROM *Вставить название таблицы*")
+        all_id = cursor.fetchall()
+        cor_id = max(all_id, key=lambda x: int(x[0]))[0] + 1
+        correction.db_id = cor_id
+
+        data = [cor_id, correction.name, correction.comment, correction.k_e, correction.k_exp]
+        # TODO Вставить название таблицы и столбцов
+        insert = f"INSERT INTO Materials (id, name, type, ew) VALUES (?, ?, ?, ?);"
+        cursor.execute(insert, data)
+        # Добавляем коэффициенты в таблицу полиномиальных коэффициентов
+        for power, coef in enumerate(correction.polynomial_coefficients):
+            if coef != 0.0:
+                data = [cor_id, power, coef]
+                # TODO Вставить название таблицы и столбцов
+                insert = f"INSERT INTO *Вставить название таблицы* (*cor_id*, power, coef) VALUES (?, ?, ?);"
+                cursor.execute(insert, data)
+
+
