@@ -393,6 +393,16 @@ class ORMDataBase:
             self.add_material_to_profile(material, self.current_profile)
         self.all_materials[mat_id] = material
 
+    def remove_material(self, material: DataMaterial):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f'DELETE FROM Materials WHERE Id={material.db_id}'
+        string_2 = f'DELETE FROM Prof_mat_map WHERE Material={material.db_id}'
+        cursor.execute(string)
+        cursor.execute(string_2)
+        connection.commit()
+
+
     def add_material_to_profile(self, material: DataMaterial, profile: Profile):
         """
         Прикрепляет материал к профилю.
