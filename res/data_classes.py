@@ -450,3 +450,17 @@ class ORMDataBase:
                 cursor.execute(insert, data)
         connection.commit()
 
+    def remove_correction(self, correction: Correction):
+        """
+        Удаляем коррекцию из БД
+        :param correction:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f'DELETE FROM Corrections WHERE Id={correction.db_id}'
+        cursor.execute(string)
+        connection.commit()
+
+
+
