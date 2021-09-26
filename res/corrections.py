@@ -8,8 +8,15 @@ class Correction:
     f(x) = k_e * exp(k_exp * x) + k0 + k1 * x + k2 * x2 ...
     """
 
-    def __init__(self, cor_name: str, cor_comment: str, k_e: float = 0, k_exp: float = 0, db_id: int = None,
-                 polynomial_coefficients: Iterable = None):
+    def __init__(
+        self,
+        cor_name: str,
+        cor_comment: str,
+        k_e: float = 0,
+        k_exp: float = 0,
+        db_id: int = None,
+        polynomial_coefficients: Iterable = None,
+    ):
         self.name = cor_name
         self.comment = cor_comment
         self.k_e = k_e
@@ -109,7 +116,9 @@ class TgCorrectionMaterial:
             if limit in self.global_correction.keys():
                 del self.global_correction[limit]
 
-    def get_all_corrections(self) -> List[Tuple[Correction, Tuple[float, float], Union[Tuple, None]]]:
+    def get_all_corrections(
+        self,
+    ) -> List[Tuple[Correction, Tuple[float, float], Union[Tuple, None]]]:
         """
         Возвращает список коррекций данного материала
         :return: [ [Correction, limits, pair] , [...], ... ]

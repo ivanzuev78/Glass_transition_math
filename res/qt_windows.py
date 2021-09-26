@@ -66,7 +66,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 "$split$"
             )
 
-        set_qt_stile('style.css', self)
+        set_qt_stile("style.css", self)
         self.set_inner_style()
 
         self.types_of_items = []
@@ -107,7 +107,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # ======================== Подключаем кнопки =======================================
         self.connect_buttons()
-
 
     def debug(self) -> None:
         # print(self.pair_react_window.checkboxes_a)
@@ -917,7 +916,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 percent,
             )
 
-        set_qt_stile('style.css', self)
+        set_qt_stile("style.css", self)
 
         self.resize(680, 85 + 38 * len(self.material_types))
 
@@ -1542,7 +1541,7 @@ class PairReactWindow(
         super(PairReactWindow, self).__init__()
         self.setupUi(self)
 
-        set_qt_stile('style.css', self)
+        set_qt_stile("style.css", self)
 
         self.main_window = main_window
         self.receipt_a = receipt_a

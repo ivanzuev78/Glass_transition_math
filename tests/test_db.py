@@ -4,13 +4,14 @@ import sqlite3
 
 from res.corrections import Correction
 from res.data_classes import ORMDataBase, DataMaterial
+
 # conn = sqlite3.connect(':memory:')
 
 
 @pytest.fixture
 def orm_db():
     db_name = "test_db_run.db"
-    copyfile('test_data.db', db_name)
+    copyfile("test_data.db", db_name)
 
     orm_db = ORMDataBase(db_name)
     yield orm_db
@@ -24,21 +25,28 @@ def db_cursor():
     yield cursor
     cursor.close()
 
+
 @pytest.fixture
 def materials():
     mat_list = []
-    mat_list.append(DataMaterial('test', 'my_type', 234, db_id=1))
-    mat_list.append(DataMaterial('test2', 'my_type', 42, db_id=2))
-    mat_list.append(DataMaterial('test3', 'my_type', 666, db_id=3))
+    mat_list.append(DataMaterial("test", "my_type", 234, db_id=1))
+    mat_list.append(DataMaterial("test2", "my_type", 42, db_id=2))
+    mat_list.append(DataMaterial("test3", "my_type", 666, db_id=3))
     return mat_list
 
 
 @pytest.fixture
 def corrections():
     cor_list = []
-    cor_list.append(Correction('test', 'comment', polynomial_coefficients=[34, 0, 0, 0, 28], db_id=1))
-    cor_list.append(Correction('test1', 'comment', polynomial_coefficients=[34, 0, 0], db_id=2))
-    cor_list.append(Correction('test2', 'comment', db_id=3))
+    cor_list.append(
+        Correction(
+            "test", "comment", polynomial_coefficients=[34, 0, 0, 0, 28], db_id=1
+        )
+    )
+    cor_list.append(
+        Correction("test1", "comment", polynomial_coefficients=[34, 0, 0], db_id=2)
+    )
+    cor_list.append(Correction("test2", "comment", db_id=3))
     return cor_list
 
 
@@ -114,4 +122,3 @@ def test_remove_correction(orm_db, db_cursor, corrections):
     db_cursor.execute(f"SELECT * FROM corr_poly_coef_map")
     result = db_cursor.fetchall()
     assert len(result) == 0
-
