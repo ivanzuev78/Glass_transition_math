@@ -49,6 +49,11 @@ class DataGlass:
     """
     Не знаю, как лучше реализовать
     """
+    def __init__(self, epoxy, amine, value, db_id=None):
+        self.db_id = db_id
+        self.epoxy = epoxy
+        self.amine = amine
+        self.value = value
 
 
 class Profile:
@@ -64,6 +69,7 @@ class Profile:
         self.orm_db = orm_db
         self.my_main_window: Optional[MyMainWindow] = None
         self.tg_df = None
+        self.tg_list = None
 
     def add_material(self, material: DataMaterial) -> None:
         """
@@ -156,11 +162,11 @@ class Profile:
             if "Epoxy" in self.materials.keys() and "Amine" in self.materials.keys():
                 all_id_epoxy = [mat.db_id for mat in self.materials["Epoxy"]]
                 all_id_amine = [mat.db_id for mat in self.materials["Amine"]]
-                tg_list = self.orm_db.get_tg_by_material_id(all_id_epoxy, all_id_amine)
-                for epoxy_id, amine_id, tg_value in tg_list:
-                    epoxy_name = self.id_name_dict[epoxy_id].name
-                    amine_name = self.id_name_dict[amine_id].name
-                    self.tg_df.loc[epoxy_name, amine_name] = tg_value
+                self.tg_list = self.orm_db.get_tg_by_materials_id(all_id_epoxy, all_id_amine)
+                for data_glass in self.tg_list:
+                    epoxy_name = self.id_name_dict[data_glass.epoxy].name
+                    amine_name = self.id_name_dict[data_glass.amine].name
+                    self.tg_df.loc[epoxy_name, amine_name] = data_glass.value
 
         return self.tg_df
 
@@ -259,6 +265,18 @@ class ORMDataBase:
         self.current_profile = profile
         return profile
 
+    def update_all_materials(self):
+        self.all_materials = {}
+        for name, mat_type, ew, mat_id in self.get_all_materials_data():
+            material = DataMaterial(name, mat_type, ew, mat_id)
+            # Подключаем все коррекции
+            for correction_id in self.get_all_corrections_of_one_material(mat_id):
+                correction_id = correction_id[0]
+                correction, x_min, x_max, pair = self.get_correction_by_id(correction_id)
+                material.add_correction(correction, x_min, x_max, pair)
+            self.all_materials[mat_id] = material
+
+    # =========================== Получение данных из БД ==================================
     def get_all_profiles(self) -> List[Tuple[int]]:
         """
         Получение всех профилей из базы
@@ -298,14 +316,23 @@ class ORMDataBase:
         material = DataMaterial(*result[0], mat_id)
         return material
 
-    def get_tg_by_material_id(self, epoxy_id, amine_id):
+    def get_tg_by_materials_id(self, epoxy_id, amine_id):
+        """
+        Проходится
+        :param epoxy_id:
+        :param amine_id:
+        :return:
+        """
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         epoxy_str = "".join([f"{i}, " for i in epoxy_id])[:-2]
         amine_str = "".join([f"{i}, " for i in amine_id])[:-2]
-        string = f"SELECT Epoxy, Amine, Value FROM Tg WHERE Epoxy in ({epoxy_str}) AND Amine in ({amine_str})"
+        string = f"SELECT * FROM Tg WHERE Epoxy in ({epoxy_str}) AND Amine in ({amine_str})"
         cursor.execute(string)
-        return cursor.fetchall()
+        tg_list = []
+        for tg_id, epoxy, amine, value in cursor.fetchall():
+            tg_list.append(DataGlass(epoxy, amine, value, tg_id))
+        return tg_list
 
     def get_all_corrections_of_one_material(self, mat_id: int):
         """
@@ -368,6 +395,44 @@ class ORMDataBase:
             (amine_name, epoxy_name) if amine_id is not None else None,
         )
 
+    def add_material_to_profile(self, material: DataMaterial, profile: Profile):
+        """
+        Прикрепляет материал к профилю.
+        Материал должен быть базе данных.
+        :param material:
+        :param profile:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        if material.db_id in self.get_profile_materials(profile.profile_name):
+            return None
+        insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
+        data = [profile.profile_name, material.db_id]
+        cursor.execute(insert, data)
+        connection.commit()
+        profile.add_material(material)
+
+    def get_all_materials_data(self):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
+        return cursor.fetchall()
+
+    def get_all_materials(self):
+        return [i for i in self.all_materials.values()]
+
+    def get_all_tg(self):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"SELECT * FROM Tg"
+        cursor.execute(string)
+        tg_list = []
+        for tg_id, epoxy, amine, value in cursor.fetchall():
+            tg_list.append(DataGlass(epoxy, amine, value, tg_id))
+        return tg_list
+
+    # ============================= Редактирование БД =======================================
     def add_material(self, material: DataMaterial, profile: Profile = None):
         """
         Добавляет материал в базу. Если указан профиль, то привязывает материал к нему.
@@ -380,7 +445,7 @@ class ORMDataBase:
         cursor = connection.cursor()
         cursor.execute(f"SELECT id FROM Materials")
         all_id = cursor.fetchall()
-        mat_id = max(all_id, key=lambda x: int(x[0]))[0] + 1
+        mat_id = max(all_id, key=lambda x: int(x[0]), default=[0])[0] + 1
         material.db_id = mat_id
 
         data = [mat_id, material.name, material.mat_type, material.ew]
@@ -409,44 +474,6 @@ class ORMDataBase:
         for string in strings:
             cursor.execute(string)
         connection.commit()
-
-    def add_material_to_profile(self, material: DataMaterial, profile: Profile):
-        """
-        Прикрепляет материал к профилю.
-        Материал должен быть базе данных.
-        :param material:
-        :param profile:
-        :return:
-        """
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        if material.db_id in self.get_profile_materials(profile.profile_name):
-            return None
-        insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
-        data = [profile.profile_name, material.db_id]
-        cursor.execute(insert, data)
-        connection.commit()
-        profile.add_material(material)
-
-    def get_all_materials_data(self):
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
-        return cursor.fetchall()
-
-    def update_all_materials(self):
-        self.all_materials = {}
-        for name, mat_type, ew, mat_id in self.get_all_materials_data():
-            material = DataMaterial(name, mat_type, ew, mat_id)
-            # Подключаем все коррекции
-            for correction_id in self.get_all_corrections_of_one_material(mat_id):
-                correction_id = correction_id[0]
-                correction, x_min, x_max, pair = self.get_correction_by_id(correction_id)
-                material.add_correction(correction, x_min, x_max, pair)
-            self.all_materials[mat_id] = material
-
-    def get_all_materials(self):
-        return [i for i in self.all_materials.values()]
 
     def add_correction(self, correction: Correction):
 
@@ -479,5 +506,21 @@ class ORMDataBase:
         cursor.execute(string)
         connection.commit()
 
+    def add_tg(self, epoxy: DataMaterial, amine: DataMaterial, value: float) -> None:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        data = [epoxy.db_id, amine.db_id, value]
+        insert = f"INSERT INTO Tg (Epoxy, Amine, Value) VALUES (?, ?, ?);"
+        cursor.execute(insert, data)
+        connection.commit()
 
+    def remove_tg(self):
+        ...
 
+    # ============================= Создание БД =======================================
+
+    def create_db(self):
+        """
+        # TODO реализовать создание базы данных при отсутствии файла
+        (После того, как структура будет окончательной)
+        """
