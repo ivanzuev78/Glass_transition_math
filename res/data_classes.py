@@ -276,6 +276,9 @@ class ORMDataBase:
                 material.add_correction(correction, x_min, x_max, pair)
             self.all_materials[mat_id] = material
 
+    def get_all_materials(self):
+        return [i for i in self.all_materials.values()]
+
     # =========================== Получение данных из БД ==================================
     def get_all_profiles(self) -> List[Tuple[int]]:
         """
@@ -285,6 +288,7 @@ class ORMDataBase:
         cursor = connection.cursor()
         cursor.execute("SELECT name FROM Profiles")
         all_profiles = [res[0] for res in cursor.fetchall()]
+        connection.close()
         return all_profiles
 
     def get_profile_materials(self, profile: str) -> List[int]:
@@ -298,6 +302,7 @@ class ORMDataBase:
         cursor.execute(
             f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile}') "
         )
+        connection.close()
         return [i[0] for i in cursor.fetchall()]
 
     # Пока не используется
@@ -314,6 +319,7 @@ class ORMDataBase:
         )
         result = cursor.fetchall()
         material = DataMaterial(*result[0], mat_id)
+        connection.close()
         return material
 
     def get_tg_by_materials_id(self, epoxy_id, amine_id):
@@ -332,6 +338,7 @@ class ORMDataBase:
         tg_list = []
         for tg_id, epoxy, amine, value in cursor.fetchall():
             tg_list.append(DataGlass(epoxy, amine, value, tg_id))
+        connection.close()
         return tg_list
 
     def get_all_corrections_of_one_material(self, mat_id: int):
@@ -346,7 +353,9 @@ class ORMDataBase:
         cursor.execute(
             f"SELECT Correction FROM Mat_cor_map WHERE (Material = '{mat_id}') "
         )
-        return cursor.fetchall()
+        result = cursor.fetchall()
+        connection.close()
+        return result
 
     def get_correction_by_id(self, cor_map_id):
         """
@@ -388,6 +397,7 @@ class ORMDataBase:
         # tg_correction_material.add_correction(correction, x_min, x_max,
         #                                       (amine_name, epoxy_name) if amine_id is not None else None)
         # TODO Возможно, стоит привязывать коррекцию к материалу по id, а не по названию
+        connection.close()
         return (
             correction,
             x_min,
@@ -411,16 +421,16 @@ class ORMDataBase:
         data = [profile.profile_name, material.db_id]
         cursor.execute(insert, data)
         connection.commit()
+        connection.close()
         profile.add_material(material)
 
     def get_all_materials_data(self):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
-        return cursor.fetchall()
-
-    def get_all_materials(self):
-        return [i for i in self.all_materials.values()]
+        result = cursor.fetchall()
+        connection.close()
+        return result
 
     def get_all_tg(self):
         connection = sqlite3.connect(self.db_name)
@@ -430,7 +440,9 @@ class ORMDataBase:
         tg_list = []
         for tg_id, epoxy, amine, value in cursor.fetchall():
             tg_list.append(DataGlass(epoxy, amine, value, tg_id))
+        connection.close()
         return tg_list
+
 
     # ============================= Редактирование БД =======================================
     def add_material(self, material: DataMaterial, profile: Profile = None):
@@ -457,6 +469,7 @@ class ORMDataBase:
         elif self.current_profile is not None:
             self.add_material_to_profile(material, self.current_profile)
         self.all_materials[mat_id] = material
+        connection.close()
 
     def remove_material(self, material: DataMaterial):
         """
@@ -474,6 +487,7 @@ class ORMDataBase:
         for string in strings:
             cursor.execute(string)
         connection.commit()
+        connection.close()
 
     def add_correction(self, correction: Correction):
 
@@ -493,6 +507,7 @@ class ORMDataBase:
                 insert = f"INSERT INTO corr_poly_coef_map (Correction, Power, coef) VALUES (?, ?, ?);"
                 cursor.execute(insert, data)
         connection.commit()
+        connection.close()
 
     def remove_correction(self, correction: Correction):
         """
@@ -505,6 +520,7 @@ class ORMDataBase:
         string = f'DELETE FROM Corrections WHERE Id={correction.db_id}'
         cursor.execute(string)
         connection.commit()
+        connection.close()
 
     def add_tg(self, epoxy: DataMaterial, amine: DataMaterial, value: float) -> None:
         connection = sqlite3.connect(self.db_name)
@@ -513,6 +529,7 @@ class ORMDataBase:
         insert = f"INSERT INTO Tg (Epoxy, Amine, Value) VALUES (?, ?, ?);"
         cursor.execute(insert, data)
         connection.commit()
+        connection.close()
 
     def remove_tg(self):
         ...
