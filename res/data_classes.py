@@ -394,14 +394,21 @@ class ORMDataBase:
         self.all_materials[mat_id] = material
 
     def remove_material(self, material: DataMaterial):
+        """
+        Удаление материала из БД.
+        Из-за того, что ON DELETE CASCADE не работает, удаляю всё в ручную.
+        """
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        string = f'DELETE FROM Materials WHERE Id={material.db_id}'
-        string_2 = f'DELETE FROM Prof_mat_map WHERE Material={material.db_id}'
-        cursor.execute(string)
-        cursor.execute(string_2)
+        strings = []
+        strings.append(f'DELETE FROM Materials WHERE Id={material.db_id}')
+        strings.append(f'DELETE FROM Prof_mat_map WHERE Material={material.db_id}')
+        strings.append(f'DELETE FROM CorrectionMaterial_map WHERE Material_id={material.db_id}')
+        strings.append(f'DELETE FROM CorrectionMaterial_map WHERE Amine={material.db_id}')
+        strings.append(f'DELETE FROM CorrectionMaterial_map WHERE Epoxy={material.db_id}')
+        for string in strings:
+            cursor.execute(string)
         connection.commit()
-
 
     def add_material_to_profile(self, material: DataMaterial, profile: Profile):
         """
