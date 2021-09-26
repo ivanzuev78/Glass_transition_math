@@ -186,69 +186,6 @@ class ProfileManager:
             self.profile_list.remove(profile)
 
 
-class DataDriver:
-    def __init__(self, db_name: str, profile: Profile):
-        self.db_name = db_name
-        self.profile = profile
-
-    def get_ew_by_name_old(self, mat_type: str, material: str):
-        if material == "":
-            return None
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        if mat_type == "Epoxy":
-            return cursor.execute(
-                f"SELECT EEW FROM Epoxy WHERE name == '{material}'"
-            ).fetchall()[0][0]
-        elif mat_type == "Amine":
-            return cursor.execute(
-                f"SELECT AHEW FROM Amine WHERE name == '{material}'"
-            ).fetchall()[0][0]
-        else:
-            return math.inf
-
-    def get_all_material_types_old(self) -> List[str]:
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        all_material = [
-            i[0] for i in cursor.fetchall() if i[0] not in ("Tg", "Tg_influence")
-        ]
-        all_material.insert(0, all_material.pop(all_material.index("None")))
-        return all_material
-
-    def get_all_material_types(self) -> List[str]:
-        return self.profile.get_all_types()
-
-    def get_all_material_of_one_type_old(self, material_type: str) -> List[str]:
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute(f"SELECT name FROM {material_type}")
-        all_material = [i[0] for i in cursor.fetchall()]
-        return all_material
-
-    def get_all_material_of_one_type(self, mat_type: str) -> List[str]:
-        return [mat.name for mat in self.profile.get_materials_by_type(mat_type)]
-
-    def get_tg_df(self) -> DataFrame:
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute("SELECT Name FROM Epoxy")
-        epoxy_name = [name[0] for name in cursor.fetchall()]
-        cursor.execute("SELECT Name FROM Amine")
-        amine_name = [name[0] for name in cursor.fetchall()]
-        cursor.execute("SELECT * FROM Tg")
-        all_tg = cursor.fetchall()
-        df_tg_main = DataFrame(index=epoxy_name, columns=amine_name)
-        for tg in all_tg:
-            df_tg_main[tg[1]][tg[0]] = tg[2]
-        connection.close()
-        return df_tg_main
-
-    def add_material_to_profile(self, material: DataMaterial):
-        self.profile.add_material(material)
-
-
 class ORMDataBase:
     def __init__(self, db_name):
         self.db_name = db_name
