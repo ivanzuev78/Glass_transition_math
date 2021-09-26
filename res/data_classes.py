@@ -380,7 +380,6 @@ class ORMDataBase:
         connection.close()
         return tg_list
 
-
     # ============================= Редактирование БД =======================================
     def add_material(self, material: DataMaterial, profile: Profile = None):
         """
@@ -432,7 +431,7 @@ class ORMDataBase:
         cursor = connection.cursor()
         cursor.execute(f"SELECT id FROM Corrections")
         all_id = cursor.fetchall()
-        cor_id = max(all_id, key=lambda x: int(x[0]))[0] + 1
+        cor_id = max(all_id, key=lambda x: int(x[0]), default=[0])[0] + 1
         correction.db_id = cor_id
         data = [cor_id, correction.name, correction.comment, correction.k_e, correction.k_exp]
         insert = f"INSERT INTO Corrections (id, Name, Comment, k_e, k_exp) VALUES (?, ?, ?, ?, ?);"
@@ -455,6 +454,8 @@ class ORMDataBase:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         string = f'DELETE FROM Corrections WHERE Id={correction.db_id}'
+        cursor.execute(string)
+        string = f'DELETE FROM corr_poly_coef_map WHERE Correction={correction.db_id}'
         cursor.execute(string)
         connection.commit()
         connection.close()
