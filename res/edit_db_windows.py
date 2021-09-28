@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QWidget,
-    QPushButton, QTextBrowser,
+    QPushButton,
+    QTextBrowser,
 )
 
 from res.additional_funcs import set_qt_stile
@@ -225,8 +226,7 @@ class CreateMaterialWindow(
             self.ew_lineEdit.setText(str(origin_material.ew))
 
         # Вынести путь к стилю в настройки
-        set_qt_stile(
-            "style.css", self)
+        set_qt_stile("style.css", self)
 
         self.cancel_but.clicked.connect(self.closeEvent)
 
@@ -250,9 +250,7 @@ class CreateMaterialWindow(
 class EditCorrectionWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/edit_correction.ui")[0]
 ):
-    def __init__(
-        self, previous_window, correction: Correction = None
-    ):
+    def __init__(self, previous_window, correction: Correction = None):
         super(EditCorrectionWindow, self).__init__()
         self.setupUi(self)
         self.previos_window = previous_window
@@ -262,8 +260,7 @@ class EditCorrectionWindow(
             ...
 
         # Вынести путь к стилю в настройки
-        set_qt_stile(
-            "style.css", self)
+        set_qt_stile("style.css", self)
 
         self.cancel_but.clicked.connect(self.closeEvent)
 
@@ -285,20 +282,19 @@ class EditCorrectionWindow(
 
 
 class EditMaterialWindow(
-    QtWidgets.QMainWindow, uic.loadUiType("windows/edit_material_with_corrections.ui")[0]
+    QtWidgets.QMainWindow,
+    uic.loadUiType("windows/edit_material_with_corrections.ui")[0],
 ):
-    def __init__(
-        self, previous_window: EditDataWindow,
-            material: DataMaterial = None
-    ):
+    def __init__(self, previous_window: EditDataWindow, material: DataMaterial = None):
         super(EditMaterialWindow, self).__init__()
         self.setupUi(self)
         self.previos_window = previous_window
         self.profile = previous_window.profile
         self.material = material
-        set_qt_stile(
-            "style.css", self)
-        self.corrections: List[Tuple[Correction, Tuple[float, float], Union[Tuple, None]]] = []
+        set_qt_stile("style.css", self)
+        self.corrections: List[
+            Tuple[Correction, Tuple[float, float], Union[Tuple, None]]
+        ] = []
         self.set_material()
         self.corrections_listWidget.currentItemChanged.connect(self.change_row)
         self.corrections_listWidget.itemDoubleClicked.connect(self.show_correction)
@@ -331,6 +327,7 @@ class EditMaterialWindow(
         cor, limit, pair = self.corrections[row_numb]
         import matplotlib.pyplot as plt
         import numpy as np
+
         x_min, x_max = limit
         # Data for plotting
         t = np.arange(x_min, x_max, 0.1)
@@ -339,8 +336,11 @@ class EditMaterialWindow(
         fig, ax = plt.subplots()
         ax.plot(t, s)
         string = "систему в целом "
-        ax.set(xlabel='Содержание вещества в системе, %', ylabel='Влияние на температуру стеклования, °С',
-               title=f"Влияние \'{self.material.name}\' на {pair if pair is not None else string }")
+        ax.set(
+            xlabel="Содержание вещества в системе, %",
+            ylabel="Влияние на температуру стеклования, °С",
+            title=f"Влияние '{self.material.name}' на {pair if pair is not None else string }",
+        )
         ax.grid()
 
         fig.savefig("test.png")
@@ -350,6 +350,7 @@ class EditMaterialWindow(
         self.previos_window.show()
         self.previos_window.close_to_edit_material = False
         del self
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

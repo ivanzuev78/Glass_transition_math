@@ -2017,7 +2017,7 @@ class AddMaterial(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui
         self.cancel_but.clicked.connect(self.close)
         self.mat_type.addItems(self.main_window.types_of_items)
 
-        set_qt_stile('style.css', self)
+        set_qt_stile("style.css", self)
 
     def add_material(self):
         mat_type = self.mat_type.currentText()

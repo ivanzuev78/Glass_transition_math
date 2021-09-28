@@ -49,6 +49,7 @@ class DataGlass:
     """
     Не знаю, как лучше реализовать
     """
+
     def __init__(self, epoxy, amine, value, db_id=None):
         self.db_id = db_id
         self.epoxy = epoxy
@@ -162,7 +163,9 @@ class Profile:
             if "Epoxy" in self.materials.keys() and "Amine" in self.materials.keys():
                 all_id_epoxy = [mat.db_id for mat in self.materials["Epoxy"]]
                 all_id_amine = [mat.db_id for mat in self.materials["Amine"]]
-                self.tg_list = self.orm_db.get_tg_by_materials_id(all_id_epoxy, all_id_amine)
+                self.tg_list = self.orm_db.get_tg_by_materials_id(
+                    all_id_epoxy, all_id_amine
+                )
                 for data_glass in self.tg_list:
                     epoxy_name = self.id_name_dict[data_glass.epoxy].name
                     amine_name = self.id_name_dict[data_glass.amine].name
@@ -209,7 +212,9 @@ class ORMDataBase:
             # Подключаем все коррекции
             for correction_id in self.get_all_corrections_of_one_material(mat_id):
                 correction_id = correction_id[0]
-                correction, x_min, x_max, pair = self.get_correction_by_id(correction_id)
+                correction, x_min, x_max, pair = self.get_correction_by_id(
+                    correction_id
+                )
                 material.add_correction(correction, x_min, x_max, pair)
             self.all_materials[mat_id] = material
 
@@ -270,7 +275,9 @@ class ORMDataBase:
         cursor = connection.cursor()
         epoxy_str = "".join([f"{i}, " for i in epoxy_id])[:-2]
         amine_str = "".join([f"{i}, " for i in amine_id])[:-2]
-        string = f"SELECT * FROM Tg WHERE Epoxy in ({epoxy_str}) AND Amine in ({amine_str})"
+        string = (
+            f"SELECT * FROM Tg WHERE Epoxy in ({epoxy_str}) AND Amine in ({amine_str})"
+        )
         cursor.execute(string)
         tg_list = []
         for tg_id, epoxy, amine, value in cursor.fetchall():
@@ -307,7 +314,14 @@ class ORMDataBase:
             f"SELECT Material_id, Amine,  Epoxy, x_max, x_min, Correction FROM CorrectionMaterial_map WHERE (id = '{cor_map_id}') "
         )
 
-        material_id, amine_id, epoxy_id, x_max, x_min, correction_id, = cursor.fetchall()[0]
+        (
+            material_id,
+            amine_id,
+            epoxy_id,
+            x_max,
+            x_min,
+            correction_id,
+        ) = cursor.fetchall()[0]
 
         # Если есть амин, значит коррекция для пары, а не на всю систему
         if amine_id is not None:
@@ -415,11 +429,17 @@ class ORMDataBase:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         strings = []
-        strings.append(f'DELETE FROM Materials WHERE Id={material.db_id}')
-        strings.append(f'DELETE FROM Prof_mat_map WHERE Material={material.db_id}')
-        strings.append(f'DELETE FROM CorrectionMaterial_map WHERE Material_id={material.db_id}')
-        strings.append(f'DELETE FROM CorrectionMaterial_map WHERE Amine={material.db_id}')
-        strings.append(f'DELETE FROM CorrectionMaterial_map WHERE Epoxy={material.db_id}')
+        strings.append(f"DELETE FROM Materials WHERE Id={material.db_id}")
+        strings.append(f"DELETE FROM Prof_mat_map WHERE Material={material.db_id}")
+        strings.append(
+            f"DELETE FROM CorrectionMaterial_map WHERE Material_id={material.db_id}"
+        )
+        strings.append(
+            f"DELETE FROM CorrectionMaterial_map WHERE Amine={material.db_id}"
+        )
+        strings.append(
+            f"DELETE FROM CorrectionMaterial_map WHERE Epoxy={material.db_id}"
+        )
         for string in strings:
             cursor.execute(string)
         connection.commit()
@@ -433,7 +453,13 @@ class ORMDataBase:
         all_id = cursor.fetchall()
         cor_id = max(all_id, key=lambda x: int(x[0]), default=[0])[0] + 1
         correction.db_id = cor_id
-        data = [cor_id, correction.name, correction.comment, correction.k_e, correction.k_exp]
+        data = [
+            cor_id,
+            correction.name,
+            correction.comment,
+            correction.k_e,
+            correction.k_exp,
+        ]
         insert = f"INSERT INTO Corrections (id, Name, Comment, k_e, k_exp) VALUES (?, ?, ?, ?, ?);"
         cursor.execute(insert, data)
         # Добавляем коэффициенты в таблицу полиномиальных коэффициентов
@@ -453,9 +479,9 @@ class ORMDataBase:
         """
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        string = f'DELETE FROM Corrections WHERE Id={correction.db_id}'
+        string = f"DELETE FROM Corrections WHERE Id={correction.db_id}"
         cursor.execute(string)
-        string = f'DELETE FROM corr_poly_coef_map WHERE Correction={correction.db_id}'
+        string = f"DELETE FROM corr_poly_coef_map WHERE Correction={correction.db_id}"
         cursor.execute(string)
         connection.commit()
         connection.close()
