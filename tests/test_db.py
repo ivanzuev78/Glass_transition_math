@@ -3,7 +3,8 @@ from shutil import copyfile
 import sqlite3
 
 from res.corrections import Correction
-from res.data_classes import ORMDataBase, DataMaterial
+from res.data_classes import ORMDataBase, DataMaterial, DataGlass
+
 
 # conn = sqlite3.connect(':memory:')
 
@@ -38,20 +39,26 @@ def materials():
 @pytest.fixture
 def corrections():
     cor_list = []
-    cor_list.append(
-        Correction(
-            "test", "comment", polynomial_coefficients=[34, 0, 0, 0, 28], db_id=1
-        )
-    )
-    cor_list.append(
-        Correction("test1", "comment", polynomial_coefficients=[34, 0, 0], db_id=2)
-    )
+    cor_list.append(Correction("test", "comment", polynomial_coefficients=[34, 0, 0, 0, 28], db_id=1))
+    cor_list.append(Correction("test1", "comment", polynomial_coefficients=[34, 0, 0], db_id=2))
     cor_list.append(Correction("test2", "comment", db_id=3))
     return cor_list
 
 
-def test_add_material(orm_db, db_cursor, materials):
+@pytest.fixture
+def tg_list(materials):
+    tg_list = []
+    tg_list.append(
+        DataGlass(materials[0], materials[1], 100)
+    )
+    tg_list.append(
+        DataGlass(materials[0], materials[2], 200)
+    )
+    tg_list.append(DataGlass(materials[1], materials[2], 300))
+    return tg_list
 
+
+def test_add_material(orm_db, db_cursor, materials):
     for mat in materials:
         orm_db.add_material(mat)
     db_cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
@@ -64,7 +71,6 @@ def test_add_material(orm_db, db_cursor, materials):
 
 
 def test_remove_material(orm_db, db_cursor, materials):
-
     # Предполагается, что функция add_material работает правильно
     for db_id, mat in enumerate(materials, start=1):
         mat.db_id = db_id
@@ -79,7 +85,6 @@ def test_remove_material(orm_db, db_cursor, materials):
 
 
 def test_add_correction(orm_db, db_cursor, corrections):
-
     all_poly_coef = []
     for cor in corrections:
         orm_db.add_correction(cor)
@@ -107,7 +112,6 @@ def test_add_correction(orm_db, db_cursor, corrections):
 
 
 def test_remove_correction(orm_db, db_cursor, corrections):
-
     # Предполагается, что функция add_correction работает правильно
     for cor in corrections:
         orm_db.add_correction(cor)
@@ -120,5 +124,56 @@ def test_remove_correction(orm_db, db_cursor, corrections):
     assert len(result) == 0
 
     db_cursor.execute(f"SELECT * FROM corr_poly_coef_map")
+    result = db_cursor.fetchall()
+    assert len(result) == 0
+
+
+def test_add_tg(orm_db, db_cursor, tg_list):
+    for data_glass in tg_list:
+        orm_db.add_tg(data_glass)
+
+    db_cursor.execute(f"SELECT * FROM Tg")
+    result = db_cursor.fetchall()
+    assert len(result) == len(tg_list)
+    for (tg_id, epoxy, amine, value), data_glass in zip(result, tg_list):
+        data_glass: DataGlass
+        assert tg_id == data_glass.db_id
+        assert epoxy == data_glass.epoxy.db_id
+        assert amine == data_glass.amine.db_id
+        assert value == data_glass.value
+
+
+def test_remove_tg(orm_db, db_cursor, tg_list):
+    for data_glass in tg_list:
+        orm_db.add_tg(data_glass)
+
+    for data_glass in tg_list:
+        orm_db.remove_tg(data_glass)
+
+    db_cursor.execute(f"SELECT * FROM Tg")
+    result = db_cursor.fetchall()
+    assert len(result) == 0
+
+
+def test_add_profile(orm_db, db_cursor):
+    names_list = ['Test name 1', 'Test name 2', 'Test name 3']
+    for name in names_list:
+        orm_db.add_profile(name)
+    db_cursor.execute(f"SELECT * FROM Profiles")
+    result = db_cursor.fetchall()
+    assert len(result) == len(names_list)
+    for db_name, test_name in zip(result, names_list):
+        assert db_name[0] == test_name
+
+
+def test_remove_profile(orm_db, db_cursor):
+    names_list = ['Test name 1', 'Test name 2', 'Test name 3']
+    for name in names_list:
+        orm_db.add_profile(name)
+
+    for name in names_list:
+        orm_db.remove_profile(name)
+
+    db_cursor.execute(f"SELECT * FROM Profiles")
     result = db_cursor.fetchall()
     assert len(result) == 0

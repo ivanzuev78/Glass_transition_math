@@ -50,7 +50,7 @@ class DataGlass:
     Не знаю, как лучше реализовать
     """
 
-    def __init__(self, epoxy, amine, value, db_id=None):
+    def __init__(self, epoxy: DataMaterial, amine: DataMaterial, value: float, db_id=None):
         self.db_id = db_id
         self.epoxy = epoxy
         self.amine = amine
@@ -163,9 +163,7 @@ class Profile:
             if "Epoxy" in self.materials.keys() and "Amine" in self.materials.keys():
                 all_id_epoxy = [mat.db_id for mat in self.materials["Epoxy"]]
                 all_id_amine = [mat.db_id for mat in self.materials["Amine"]]
-                self.tg_list = self.orm_db.get_tg_by_materials_id(
-                    all_id_epoxy, all_id_amine
-                )
+                self.tg_list = self.orm_db.get_tg_by_materials_ids(all_id_epoxy, all_id_amine)
                 for data_glass in self.tg_list:
                     epoxy_name = self.id_name_dict[data_glass.epoxy].name
                     amine_name = self.id_name_dict[data_glass.amine].name
@@ -244,8 +242,9 @@ class ORMDataBase:
         cursor.execute(
             f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile}') "
         )
+        result = [i[0] for i in cursor.fetchall()]
         connection.close()
-        return [i[0] for i in cursor.fetchall()]
+        return result
 
     # Пока не используется
     def get_material_by_id(self, mat_id: int) -> DataMaterial:
@@ -264,7 +263,7 @@ class ORMDataBase:
         connection.close()
         return material
 
-    def get_tg_by_materials_id(self, epoxy_id, amine_id):
+    def get_tg_by_materials_ids(self, epoxy_id: List[int], amine_id: List[int]):
         """
         Проходится
         :param epoxy_id:
@@ -301,7 +300,7 @@ class ORMDataBase:
         connection.close()
         return result
 
-    def get_correction_by_id(self, cor_map_id):
+    def get_correction_by_id(self, cor_map_id: int):
         """
         Получение параметров функции влияния
         :param cor_map_id:
@@ -322,13 +321,14 @@ class ORMDataBase:
             x_min,
             correction_id,
         ) = cursor.fetchall()[0]
-
+        pair = None
         # Если есть амин, значит коррекция для пары, а не на всю систему
         if amine_id is not None:
             cursor.execute(f"SELECT Name FROM Materials WHERE (id = '{amine_id}') ")
             amine_name = cursor.fetchall()[0][0]
             cursor.execute(f"SELECT Name FROM Materials WHERE (id = '{epoxy_id}') ")
             epoxy_name = cursor.fetchall()[0][0]
+            pair = (amine_name, epoxy_name)
 
         # Получаем параметры корректировки
         cursor.execute(
@@ -345,6 +345,7 @@ class ORMDataBase:
         for power, coef in polynom_coefs:
             correction.edit_polynomial_coefficient(coef, power)
 
+
         # tg_correction_material.add_correction(correction, x_min, x_max,
         #                                       (amine_name, epoxy_name) if amine_id is not None else None)
         # TODO Возможно, стоит привязывать коррекцию к материалу по id, а не по названию
@@ -353,29 +354,10 @@ class ORMDataBase:
             correction,
             x_min,
             x_max,
-            (amine_name, epoxy_name) if amine_id is not None else None,
+            pair,
         )
 
-    def add_material_to_profile(self, material: DataMaterial, profile: Profile):
-        """
-        Прикрепляет материал к профилю.
-        Материал должен быть базе данных.
-        :param material:
-        :param profile:
-        :return:
-        """
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        if material.db_id in self.get_profile_materials(profile.profile_name):
-            return None
-        insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
-        data = [profile.profile_name, material.db_id]
-        cursor.execute(insert, data)
-        connection.commit()
-        connection.close()
-        profile.add_material(material)
-
-    def get_all_materials_data(self):
+    def get_all_materials_data(self) -> List[Tuple]:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
@@ -383,7 +365,7 @@ class ORMDataBase:
         connection.close()
         return result
 
-    def get_all_tg(self):
+    def get_all_tg(self) -> List[DataGlass]:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         string = f"SELECT * FROM Tg"
@@ -405,9 +387,9 @@ class ORMDataBase:
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute(f"SELECT id FROM Materials")
-        all_id = cursor.fetchall()
-        mat_id = max(all_id, key=lambda x: int(x[0]), default=[0])[0] + 1
+        cursor.execute(f"SELECT MAX(id) FROM Materials")
+        max_id = cursor.fetchone()
+        mat_id = max_id[0] + 1 if max_id[0] is not None else 1
         material.db_id = mat_id
 
         data = [mat_id, material.name, material.mat_type, material.ew]
@@ -449,9 +431,9 @@ class ORMDataBase:
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute(f"SELECT id FROM Corrections")
-        all_id = cursor.fetchall()
-        cor_id = max(all_id, key=lambda x: int(x[0]), default=[0])[0] + 1
+        cursor.execute(f"SELECT MAX(id) FROM Corrections")
+        max_id = cursor.fetchone()
+        cor_id = max_id[0] + 1 if max_id[0] is not None else 1
         correction.db_id = cor_id
         data = [
             cor_id,
@@ -486,17 +468,66 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
-    def add_tg(self, epoxy: DataMaterial, amine: DataMaterial, value: float) -> None:
+    def add_tg(self, tg: DataGlass) -> None:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        data = [epoxy.db_id, amine.db_id, value]
-        insert = f"INSERT INTO Tg (Epoxy, Amine, Value) VALUES (?, ?, ?);"
+        cursor.execute(f"SELECT MAX(id) FROM Tg")
+        max_id = cursor.fetchone()
+        tg_id = max_id[0] + 1 if max_id[0] is not None else 1
+        tg.db_id = tg_id
+        data = [tg_id, tg.epoxy.db_id, tg.amine.db_id, tg.value]
+        insert = f"INSERT INTO Tg (id, Epoxy, Amine, Value) VALUES (?, ?, ?, ?);"
         cursor.execute(insert, data)
         connection.commit()
         connection.close()
 
-    def remove_tg(self):
-        ...
+    def remove_tg(self, tg: DataGlass):
+        """
+        Удаляем коррекцию из БД
+        :param tg:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Tg WHERE Id={tg.db_id}"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()
+
+    def add_material_to_profile(self, material: DataMaterial, profile: Profile):
+        """
+        Прикрепляет материал к профилю.
+        Материал должен быть базе данных.
+        :param material:
+        :param profile:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        if material.db_id in self.get_profile_materials(profile.profile_name):
+            return None
+        insert = f"INSERT INTO Prof_mat_map (Profile, Material) VALUES (?, ?);"
+        data = [profile.profile_name, material.db_id]
+        cursor.execute(insert, data)
+        connection.commit()
+        connection.close()
+        profile.add_material(material)
+
+    def add_profile(self, profile_name: str):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        insert = f"INSERT INTO Profiles (Name) VALUES (?);"
+        cursor.execute(insert, [profile_name])
+        connection.commit()
+        connection.close()
+
+    def remove_profile(self, profile_name: str):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Profiles WHERE Name='{profile_name}'"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()
 
     # ============================= Создание БД =======================================
 
