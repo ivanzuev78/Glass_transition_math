@@ -345,7 +345,6 @@ class ORMDataBase:
         for power, coef in polynom_coefs:
             correction.edit_polynomial_coefficient(coef, power)
 
-
         # tg_correction_material.add_correction(correction, x_min, x_max,
         #                                       (amine_name, epoxy_name) if amine_id is not None else None)
         # TODO Возможно, стоит привязывать коррекцию к материалу по id, а не по названию
