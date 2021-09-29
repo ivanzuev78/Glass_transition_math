@@ -4,7 +4,7 @@ import sqlite3
 from collections import defaultdict
 from math import exp
 from os.path import exists
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Union
 
 from pandas import DataFrame
 
@@ -59,7 +59,6 @@ class DataGlass:
 
 class Profile:
     def __init__(self, profile_name: str, orm_db: "ORMDataBase"):
-        from res.qt_windows import MyMainWindow
 
         self.profile_name = profile_name
         # {тип: [список материалов]}
@@ -68,7 +67,7 @@ class Profile:
         )  # Тип: Список материалов данного типа
         self.id_name_dict: Dict[int, DataMaterial] = {}
         self.orm_db = orm_db
-        self.my_main_window: Optional[MyMainWindow] = None
+        self.my_main_window: Optional["MyMainWindow"] = None
         self.tg_df = None
         self.tg_list = None
 
@@ -203,7 +202,7 @@ class ORMDataBase:
         self.current_profile = profile
         return profile
 
-    def update_all_materials(self):
+    def update_all_materials(self) -> None:
         self.all_materials = {}
         for name, mat_type, ew, mat_id in self.get_all_materials_data():
             material = DataMaterial(name, mat_type, ew, mat_id)
@@ -216,11 +215,11 @@ class ORMDataBase:
                 material.add_correction(correction, x_min, x_max, pair)
             self.all_materials[mat_id] = material
 
-    def get_all_materials(self):
+    def get_all_materials(self) -> List[DataMaterial]:
         return [i for i in self.all_materials.values()]
 
-    # =========================== Получение данных из БД ==================================
-    def get_all_profiles(self) -> List[Tuple[int]]:
+    # =========================== Получение сырых данных из БД ==================================
+    def get_all_profiles(self) -> List[str]:
         """
         Получение всех профилей из базы
         """
@@ -231,10 +230,10 @@ class ORMDataBase:
         connection.close()
         return all_profiles
 
-    def get_profile_materials(self, profile: str) -> List[int]:
+    def get_profile_materials(self, profile_name: Union[str, Profile]) -> List[int]:
         """
         Получение списка всех материалов в профиле и их коррекций
-        :param profile: Имя профиля
+        :param profile_name: Имя профиля или сам профиль
         :return: Список материалов, которые подключены к профилю
         """
         connection = sqlite3.connect(self.db_name)
@@ -467,7 +466,7 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
-    def add_tg(self, tg: DataGlass) -> None:
+    def add_tg(self, tg: DataGlass):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT MAX(id) FROM Tg")
