@@ -236,10 +236,12 @@ class ORMDataBase:
         :param profile_name: Имя профиля или сам профиль
         :return: Список материалов, которые подключены к профилю
         """
+        if isinstance(profile_name, Profile):
+            profile_name = profile_name.profile_name
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(
-            f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile}') "
+            f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile_name}') "
         )
         result = [i[0] for i in cursor.fetchall()]
         connection.close()
@@ -385,6 +387,13 @@ class ORMDataBase:
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
+        # Проверяем, что материала нет в базе
+        cursor.execute(f"SELECT * FROM Materials WHERE Name='{material.name}' AND Type='{material.mat_type}' AND ew={material.ew}")
+        result = cursor.fetchall()
+        if len(result) > 0:
+            # TODO Подумать, что делать, если пытаются добавить материал, который уже есть в базе.
+            return None
+
         cursor.execute(f"SELECT MAX(id) FROM Materials")
         max_id = cursor.fetchone()
         mat_id = max_id[0] + 1 if max_id[0] is not None else 1
