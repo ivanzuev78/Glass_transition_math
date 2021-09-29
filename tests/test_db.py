@@ -48,12 +48,8 @@ def corrections():
 @pytest.fixture
 def tg_list(materials):
     tg_list = []
-    tg_list.append(
-        DataGlass(materials[0], materials[1], 100)
-    )
-    tg_list.append(
-        DataGlass(materials[0], materials[2], 200)
-    )
+    tg_list.append(DataGlass(materials[0], materials[1], 100))
+    tg_list.append(DataGlass(materials[0], materials[2], 200))
     tg_list.append(DataGlass(materials[1], materials[2], 300))
     return tg_list
 
