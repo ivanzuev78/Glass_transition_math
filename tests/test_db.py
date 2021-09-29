@@ -54,6 +54,15 @@ def tg_list(materials):
     return tg_list
 
 
+@pytest.fixture
+def profiles(orm_db):
+    profile_list = []
+    profile_list.append(Profile('name 1', orm_db))
+    profile_list.append(Profile('name 2', orm_db))
+    profile_list.append(Profile('name 3', orm_db))
+    return profile_list
+
+
 def test_add_material(orm_db, db_cursor, materials):
     for mat in materials:
         orm_db.add_material(mat)
@@ -173,3 +182,46 @@ def test_remove_profile(orm_db, db_cursor):
     db_cursor.execute(f"SELECT * FROM Profiles")
     result = db_cursor.fetchall()
     assert len(result) == 0
+
+
+def test_add_material_to_profile(orm_db, db_cursor, materials, profiles):
+    for profile in profiles:
+        orm_db.add_profile(profile.profile_name)
+
+    for mat in materials:
+        orm_db.add_material(mat)
+        for profile in profiles:
+            orm_db.add_material_to_profile(mat, profile)
+
+    db_cursor.execute(f"SELECT * FROM Prof_mat_map")
+    result = db_cursor.fetchall()
+
+    assert len(result) == len(materials) * len(profiles)
+
+    # Проверяем, что материалы не будут дублироваться в профиле
+    for mat in materials:
+        for profile in profiles:
+            orm_db.add_material_to_profile(mat, profile)
+    db_cursor.execute(f"SELECT * FROM Prof_mat_map")
+    result = db_cursor.fetchall()
+    assert len(result) == len(materials) * len(profiles)
+
+
+def test_remove_material_from_profile(orm_db, db_cursor, materials, profiles):
+    for profile in profiles:
+        orm_db.add_profile(profile.profile_name)
+
+    for mat in materials:
+        orm_db.add_material(mat)
+        for profile in profiles:
+            orm_db.add_material_to_profile(mat, profile)
+
+    profile_to_remove_from = profiles[0]
+    for mat in materials:
+        orm_db.remove_material_from_profile(mat, profile_to_remove_from)
+
+    db_cursor.execute(f"SELECT * FROM Prof_mat_map")
+    result = db_cursor.fetchall()
+    assert len(result) == len(materials) * (len(profiles) - 1)
+
+

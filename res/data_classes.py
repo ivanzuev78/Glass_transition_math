@@ -512,6 +512,14 @@ class ORMDataBase:
         connection.close()
         profile.add_material(material)
 
+    def remove_material_from_profile(self, material: DataMaterial, profile: Profile):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Prof_mat_map WHERE Profile='{profile.profile_name}' AND Material='{material.db_id}'"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()
+
     def add_profile(self, profile_name: str):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
