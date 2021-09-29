@@ -13,7 +13,6 @@ class ProfileMaterialWidget(QListWidget):
         mimetypes.append("my_type")
         return mimetypes
 
-
     def mimeData(self, my_list: Iterable, lwi: QListWidgetItem = None):
         # Здесь задается информация для перетаскивания
         # https://doc.qt.io/qtforpython-5/PySide2/QtCore/QMimeData.html#PySide2.QtCore.PySide2.QtCore.QMimeData
