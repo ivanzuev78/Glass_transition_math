@@ -388,7 +388,8 @@ class ORMDataBase:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         # Проверяем, что материала нет в базе
-        cursor.execute(f"SELECT * FROM Materials WHERE Name='{material.name}' AND Type='{material.mat_type}' AND ew={material.ew}")
+        cursor.execute(
+            f"SELECT * FROM Materials WHERE Name='{material.name}' AND Type='{material.mat_type}' AND ew={material.ew}")
         result = cursor.fetchall()
         if len(result) > 0:
             # TODO Подумать, что делать, если пытаются добавить материал, который уже есть в базе.

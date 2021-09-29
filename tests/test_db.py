@@ -230,5 +230,3 @@ def test_remove_material_from_profile(orm_db, db_cursor, materials, profiles):
     db_cursor.execute(f"SELECT * FROM Prof_mat_map")
     result = db_cursor.fetchall()
     assert len(result) == len(materials) * (len(profiles) - 1)
-
-
