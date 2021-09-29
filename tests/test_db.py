@@ -3,7 +3,7 @@ from shutil import copyfile
 import sqlite3
 
 from res.corrections import Correction
-from res.data_classes import ORMDataBase, DataMaterial, DataGlass
+from res.data_classes import ORMDataBase, DataMaterial, DataGlass, Profile
 
 
 # conn = sqlite3.connect(':memory:')
@@ -73,6 +73,13 @@ def test_add_material(orm_db, db_cursor, materials):
         assert material.name == name
         assert material.mat_type == mat_type
         assert material.ew == ew
+
+    # Проверяем, что материалы не будут дублироваться
+    for mat in materials:
+        orm_db.add_material(mat)
+    db_cursor.execute(f"SELECT Name, Type, ew, id  FROM Materials")
+    result = db_cursor.fetchall()
+    assert len(result) == len(materials)
 
 
 def test_remove_material(orm_db, db_cursor, materials):
@@ -160,8 +167,8 @@ def test_remove_tg(orm_db, db_cursor, tg_list):
     assert len(result) == 0
 
 
-def test_add_profile(orm_db, db_cursor):
-    names_list = ['Test name 1', 'Test name 2', 'Test name 3']
+def test_add_profile(orm_db, db_cursor, profiles):
+    names_list = [prof.profile_name for prof in profiles]
     for name in names_list:
         orm_db.add_profile(name)
     db_cursor.execute(f"SELECT * FROM Profiles")
@@ -171,8 +178,8 @@ def test_add_profile(orm_db, db_cursor):
         assert db_name[0] == test_name
 
 
-def test_remove_profile(orm_db, db_cursor):
-    names_list = ['Test name 1', 'Test name 2', 'Test name 3']
+def test_remove_profile(orm_db, db_cursor, profiles, materials):
+    names_list = [prof.profile_name for prof in profiles]
     for name in names_list:
         orm_db.add_profile(name)
 
