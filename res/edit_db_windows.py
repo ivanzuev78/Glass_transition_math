@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from res.additional_funcs import set_qt_stile
-from res.corrections import Correction
+from res.corrections import CorrectionFunction
 from res.data_classes import DataMaterial, Profile
 
 
@@ -250,7 +250,7 @@ class CreateMaterialWindow(
 class EditCorrectionWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/edit_correction.ui")[0]
 ):
-    def __init__(self, previous_window, correction: Correction = None):
+    def __init__(self, previous_window, correction: CorrectionFunction = None):
         super(EditCorrectionWindow, self).__init__()
         self.setupUi(self)
         self.previos_window = previous_window
@@ -293,7 +293,7 @@ class EditMaterialWindow(
         self.material = material
         set_qt_stile("style.css", self)
         self.corrections: List[
-            Tuple[Correction, Tuple[float, float], Union[Tuple, None]]
+            Tuple[CorrectionFunction, Tuple[float, float], Union[Tuple, None]]
         ] = []
         self.set_material()
         self.corrections_listWidget.currentItemChanged.connect(self.change_row)

@@ -1,21 +1,21 @@
 from collections import defaultdict
 from math import exp
-from typing import Tuple, Iterable, List, Union
+from typing import Tuple, Iterable, List, Union, Optional
 
 
-class Correction:
+class CorrectionFunction:
     """
     f(x) = k_e * exp(k_exp * x) + k0 + k1 * x + k2 * x2 ...
     """
 
     def __init__(
-        self,
-        cor_name: str,
-        cor_comment: str,
-        k_e: float = 0,
-        k_exp: float = 0,
-        db_id: int = None,
-        polynomial_coefficients: Iterable = None,
+            self,
+            cor_name: str,
+            cor_comment: str,
+            k_e: float = 0,
+            k_exp: float = 0,
+            db_id: int = None,
+            polynomial_coefficients: Iterable = None,
     ):
         self.name = cor_name
         self.comment = cor_comment
@@ -117,11 +117,11 @@ class TgCorrectionMaterial:
                 del self.global_correction[limit]
 
     def get_all_corrections(
-        self,
-    ) -> List[Tuple[Correction, Tuple[float, float], Union[Tuple, None]]]:
+            self,
+    ) -> List[Tuple[CorrectionFunction, Tuple[float, float], Union[Tuple, None]]]:
         """
         Возвращает список коррекций данного материала
-        :return: [ [Correction, limits, pair] , [...], ... ]
+        :return: [ [CorrectionFunction, limits, pair] , [...], ... ]
         """
         corrections = []
         for pair, cor_dict in self.correction_funcs.items():
@@ -163,7 +163,7 @@ class TgCorrectionMaterial:
         :return:
         """
         if isinstance(other, TgCorrectionMaterial):
-            if self.name == other.name:
+            if self.material == other.material:
                 for pair in other.correction_funcs.keys():
                     for limit, correction in other.correction_funcs[pair].items():
                         self.add_correction(

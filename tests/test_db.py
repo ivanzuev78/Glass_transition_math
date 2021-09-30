@@ -2,7 +2,7 @@ import pytest
 from shutil import copyfile
 import sqlite3
 
-from res.corrections import Correction
+from res.corrections import CorrectionFunction
 from res.data_classes import ORMDataBase, DataMaterial, DataGlass, Profile
 
 
@@ -39,9 +39,9 @@ def materials():
 @pytest.fixture
 def corrections():
     cor_list = []
-    cor_list.append(Correction("test", "comment", polynomial_coefficients=[34, 0, 0, 0, 28], db_id=1))
-    cor_list.append(Correction("test1", "comment", polynomial_coefficients=[34, 0, 0], db_id=2))
-    cor_list.append(Correction("test2", "comment", db_id=3))
+    cor_list.append(CorrectionFunction("test", "comment", polynomial_coefficients=[34, 0, 0, 0, 28], db_id=1))
+    cor_list.append(CorrectionFunction("test1", "comment", polynomial_coefficients=[34, 0, 0], db_id=2))
+    cor_list.append(CorrectionFunction("test2", "comment", db_id=3))
     return cor_list
 
 
@@ -108,7 +108,7 @@ def test_add_correction_funcs(orm_db, db_cursor, corrections):
     result = db_cursor.fetchall()
     assert len(result) == len(corrections)
     for (cor_id, name, comment, k_e, k_exp), cor in zip(result, corrections):
-        cor: Correction
+        cor: CorrectionFunction
         assert cor.name == name
         assert cor.comment == comment
         assert cor.k_e == k_e
