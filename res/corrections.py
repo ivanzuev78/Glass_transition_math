@@ -75,25 +75,36 @@ class CorrectionFunction:
         return result
 
 
+class Correction:
+    def __init__(self, x_min: float, x_max: float, correction_func: CorrectionFunction,
+                 amine: Optional[int] = None,  epoxy: Optional[int] = None):
+        self.amine = amine
+        self.epoxy = epoxy
+        self.x_min = x_min
+        self.x_max = x_max
+        self.correction_func = correction_func
+
+    def __call__(self, value):
+        return self.correction_func(value)
+
+
 class TgCorrectionMaterial:
     """ """
 
-    def __init__(self, name):
-        self.name = name  # Название материала, который влияет на систему
+    def __init__(self, material: "DataMaterial"):
+        self.material = material  # Название материала, который влияет на систему
         self.correction_funcs = defaultdict(dict)
         self.global_correction = {}
 
-    def add_correction(
-        self, correction: Correction, x_min: float, x_max: float, pair: Tuple = None
-    ) -> None:
+    def add_correction(self, correction: Correction) -> None:
         """
         Добавляет коррекцию
         :param correction: Коррекция для расчёта
-        :param x_min: Нижний предел применения функции
-        :param x_max: Верхний предел применения функции
-        :param pair: Пара, на которую идет влияние. Если нет, то будет влиять на всю систему
         """
         # TODO добавить обработку случаев, когда границы накладываются
+        x_min = correction.x_min
+        x_max = correction.x_max
+        pair = (correction.amine, correction.epoxy) if correction is not None else None
         if pair is not None:
             self.correction_funcs[pair][(x_min, x_max)] = correction
         else:
@@ -168,13 +179,10 @@ class TgCorrectionMaterial:
                     for limit, correction in other.correction_funcs[pair].items():
                         self.add_correction(
                             correction=correction,
-                            pair=pair,
-                            x_min=limit[0],
-                            x_max=limit[1],
                         )
                 for limit, correction in other.global_correction.items():
                     self.add_correction(
-                        correction=correction, x_min=limit[0], x_max=limit[1]
+                        correction=correction
                     )
 
 
@@ -193,7 +201,7 @@ class TgCorrectionManager:
         :return:
         """
         self.all_corrections_materials.append(correction_material)
-        self.used_corrections_materials[correction_material.name] = correction_material
+        self.used_corrections_materials[correction_material.material] = correction_material
 
     def turn_on_correction(self):
         """
