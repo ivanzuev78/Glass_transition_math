@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional, Dict, Union
 
 from pandas import DataFrame
 
-from res.corrections import TgCorrectionMaterial, Correction
+from res.corrections import TgCorrectionMaterial, CorrectionFunction
 
 
 class DataMaterial:
@@ -34,7 +34,7 @@ class DataMaterial:
         data["db_id"] = self.db_id
         return data
 
-    def add_correction(self, correction: Correction, x_min, x_max, pair):
+    def add_correction(self, correction: CorrectionFunction, x_min, x_max, pair):
         self.correction.add_correction(correction, x_min, x_max, pair)
 
     def get_all_corrections(self):
@@ -311,7 +311,7 @@ class ORMDataBase:
         cursor = connection.cursor()
         # Получаем информацию о одной функции
         cursor.execute(
-            f"SELECT Material_id, Amine,  Epoxy, x_max, x_min, Correction FROM CorrectionMaterial_map WHERE (id = '{cor_map_id}') "
+            f"SELECT Material_id, Amine,  Epoxy, x_max, x_min, Correction FROM Correction_map WHERE (id = '{cor_map_id}') "
         )
 
         (
@@ -333,7 +333,7 @@ class ORMDataBase:
 
         # Получаем параметры корректировки
         cursor.execute(
-            f"SELECT Name, Comment, k_e, k_exp FROM Corrections WHERE (id = '{correction_id}') "
+            f"SELECT Name, Comment, k_e, k_exp FROM Correction_funcs WHERE (id = '{correction_id}') "
         )
         cor_name, cor_comment, k_e, k_exp = cursor.fetchall()[0]
         # Получаем полиномиальные коэффициенты корректировки
@@ -342,7 +342,7 @@ class ORMDataBase:
         )
         polynom_coefs = cursor.fetchall()
 
-        correction = Correction(cor_name, cor_comment, k_e, k_exp, correction_id)
+        correction = CorrectionFunction(cor_name, cor_comment, k_e, k_exp, correction_id)
         for power, coef in polynom_coefs:
             correction.edit_polynomial_coefficient(coef, power)
 
@@ -420,22 +420,16 @@ class ORMDataBase:
         cursor = connection.cursor()
         strings = []
         strings.append(f"DELETE FROM Materials WHERE Id={material.db_id}")
-        strings.append(f"DELETE FROM Prof_mat_map WHERE Material={material.db_id}")
-        strings.append(
-            f"DELETE FROM CorrectionMaterial_map WHERE Material_id={material.db_id}"
-        )
-        strings.append(
-            f"DELETE FROM CorrectionMaterial_map WHERE Amine={material.db_id}"
-        )
-        strings.append(
-            f"DELETE FROM CorrectionMaterial_map WHERE Epoxy={material.db_id}"
-        )
+        # TODO Возможно, не обязательно вручную всё удалять. Нужны тесты и рефакторинг
+        # strings.append(f"DELETE FROM Prof_mat_map WHERE Material={material.db_id}")
+        # strings.append(f"DELETE FROM Correction_map WHERE Material_id={material.db_id}")
+
         for string in strings:
             cursor.execute(string)
         connection.commit()
         connection.close()
 
-    def add_correction_func(self, correction: Correction):
+    def add_correction_func(self, correction: CorrectionFunction):
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
@@ -461,7 +455,7 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
-    def remove_correction_func(self, correction: Correction):
+    def remove_correction_func(self, correction: CorrectionFunction):
         """
         Удаляем коррекцию из БД
         :param correction:
