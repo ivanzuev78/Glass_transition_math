@@ -435,11 +435,11 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
-    def add_correction(self, correction: Correction):
+    def add_correction_func(self, correction: Correction):
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        cursor.execute(f"SELECT MAX(id) FROM Corrections")
+        cursor.execute(f"SELECT MAX(id) FROM Correction_funcs")
         max_id = cursor.fetchone()
         cor_id = max_id[0] + 1 if max_id[0] is not None else 1
         correction.db_id = cor_id
@@ -450,7 +450,7 @@ class ORMDataBase:
             correction.k_e,
             correction.k_exp,
         ]
-        insert = f"INSERT INTO Corrections (id, Name, Comment, k_e, k_exp) VALUES (?, ?, ?, ?, ?);"
+        insert = f"INSERT INTO Correction_funcs (id, Name, Comment, k_e, k_exp) VALUES (?, ?, ?, ?, ?);"
         cursor.execute(insert, data)
         # Добавляем коэффициенты в таблицу полиномиальных коэффициентов
         for power, coef in enumerate(correction.polynomial_coefficients):
@@ -461,7 +461,7 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
-    def remove_correction(self, correction: Correction):
+    def remove_correction_func(self, correction: Correction):
         """
         Удаляем коррекцию из БД
         :param correction:
@@ -469,7 +469,7 @@ class ORMDataBase:
         """
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        string = f"DELETE FROM Corrections WHERE Id={correction.db_id}"
+        string = f"DELETE FROM Correction_funcs WHERE Id={correction.db_id}"
         cursor.execute(string)
         string = f"DELETE FROM corr_poly_coef_map WHERE Correction={correction.db_id}"
         cursor.execute(string)

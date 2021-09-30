@@ -96,15 +96,15 @@ def test_remove_material(orm_db, db_cursor, materials):
     assert len(result) == 0
 
 
-def test_add_correction(orm_db, db_cursor, corrections):
+def test_add_correction_funcs(orm_db, db_cursor, corrections):
     all_poly_coef = []
     for cor in corrections:
-        orm_db.add_correction(cor)
+        orm_db.add_correction_func(cor)
         for power, value in enumerate(cor.polynomial_coefficients):
             if value > 0:
                 all_poly_coef.append((power, value))
 
-    db_cursor.execute(f"SELECT * FROM Corrections")
+    db_cursor.execute(f"SELECT * FROM Correction_funcs")
     result = db_cursor.fetchall()
     assert len(result) == len(corrections)
     for (cor_id, name, comment, k_e, k_exp), cor in zip(result, corrections):
@@ -123,15 +123,15 @@ def test_add_correction(orm_db, db_cursor, corrections):
     assert len(all_poly_coef) == 0
 
 
-def test_remove_correction(orm_db, db_cursor, corrections):
+def test_remove_correction_funcs(orm_db, db_cursor, corrections):
     # Предполагается, что функция add_correction работает правильно
     for cor in corrections:
-        orm_db.add_correction(cor)
+        orm_db.add_correction_func(cor)
 
     for cor in corrections:
-        orm_db.remove_correction(cor)
+        orm_db.remove_correction_func(cor)
 
-    db_cursor.execute(f"SELECT * FROM Corrections")
+    db_cursor.execute(f"SELECT * FROM Correction_funcs")
     result = db_cursor.fetchall()
     assert len(result) == 0
 
