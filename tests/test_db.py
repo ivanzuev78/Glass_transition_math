@@ -299,3 +299,32 @@ def test_remove_correction(orm_db, db_cursor, added_corrections):
     db_cursor.execute(f"SELECT * FROM Correction_map")
     result = db_cursor.fetchall()
     assert len(result) == 0
+
+
+def test_add_association_material_to_correction(orm_db, db_cursor, added_materials, added_corrections):
+    for material, correction in zip(added_materials, added_corrections):
+        orm_db.add_association_material_to_correction(material, correction)
+
+    db_cursor.execute(f"SELECT * FROM Mat_cor_map")
+    result = db_cursor.fetchall()
+    assert len(result) == len(added_corrections)
+
+    for (mat_id, cor_id), material, correction in zip(result, added_materials, added_corrections):
+        assert mat_id == material.db_id
+        assert cor_id == correction.db_id
+
+
+def test_remove_association_material_to_correction(orm_db, db_cursor, added_materials, added_corrections):
+    for material, correction in zip(added_materials, added_corrections):
+        orm_db.add_association_material_to_correction(material, correction)
+
+    db_cursor.execute(f"SELECT * FROM Mat_cor_map")
+    result = db_cursor.fetchall()
+    assert len(result) == len(added_corrections)
+
+    for material, correction in zip(added_materials, added_corrections):
+        orm_db.remove_association_material_to_correction(material, correction)
+
+    db_cursor.execute(f"SELECT * FROM Mat_cor_map")
+    result = db_cursor.fetchall()
+    assert len(result) == 0

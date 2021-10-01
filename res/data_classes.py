@@ -787,6 +787,36 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
+    def add_association_material_to_correction(self, material: DataMaterial, correction: Correction):
+        """
+        Создает ассоциацию материала и коррекции.
+        Добавляет связку в таблицу Mat_cor_map
+        :param material: материал
+        :param correction: коррекция
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        insert = f"INSERT INTO Mat_cor_map (Material, Correction) VALUES (?, ?);"
+        insert_data = [material.db_id, correction.db_id]
+        cursor.execute(insert, insert_data)
+        connection.commit()
+        connection.close()
+
+    def remove_association_material_to_correction(self, material: DataMaterial, correction: Correction):
+        """
+        Удаляет ассоциацию материала и коррекции.
+        Удаляет запись из в таблицы Mat_cor_map
+        :param material: материал
+        :param correction: коррекция
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Mat_cor_map WHERE Material='{material.db_id}' AND Correction='{correction.db_id}'"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()
+
     # ============================= Создание БД =======================================
 
     def create_db(self):
