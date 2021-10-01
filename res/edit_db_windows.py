@@ -311,9 +311,10 @@ class EditMaterialWindow(
             self.name_lineEdit.setText(self.material.name)
             self.ew_lineEdit.setText(str(self.material.ew))
             self.corrections = self.material.correction.get_all_corrections()
-            for cor_data in self.corrections:
-                corection, (x_min, x_max), pair = cor_data
-                self.corrections_listWidget.addItem(corection.name)
+            for correction in self.corrections:
+                correction_func = correction.correction_func
+
+                self.corrections_listWidget.addItem(correction_func.name)
 
     def change_row(self):
         self.corrections_listWidget: QListWidget

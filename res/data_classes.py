@@ -1,14 +1,9 @@
-import math
-import pickle
 import sqlite3
 from collections import defaultdict
 from math import exp
-from os.path import exists
-from typing import List, Tuple, Optional, Dict, Union
+from typing import List, Tuple, Optional, Dict, Union, Iterable
 
 from pandas import DataFrame
-
-from res.corrections import TgCorrectionMaterial, CorrectionFunction
 
 
 class DataMaterial:
@@ -17,7 +12,7 @@ class DataMaterial:
         self.mat_type: str = mat_type
         self.ew: float = ew
         self.db_id: int = db_id
-        self.correction: TgCorrectionMaterial = TgCorrectionMaterial(name)
+        self.correction: TgCorrectionMaterial = TgCorrectionMaterial(self)
 
     # Возможно, не используется
     def create_new(self, name: str, mat_type: str, ew: float):
@@ -34,8 +29,8 @@ class DataMaterial:
         data["db_id"] = self.db_id
         return data
 
-    def add_correction(self, correction: CorrectionFunction, x_min, x_max, pair):
-        self.correction.add_correction(correction, x_min, x_max, pair)
+    def add_correction(self, correction: "Correction"):
+        self.correction.add_correction(correction)
 
     def get_all_corrections(self):
         return self.correction.get_all_corrections()
@@ -55,6 +50,226 @@ class DataGlass:
         self.epoxy = epoxy
         self.amine = amine
         self.value = value
+
+
+class CorrectionFunction:
+    """
+    f(x) = k_e * exp(k_exp * x) + k0 + k1 * x + k2 * x2 ...
+    """
+
+    def __init__(
+            self,
+            cor_name: str,
+            cor_comment: str,
+            k_e: float = 0,
+            k_exp: float = 0,
+            db_id: int = None,
+            polynomial_coefficients: Iterable = None,
+    ):
+        self.name = cor_name
+        self.comment = cor_comment
+        self.k_e = k_e
+        self.k_exp = k_exp
+        if polynomial_coefficients is not None:
+            self.polynomial_coefficients = [c for c in polynomial_coefficients]
+        else:
+            self.polynomial_coefficients = []
+        self.db_id = db_id
+
+    def edit_polynomial_coefficient(self, coef: float, power: int) -> None:
+        """
+        Позволяет добавить коэффициент при любой степени Х в полиноме
+        :param coef: Значение коэффициента
+        :param power: Степень икса, перед которой стоит этот коэффициент
+        :return: None
+        """
+        while len(self.polynomial_coefficients) <= power:
+            self.polynomial_coefficients.append(0.0)
+        self.polynomial_coefficients[power] = coef
+
+    def edit_name_comment(self, name: str = None, comment: str = None) -> None:
+        """
+        Редактирует имя и комментарий корректировки
+        :param name:
+        :param comment:
+        :return:
+        """
+        if name is not None:
+            self.name = name
+        if comment is not None:
+            self.comment = comment
+
+    def edit_exp_coef(self, k_e: float = None, k_exp: float = None) -> None:
+        """
+        Редактировние экспоненциальных кэофициентов: k_e * exp(k_exp * x)
+        :param k_e: Коэффициент перед экспонентой
+        :param k_exp: Коэффициент в степени экспоненты
+        """
+        if k_e is not None:
+            self.k_e = k_e
+        if k_exp is not None:
+            self.k_exp = k_exp
+
+    def __call__(self, value: float) -> float:
+        """
+        Функция для расчёта влияния на заданных коэффициентов
+        :param value: Значение Х
+        :return: Значение Y
+        """
+        # Считаем экспоненциальную часть функции
+        result = self.k_e * exp(self.k_exp * value)
+        # Считаем полиномиальную часть функции
+        for power, coef in enumerate(self.polynomial_coefficients):
+            result += coef * value ** power
+        return result
+
+
+class Correction:
+    def __init__(self, x_min: float, x_max: float, correction_func: CorrectionFunction,
+                 amine: DataMaterial = None, epoxy: DataMaterial = None, db_id: int = None):
+        self.db_id = db_id
+        self.amine = amine
+        self.epoxy = epoxy
+        self.x_min = x_min
+        self.x_max = x_max
+        self.correction_func = correction_func
+
+    def __call__(self, value):
+        return self.correction_func(value)
+
+
+class TgCorrectionMaterial:
+    """ """
+
+    def __init__(self, material: DataMaterial):
+        self.material = material  # Название материала, который влияет на систему
+        self.corrections = defaultdict(dict)
+        self.global_correction = {}
+
+    def add_correction(self, correction: Correction) -> None:
+        """
+        Добавляет коррекцию
+        :param correction: Коррекция для расчёта
+        """
+        # TODO добавить обработку случаев, когда границы накладываются
+        x_min = correction.x_min
+        x_max = correction.x_max
+        pair = (correction.amine, correction.epoxy) if correction is not None else None
+        if pair is not None:
+            self.corrections[pair][(x_min, x_max)] = correction
+        else:
+            self.global_correction[(x_min, x_max)] = correction
+
+    def remove_correction(self, limit: Tuple[float], pair: Tuple[str] = None) -> None:
+        """
+        Удаляет коррекцию с заданной позиции
+        :param pair:
+        :param limit:
+        :return:
+        """
+        if pair is not None:
+            if pair in self.corrections.keys():
+                if limit in self.corrections[pair]:
+                    del self.corrections[pair][limit]
+                    if not self.corrections[pair]:
+                        del self.corrections[pair]
+        else:
+            if limit in self.global_correction.keys():
+                del self.global_correction[limit]
+
+    def get_all_corrections(self) -> List[Correction]:
+        """
+        Возвращает список коррекций данного материала
+        :return: [ [CorrectionFunction, limits, pair] , [...], ... ]
+        """
+        corrections = []
+
+        # for pair, cor_dict in self.correction_funcs.items():
+        #     for limits, correction in cor_dict.items():
+        #         corrections.append([correction, limits, pair])
+        # for limits, correction in self.global_correction.items():
+        #     corrections.append((correction, limits, None))
+
+        for cor_dict in self.corrections.values():
+            for correction in cor_dict.values():
+                corrections.append(correction)
+        for correction in self.global_correction.values():
+            corrections.append(correction)
+
+        return corrections
+
+    def __call__(self, value: float, pair: Tuple[str] = None) -> dict:
+        """
+        Позволяет рассчитать коррекцию данного вещества для конкретной пары или на систему в целом
+        :param value: % материала в системе
+        :param pair: Пара, на которую рассчитывается влияние
+        :return: Словарь со значениями влияния и кодом
+        Коды:
+        1 - Влияние на заданную пару:
+        2 - Влияние по глобальной формуле
+        3 - Не задана функция влияния
+        """
+        if pair is not None:
+            if pair in self.corrections.keys():
+                for limit in self.corrections[pair].keys():
+                    if limit[0] <= limit <= limit[1]:
+                        return {
+                            "value": self.corrections[pair][limit](value),
+                            "code": 1,
+                        }
+        for limit in self.global_correction.keys():
+            if limit[0] <= limit <= limit[1]:
+                return {"value": self.global_correction[limit](value), "code": 2}
+        return {"value": 0.0, "code": 3}
+
+    def __add__(self, other):
+        """
+        Функционал для объединения коррекций.
+        Может объединять только коррекции для одного материала.
+        :param other:
+        :return:
+        """
+        if isinstance(other, TgCorrectionMaterial):
+            if self.material == other.material:
+                for pair in other.corrections.keys():
+                    for limit, correction in other.corrections[pair].items():
+                        self.add_correction(
+                            correction=correction,
+                        )
+                for limit, correction in other.global_correction.items():
+                    self.add_correction(
+                        correction=correction
+                    )
+
+
+class TgCorrectionManager:
+    def __init__(self):
+        self.all_corrections_materials = []
+        self.all_corrections_funcs = []
+        self.used_corrections_materials = {}
+
+    def add_tg_correction_material(
+            self, correction_material: TgCorrectionMaterial
+    ) -> None:
+        """
+        Добавляет коррекцию материала в менеджер
+        :param correction_material:
+        :return:
+        """
+        self.all_corrections_materials.append(correction_material)
+        self.used_corrections_materials[correction_material.material] = correction_material
+
+    def turn_on_correction(self):
+        """
+        Включает коррекцию для конкретного материала в работу
+        :return:
+        """
+
+    def turn_off_correction(self):
+        """
+        Выключает коррекцию для конкретного материала в работу
+        :return:
+        """
 
 
 class Profile:
@@ -311,7 +526,7 @@ class ORMDataBase:
         cursor = connection.cursor()
         # Получаем информацию о одной функции
         cursor.execute(
-            f"SELECT Material_id, Amine,  Epoxy, x_max, x_min, Correction FROM Correction_map WHERE (id = '{cor_map_id}') "
+            f"SELECT Material_id, Amine,  Epoxy, x_max, x_min, Correction_func FROM Correction_map WHERE (id = '{cor_map_id}') "
         )
 
         (
@@ -342,16 +557,16 @@ class ORMDataBase:
         )
         polynom_coefs = cursor.fetchall()
 
-        correction = CorrectionFunction(cor_name, cor_comment, k_e, k_exp, correction_id)
+        cor_func = CorrectionFunction(cor_name, cor_comment, k_e, k_exp, correction_id)
         for power, coef in polynom_coefs:
-            correction.edit_polynomial_coefficient(coef, power)
+            cor_func.edit_polynomial_coefficient(coef, power)
 
         # tg_correction_material.add_correction(correction, x_min, x_max,
         #                                       (amine_name, epoxy_name) if amine_id is not None else None)
         # TODO Возможно, стоит привязывать коррекцию к материалу по id, а не по названию
         connection.close()
         return (
-            correction,
+            cor_func,
             x_min,
             x_max,
             pair,
@@ -535,6 +750,39 @@ class ORMDataBase:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         string = f"DELETE FROM Profiles WHERE Name='{profile_name}'"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()
+
+    def add_correction(self, correction: Correction):
+        """
+        Добавляет коррекцию в БД. Предполагается, что функция коррекции уже в базе
+        :param correction:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT MAX(id) FROM Correction_map")
+        max_id = cursor.fetchone()
+        cor_id = max_id[0] + 1 if max_id[0] is not None else 1
+        correction.db_id = cor_id
+        epoxy_id = correction.epoxy.db_id if isinstance(correction.epoxy, DataMaterial) else None
+        amine_id = correction.amine.db_id if isinstance(correction.amine, DataMaterial) else None
+        insert = f"INSERT INTO Correction_map (id, Amine, Epoxy, x_max, x_min, Correction_func) VALUES (?, ?, ?, ?, ?, ?);"
+        insert_data = [cor_id, amine_id, epoxy_id, correction.x_max, correction.x_min, correction.correction_func.db_id]
+        cursor.execute(insert, insert_data)
+        connection.commit()
+        connection.close()
+
+    def remove_correction(self, correction: Correction):
+        """
+        Удаляет коррекцию из БД
+        :param correction:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Correction_map WHERE id='{correction.db_id}'"
         cursor.execute(string)
         connection.commit()
         connection.close()
