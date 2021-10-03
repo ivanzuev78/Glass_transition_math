@@ -510,3 +510,8 @@ class ReceiptCounter:
                     return None
 
         self.drop_labels()
+
+
+class TgInfluenceCounter:
+    def __init__(self):
+        ...

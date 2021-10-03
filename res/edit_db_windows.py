@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from res.additional_funcs import set_qt_stile
-from res.data_classes import DataMaterial, Profile, CorrectionFunction
+from res.data_classes import DataMaterial, Profile, CorrectionFunction, DataGlass
 
 
 class EditDataWindow(QWidget):
@@ -43,16 +43,46 @@ class EditDataWindow(QWidget):
         self.profile_material_widget = ProfileMaterialWidget(self)
         self.profile_material_widget.move(10, 30)
 
+        but_width = 155
+        but_height = 25
+        but_x_pos = 630
+        but_y_pos = 30
+        but_y_delta = 35
+
         self.add_mat_but = QPushButton(self)
-        self.add_mat_but.move(630, 30)
-        self.add_mat_but.resize(120, 25)
+        self.add_mat_but.move(but_x_pos, but_y_pos)
+        self.add_mat_but.resize(but_width, but_height)
         self.add_mat_but.setText("Добавить материал")
+        self.add_mat_but.clicked.connect(self.add_material_but_click)
+
+        self.add_tg_but = QPushButton(self)
+        self.add_tg_but.move(but_x_pos, but_y_pos + but_y_delta)
+        self.add_tg_but.resize(but_width, but_height)
+        self.add_tg_but.setText("Добавить стеклование")
+        self.add_tg_but.clicked.connect(self.add_tg_but_click)
+
+        self.add_tg_inf_but = QPushButton(self)
+        self.add_tg_inf_but.move(but_x_pos, but_y_pos + 2 * but_y_delta)
+        self.add_tg_inf_but.resize(but_width, but_height)
+        self.add_tg_inf_but.setText("Добавить влияние на стекло")
 
         self.profile_material_widget.data_material_widget = self.data_material_widget
         self.data_material_widget.profile_material_widget = self.profile_material_widget
 
         # РАБОТАЕТ
         self.show()
+
+    def add_material_but_click(self):
+        self.edit_material_window = EditMaterialWindow(self, self.profile)
+        self.close_to_edit_material = True
+        self.close()
+        self.edit_material_window.show()
+
+    def add_tg_but_click(self):
+        self.add_material = EditTgWindow(self, self.profile)
+        self.close_to_edit_material = True
+        self.close()
+        self.add_material.show()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         if self.main_window is not None and not self.close_to_edit_material:
@@ -156,7 +186,7 @@ class DataMaterialWidget(QListWidget):
 
     def open_mat_editor(self):
         material = self.material_list[self.currentIndex().row()]
-        self.mat_editor = EditMaterialWindow(self.edit_window, material)
+        self.mat_editor = EditMaterialWindow(self.edit_window, self.edit_window.profile, material)
         self.mat_editor.show()
         self.edit_window.close_to_edit_material = True
         self.edit_window.close()
@@ -203,12 +233,9 @@ class DataMaterialWidget(QListWidget):
         # self.addItem()
 
 
-class CreateMaterialWindow(
-    QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]
-):
-    def __init__(
-        self, main_window: EditDataWindow, origin_material: DataMaterial = None
-    ):
+# Устарело, вроде как
+class CreateMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_material.ui")[0]):
+    def __init__(self, main_window: EditDataWindow, origin_material: DataMaterial = None):
         super(CreateMaterialWindow, self).__init__()
         self.setupUi(self)
         self.main_window = main_window
@@ -246,9 +273,7 @@ class CreateMaterialWindow(
         del self
 
 
-class EditCorrectionWindow(
-    QtWidgets.QMainWindow, uic.loadUiType("windows/edit_correction.ui")[0]
-):
+class EditCorrectionWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_correction.ui")[0]):
     def __init__(self, previous_window, correction: CorrectionFunction = None):
         super(EditCorrectionWindow, self).__init__()
         self.setupUi(self)
@@ -280,21 +305,26 @@ class EditCorrectionWindow(
         del self
 
 
-class EditMaterialWindow(
-    QtWidgets.QMainWindow,
-    uic.loadUiType("windows/edit_material_with_corrections.ui")[0],
-):
-    def __init__(self, previous_window: EditDataWindow, material: DataMaterial = None):
+class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_material_with_corrections.ui")[0]):
+    def __init__(self, previous_window: EditDataWindow, profile: Profile, material: DataMaterial = None):
         super(EditMaterialWindow, self).__init__()
         self.setupUi(self)
         self.previos_window = previous_window
-        self.profile = previous_window.profile
+        self.profile = profile
+        self.types = self.profile.get_all_types()
+        self.type_comboBox.addItems(self.types)
         self.material = material
+        # Режим редактирования или создания нового материала
+        self.edit_mode = False
+        if material is not None:
+            self.edit_mode = True
+            self.set_material()
+
         set_qt_stile("style.css", self)
         self.corrections: List[
             Tuple[CorrectionFunction, Tuple[float, float], Union[Tuple, None]]
         ] = []
-        self.set_material()
+
         self.corrections_listWidget.currentItemChanged.connect(self.change_row)
         self.corrections_listWidget.itemDoubleClicked.connect(self.show_correction)
 
@@ -302,17 +332,15 @@ class EditMaterialWindow(
         self.type_comboBox: QComboBox
         self.corrections_listWidget: QListWidget
         self.cor_textBrowser: QTextBrowser
-        types = self.profile.get_all_types()
-        self.type_comboBox.addItems(types)
-        if self.material is not None:
-            index = types.index(self.material.mat_type)
+
+        if self.edit_mode:
+            index = self.types.index(self.material.mat_type)
             self.type_comboBox.setCurrentIndex(index)
             self.name_lineEdit.setText(self.material.name)
             self.ew_lineEdit.setText(str(self.material.ew))
             self.corrections = self.material.correction.get_all_corrections()
             for correction in self.corrections:
                 correction_func = correction.correction_func
-
                 self.corrections_listWidget.addItem(correction_func.name)
 
     def change_row(self):
@@ -339,7 +367,7 @@ class EditMaterialWindow(
         ax.set(
             xlabel="Содержание вещества в системе, %",
             ylabel="Влияние на температуру стеклования, °С",
-            title=f"Влияние '{self.material.name}' на {pair if pair is not None else string }",
+            title=f"Влияние '{self.material.name}' на {pair if pair is not None else string}",
         )
         ax.grid()
 
@@ -352,8 +380,38 @@ class EditMaterialWindow(
         del self
 
 
+class EditTgWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg.ui")[0]):
+    def __init__(self, previous_window: EditDataWindow, profile: Profile, data_glass: DataGlass = None):
+        super(EditTgWindow, self).__init__()
+        self.setupUi(self)
+        self.previos_window = previous_window
+        self.profile = profile
+        self.data_glass = data_glass
+        set_qt_stile("style.css", self)
+        self.epoxy_comboBox: QComboBox
+        self.epoxy_list = profile.get_materials_by_type('Epoxy')
+        self.amine_list = profile.get_materials_by_type('Amine')
+        self.epoxy_comboBox.addItems([mat.name for mat in self.epoxy_list])
+        self.amine_comboBox.addItems([mat.name for mat in self.amine_list])
+
+        self.save_but.clicked.connect(self.save)
+        self.cancel_but.clicked.connect(self.cancel)
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.previos_window.show()
+        self.previos_window.close_to_edit_material = False
+        del self
+
+    def save(self):
+        # TODO Реализовать логику сохранения стеклования
+        self.close()
+
+    def cancel(self):
+        self.close()
+
+
+
+
+
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ex = EditMaterialWindow(None)
-    ex.show()
-    sys.exit(app.exec_())
+    ...

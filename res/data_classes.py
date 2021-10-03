@@ -313,6 +313,15 @@ class Profile:
             if self.tg_df is not None and material.mat_type in ("Amine", "Epoxy"):
                 self.tg_df = None
 
+    def add_material_to_db(self, mat_name: str, mat_type: str, ew: float, add_to_profile: bool = True):
+        """
+        Добавляет материал в БД
+        :return:
+        """
+        material = DataMaterial(mat_name, mat_type, ew)
+        self.orm_db.add_material(material, profile=self if add_to_profile else None)
+        self.add_material(material)
+
     def remove_material(self, material: DataMaterial) -> None:
         """
         Функция для удаления материала из профиля
