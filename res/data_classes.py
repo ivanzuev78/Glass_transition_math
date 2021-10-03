@@ -35,6 +35,8 @@ class DataMaterial:
     def get_all_corrections(self):
         return self.correction.get_all_corrections()
 
+    # def get_tg_influence(self, percent: float) -> float:
+    #     return self.correction(percent)
     # def remove_correction(self, correction: Correction):
     #     if correction in self.corrections:
     #         self.corrections.remove(correction)
@@ -145,6 +147,16 @@ class TgCorrectionMaterial:
         self.material = material  # Название материала, который влияет на систему
         self.corrections = defaultdict(dict)
         self.global_correction = {}
+        self.__percent = 0.0
+
+    @property
+    def percent(self) -> float:
+        return self.__percent
+
+    @percent.setter
+    def percent(self, value):
+        # TODO Посчитать влияние на каждую пару
+        self.__percent = value
 
     def add_correction(self, correction: Correction) -> None:
         """

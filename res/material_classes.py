@@ -35,7 +35,8 @@ class Material:
     def percent(self, value: float):
         # TODO сеттер на изменение процентов
         if isinstance(value, (float, int)):
-            self.__percent = float(value)
+            self.__percent = value
+            self.data_material.correction.percent = value
             self.receipt.count_sum()
 
     @property
@@ -248,20 +249,14 @@ class ReceiptCounter:
         self.main_window.set_mass_ratio(value)
 
     def count_mass_ratio(self):
-        if self.receipt_a.ew and self.receipt_b.ew:
-            if self.receipt_a.ew * self.receipt_b.ew < 0:
-                self.mass_ratio = -self.receipt_a.ew / self.receipt_b.ew
-                return None
-        self.mass_ratio = None
-        self.drop_labels()
+        self.mass_ratio = -self.receipt_a.ew / self.receipt_b.ew
 
     def count_percent_df(self):
-        if (
-            not (self.receipt_a.ew and self.receipt_b.ew)
-            or self.receipt_a.ew * self.receipt_b.ew >= 0
-        ):
-            self.percent_df = None
-            return None
+        """
+        Считает матрицу содержаний пар в системе
+        Предполагается, что продукты реагируют (соответствующие фильтры не допускают вызов этой функции в ином случае)
+        :return:
+        """
 
         def count_reaction_in_component(
             names_list, eq_list, pair_react: List[Tuple[Material, Material]]
@@ -470,7 +465,7 @@ class ReceiptCounter:
         # self.all_pairs_na_tg = all_pairs_na_dict
         percent_df = normalize_df(percent_df)
 
-        # Сотрирует строки и столбцы. В данный момент не актуально
+        # Сортирует строки и столбцы. В данный момент не актуально
         # tg_df = tg_df[df_eq_matrix.columns.values.tolist()]
         # tg_df = tg_df.T
         # tg_df = tg_df[df_eq_matrix.index.tolist()].T
@@ -483,6 +478,7 @@ class ReceiptCounter:
     def get_tg_df(self) -> None:
         tg_df = copy(self.profile.get_tg_df())
         if self.percent_df is not None:
+            # TODO Продумать алгоритм отслеживания изменения компонентов, чтобы не дропать каждый раз
             # дропаем неиспользуемые колонки и строки стеклования
             for name in tg_df:
                 if name not in self.percent_df.columns.values.tolist():
@@ -494,10 +490,11 @@ class ReceiptCounter:
 
     def drop_labels(self) -> None:
         """
-        Убирает все расчёты, когда одна из сумм рецептуры не равна 100
+        Убирает все расчёты, когда одна из сумм рецептуры не равна 100 или продукты не реагируют
         :return:
         """
         self.mass_ratio = None
+        self.percent_df = None
         self.tg = None
 
     def update_labels(self) -> None:
@@ -506,7 +503,10 @@ class ReceiptCounter:
         :return:
         """
         if self.receipt_a.sum_percent == 100 and self.receipt_b.sum_percent == 100:
-            self.count_mass_ratio()
-            self.count_tg()
-        else:
-            self.drop_labels()
+            if self.receipt_a.ew and self.receipt_b.ew:
+                if self.receipt_a.ew * self.receipt_b.ew < 0:
+                    self.count_mass_ratio()
+                    self.count_tg()
+                    return None
+
+        self.drop_labels()
