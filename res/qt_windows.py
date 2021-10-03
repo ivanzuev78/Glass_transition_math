@@ -229,11 +229,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.change_list_of_materials(material_combobox, materia_typel_combobox)
         )
 
-        material = Material(
-            materia_typel_combobox.currentText(),
-            material_combobox.currentText(),
-            receipt,
-        )
+
 
         materia_typel_combobox.addItems(self.types_of_items)
         materia_typel_combobox.setFixedHeight(20)
@@ -247,6 +243,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         percent_line.editingFinished.connect(lambda: self.to_float(component))
 
+        material = Material(materia_typel_combobox.currentText(), material_combobox.currentIndex(),
+                            self.profile, receipt)
         # Подключение функций, которые передают параметры в Material при изменении
         percent_line.editingFinished.connect(
             self.change_percent_material(material, percent_line)

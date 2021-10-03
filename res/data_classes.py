@@ -45,7 +45,7 @@ class DataGlass:
     Не знаю, как лучше реализовать
     """
 
-    def __init__(self, epoxy: DataMaterial, amine: DataMaterial, value: float, db_id=None):
+    def __init__(self, epoxy: DataMaterial, amine: DataMaterial, value: float, db_id: int = None):
         self.db_id = db_id
         self.epoxy = epoxy
         self.amine = amine
@@ -127,12 +127,12 @@ class CorrectionFunction:
 class Correction:
     def __init__(self, x_min: float, x_max: float, correction_func: CorrectionFunction,
                  amine: DataMaterial = None, epoxy: DataMaterial = None, db_id: int = None):
-        self.db_id = db_id
-        self.amine = amine
-        self.epoxy = epoxy
         self.x_min = x_min
         self.x_max = x_max
+        self.amine = amine
+        self.epoxy = epoxy
         self.correction_func = correction_func
+        self.db_id = db_id
 
     def __call__(self, value):
         return self.correction_func(value)
@@ -385,6 +385,11 @@ class Profile:
 
         return self.tg_df
 
+    def get_data_material(self, mat_type: str, mat_index: int) -> Optional[DataMaterial]:
+        if not mat_type or mat_index == -1:
+            return None
+        return self.materials[mat_type][mat_index]
+
 
 class ProfileManager:
     def __init__(self, profile_list=None):
@@ -421,13 +426,19 @@ class ORMDataBase:
         self.all_materials = {}
         for name, mat_type, ew, mat_id in self.get_all_materials_data():
             material = DataMaterial(name, mat_type, ew, mat_id)
+
             # Подключаем все коррекции
-            for correction_id in self.get_all_corrections_of_one_material(mat_id):
-                correction_id = correction_id[0]
-                correction, x_min, x_max, pair = self.get_correction_by_id(
-                    correction_id
-                )
-                material.add_correction(correction, x_min, x_max, pair)
+            # TODO Подключить все коррекции
+            # for correction_id in self.get_all_corrections_of_one_material(mat_id):
+            #     correction_id = correction_id[0]
+            #     correction_func, x_min, x_max, pair = self.get_correction_by_id(
+            #         correction_id
+            #     )
+            #     if pair is not None:
+            #
+            #     correction = Correction(x_min, x_max, correction_func)
+            #     material.add_correction(correction)
+
             self.all_materials[mat_id] = material
 
     def get_all_materials(self) -> List[DataMaterial]:
@@ -526,11 +537,10 @@ class ORMDataBase:
         cursor = connection.cursor()
         # Получаем информацию о одной функции
         cursor.execute(
-            f"SELECT Material_id, Amine,  Epoxy, x_max, x_min, Correction_func FROM Correction_map WHERE (id = '{cor_map_id}') "
+            f"SELECT Amine,  Epoxy, x_max, x_min, Correction_func FROM Correction_map WHERE (id = '{cor_map_id}') "
         )
 
         (
-            material_id,
             amine_id,
             epoxy_id,
             x_max,
@@ -565,12 +575,7 @@ class ORMDataBase:
         #                                       (amine_name, epoxy_name) if amine_id is not None else None)
         # TODO Возможно, стоит привязывать коррекцию к материалу по id, а не по названию
         connection.close()
-        return (
-            cor_func,
-            x_min,
-            x_max,
-            pair,
-        )
+        return (cor_func, x_min, x_max, pair)
 
     def get_all_materials_data(self) -> List[Tuple]:
         connection = sqlite3.connect(self.db_name)
