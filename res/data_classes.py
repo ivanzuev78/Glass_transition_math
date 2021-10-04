@@ -289,14 +289,15 @@ class Profile:
 
         self.profile_name = profile_name
         # {тип: [список материалов]}
-        self.materials: Dict[str, List[DataMaterial]] = defaultdict(
-            list
-        )  # Тип: Список материалов данного типа
-        self.id_name_dict: Dict[int, DataMaterial] = {}
+        self.materials: Dict[str, List[DataMaterial]] = defaultdict(list)  # Тип: Список материалов данного типа
+        self.id_material_dict: Dict[int, DataMaterial] = {}
+        # Хранение стеклований
+        self.tg_list = []
+        self.id_tg_dict: Dict[int, DataGlass] = {}
+
         self.orm_db = orm_db
         self.my_main_window: Optional["MyMainWindow"] = None
         self.tg_df = None
-        self.tg_list = None
 
     def add_material(self, material: DataMaterial) -> None:
         """
@@ -306,7 +307,7 @@ class Profile:
         """
         if material not in self.materials[material.mat_type]:
             self.materials[material.mat_type].append(material)
-            self.id_name_dict[material.db_id] = material
+            self.id_material_dict[material.db_id] = material
             if self.my_main_window is not None:
                 self.my_main_window.update_list_of_material_names()
             # Если материал Амин или Эпоксид, обнуляем tg_df
@@ -332,8 +333,8 @@ class Profile:
         if mat_type in self.materials:
             if material in self.materials[mat_type]:
                 self.materials[mat_type].remove(material)
-        if material.db_id in self.id_name_dict:
-            del self.id_name_dict[material.db_id]
+        if material.db_id in self.id_material_dict:
+            del self.id_material_dict[material.db_id]
         if self.my_main_window is not None:
             self.my_main_window.update_list_of_material_names()
         # Если материал Амин или Эпоксид, обнуляем tg_df
@@ -400,8 +401,9 @@ class Profile:
                 all_id_amine = [mat.db_id for mat in self.materials["Amine"]]
                 self.tg_list = self.orm_db.get_tg_by_materials_ids(all_id_epoxy, all_id_amine)
                 for data_glass in self.tg_list:
-                    epoxy_name = self.id_name_dict[data_glass.epoxy].name
-                    amine_name = self.id_name_dict[data_glass.amine].name
+                    self.id_tg_dict[data_glass.db_id] = data_glass
+                    epoxy_name = self.id_material_dict[data_glass.epoxy].name
+                    amine_name = self.id_material_dict[data_glass.amine].name
                     self.tg_df.loc[epoxy_name, amine_name] = data_glass.value
 
         return self.tg_df
@@ -410,6 +412,17 @@ class Profile:
         if not mat_type or mat_index == -1:
             return None
         return self.materials[mat_type][mat_index]
+
+    def add_tg_to_db(self, epoxy_material: DataMaterial, amine_material: DataMaterial, value: float):
+        """
+        Добавляет стеклование в БД
+        """
+        # TODO Добавить проверку на повтор
+        data_glass = DataGlass(epoxy_material, amine_material, value)
+        self.orm_db.add_tg(data_glass)
+        self.tg_list.append(data_glass)
+        self.id_tg_dict[data_glass.db_id] = data_glass
+        return data_glass
 
 
 class ProfileManager:
@@ -433,6 +446,7 @@ class ORMDataBase:
         self.current_profile = None
         # все материалы в базе {material_id: DataMaterial}
         self.all_materials = {}
+        self.all_tg = {}
         self.update_all_materials()
 
     def read_profile(self, profile_name: str) -> Profile:

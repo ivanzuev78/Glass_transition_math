@@ -393,9 +393,17 @@ class EditTgWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg.ui")[0]
         self.amine_list = profile.get_materials_by_type('Amine')
         self.epoxy_comboBox.addItems([mat.name for mat in self.epoxy_list])
         self.amine_comboBox.addItems([mat.name for mat in self.amine_list])
+        if data_glass is not None:
+            amine_index = self.amine_list.index(data_glass.amine)
+            epoxy_index = self.amine_list.index(data_glass.epoxy)
+            self.amine_comboBox.setCurrentIndex(amine_index)
+            self.epoxy_comboBox.setCurrentIndex(epoxy_index)
+            self.tg_lineEdit.setText(str(data_glass.value))
 
         self.save_but.clicked.connect(self.save)
         self.cancel_but.clicked.connect(self.cancel)
+        self.tg_lineEdit: QLineEdit
+        self.tg_lineEdit.editingFinished.connect(self.test_tg_value)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         self.previos_window.show()
@@ -404,11 +412,27 @@ class EditTgWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg.ui")[0]
 
     def save(self):
         # TODO Реализовать логику сохранения стеклования
-        self.close()
+        self.epoxy_comboBox: QComboBox
+        amine_index = self.amine_comboBox.currentIndex()
+        epoxy_index = self.epoxy_comboBox.currentIndex()
+        amine = self.amine_list[amine_index]
+        epoxy = self.epoxy_list[epoxy_index]
+        value: str = self.tg_lineEdit.text().replace(',', '.')
+        if value.isdigit():
+            self.profile.add_tg_to_db(epoxy, amine, float(value))
+            self.close()
+        else:
+            self.tg_lineEdit.setText('Ошибка значения!')
 
     def cancel(self):
         self.close()
 
+    def test_tg_value(self):
+        value = self.tg_lineEdit.text().replace(',', '.')
+        try:
+            float(value)
+        except:
+            self.tg_lineEdit.setText('')
 
 
 
