@@ -78,6 +78,7 @@ class Material:
         self.data_material = self.receipt.profile.materials[mat_type][mat_index]
         self.name = self.data_material.name
         self.ew = self.data_material.ew
+        self.receipt.update_all_pairs_material()
         self.receipt.update_all_parameters()
 
     def __str__(self):
@@ -161,6 +162,12 @@ class Receipt:
             yield material
         return StopIteration
 
+    def __getitem__(self, index):
+        return self.materials[index]
+
+    def __len__(self):
+        return len(self.materials)
+
     def update_all_parameters(self):
         """
         Предполагается, что сумма процентов уже посчитана
@@ -207,12 +214,13 @@ class Receipt:
 
 class ReceiptCounter:
     def __init__(
-        self,
-        receipt_a: Receipt,
-        receipt_b: Receipt,
-        main_window,
-        extra_ratio: bool = False,
+            self,
+            receipt_a: Receipt,
+            receipt_b: Receipt,
+            main_window,
+            extra_ratio: bool = False,
     ):
+        self.pairs = []
         from res.qt_windows import MyMainWindow, PairReactWindow
 
         self.main_window: Optional[MyMainWindow] = main_window
@@ -258,8 +266,10 @@ class ReceiptCounter:
         :return:
         """
 
+        self.count_percent_df_new()
+
         def count_reaction_in_component(
-            names_list, eq_list, pair_react: List[Tuple[Material, Material]]
+                names_list, eq_list, pair_react: List[Tuple[Material, Material]]
         ):
 
             # TODO Реализовать интерфейс для выбора взаимодействующий веществ (есть) + проверка, что все прореагировали
@@ -295,7 +305,7 @@ class ReceiptCounter:
 
             for epoxy_index in dict_react_index:
                 for amine_index, amine_percent in zip(
-                    dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
+                        dict_react_index[epoxy_index], dict_react_eq[epoxy_index]
                 ):
                     eq_reacted = (
                         names_list[epoxy_index],
@@ -433,10 +443,44 @@ class ReceiptCounter:
 
                 df_eq_matrix[pair[0]][pair[1]] += pair[2]
 
+        # Сохраняем все пары
+        self.pairs = []
+        if a_type == "Amine" and b_type == 'Epoxy':
+            for amine in a_names_only_react:
+                for epoxy in b_names_only_react:
+                    self.pairs.append((amine, epoxy))
+
+        elif a_type == "Epoxy" and b_type == 'Amine':
+            for epoxy in a_names_only_react:
+                for amine in b_names_only_react:
+                    self.pairs.append((amine, epoxy))
+
         percent_df = normalize_df(df_eq_matrix)
 
         # Сохраняем матрицу процентов пар
         self.percent_df = copy(percent_df)
+
+    def count_percent_df_new(self):
+        """
+
+        :return:
+        """
+        a_eq_dict = {material: material.percent / material.ew * self.mass_ratio
+        if material.ew * self.mass_ratio != 0 else 0 for material in self.receipt_a}
+
+        b_eq_dict = {
+            material: material.percent / material.ew if material.ew != 0 else 0
+            for material in self.receipt_b
+        }
+
+        pairs_a = self.pair_react_window.get_react_pairs("A")
+        pairs_b = self.pair_react_window.get_react_pairs("B")
+
+        new_eq_a, a_reacted_dict = count_first_state(a_eq_dict, pairs_a)
+        new_eq_b, b_reacted_dict = count_first_state(b_eq_dict, pairs_b)
+
+        # TODO доделать заново
+        pass
 
     def count_tg(self):
         self.count_percent_df()
@@ -515,3 +559,37 @@ class ReceiptCounter:
 class TgInfluenceCounter:
     def __init__(self):
         ...
+
+
+def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]]):
+    """
+
+    :param eq_dict: {Material: eq}  Компоненты и их эквиваленты
+    :param pairs_react: Пары, которые реагируют. На первом месте пожиратель
+    :return:
+    """
+    master_eq_dict = {}  # только пожиратели
+    slave_eq_dict = {}  # Все, кто будут поглощены
+    # разделяем компоненты на пожирателей и поглощенных
+    for master_db_id, slave_db_id in pairs_react:
+        master_eq_dict[master_db_id] = eq_dict[master_db_id]
+        slave_eq_dict[slave_db_id] = eq_dict[slave_db_id]
+
+    # Считаем % каждого пожирателя в системе
+    master_sum = sum(master_eq_dict.values())
+    if master_sum == 0:
+        return eq_dict, {}
+    master_percent_dict = {}
+    for db_id, eq in master_eq_dict.items():
+        master_percent_dict[db_id] = eq / master_sum
+
+    reacted_dict = {}
+    for master_db_id, master_percent in master_percent_dict.items():
+        for slave_db_id, slave_eq in slave_eq_dict.items():
+            eq_dict[master_db_id] += slave_eq * master_percent
+            reacted_dict[(master_db_id, slave_db_id)] = slave_eq * master_percent
+
+    for slave_db_id in slave_eq_dict.keys():
+        del eq_dict[slave_db_id]
+
+    return eq_dict, reacted_dict
