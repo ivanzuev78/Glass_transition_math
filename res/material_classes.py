@@ -2,9 +2,10 @@ import math
 from collections import defaultdict
 from copy import copy
 from itertools import chain
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 import numpy as np
+import pandas
 from pandas import DataFrame
 
 # import init_class
@@ -88,7 +89,7 @@ class Material:
         return "< " + self.receipt.component + "_" + self.__name + ">"
 
     def __float__(self):
-        return self.__percent
+        return float(self.__percent)
 
     def __add__(self, other):
         return self.__percent + float(other)
@@ -230,11 +231,21 @@ class ReceiptCounter:
         self.__mass_ratio: Optional[float] = None
         self.extra_ratio = extra_ratio
         self.percent_df: Optional[DataFrame] = None
-        self.tg_df: Optional[DataFrame] = None
+        self.__tg_df: Optional[DataFrame] = None
 
         # TODO прописать ссылки на окна для передачи параметров
         self.profile = self.main_window.profile
         self.pair_react_window: Optional[PairReactWindow] = None
+
+    @property
+    def tg_df(self):
+        if self.__tg_df is None:
+            self.update_tg_df()
+        return self.__tg_df
+
+    @tg_df.setter
+    def tg_df(self, value):
+        self.__tg_df = value
 
     @property
     def tg(self):
@@ -259,14 +270,12 @@ class ReceiptCounter:
     def count_mass_ratio(self):
         self.mass_ratio = -self.receipt_a.ew / self.receipt_b.ew
 
-    def count_percent_df(self):
+    def count_percent_df_old(self):
         """
         Считает матрицу содержаний пар в системе
         Предполагается, что продукты реагируют (соответствующие фильтры не допускают вызов этой функции в ином случае)
         :return:
         """
-
-        self.count_percent_df_new()
 
         def count_reaction_in_component(
                 names_list, eq_list, pair_react: List[Tuple[Material, Material]]
@@ -460,13 +469,13 @@ class ReceiptCounter:
         # Сохраняем матрицу процентов пар
         self.percent_df = copy(percent_df)
 
-    def count_percent_df_new(self):
+    def count_percent_df(self):
         """
 
         :return:
         """
         a_eq_dict = {material: material.percent / material.ew * self.mass_ratio
-        if material.ew * self.mass_ratio != 0 else 0 for material in self.receipt_a}
+                     if material.ew * self.mass_ratio != 0 else 0 for material in self.receipt_a}
 
         b_eq_dict = {
             material: material.percent / material.ew if material.ew != 0 else 0
@@ -474,20 +483,76 @@ class ReceiptCounter:
         }
 
         pairs_a = self.pair_react_window.get_react_pairs("A")
+        if self.receipt_a.ew < 0:
+            pairs_a = [(pair[1], pair[0]) for pair in pairs_a]
         pairs_b = self.pair_react_window.get_react_pairs("B")
+        if self.receipt_b.ew < 0:
+            pairs_b = [(pair[1], pair[0]) for pair in pairs_b]
 
         new_eq_a, a_reacted_dict = count_first_state(a_eq_dict, pairs_a)
         new_eq_b, b_reacted_dict = count_first_state(b_eq_dict, pairs_b)
 
-        # TODO доделать заново
-        pass
+        df = DataFrame()
+        sum_a = round(sum(new_eq_a.values()), 6)
+        sum_b = round(sum(new_eq_b.values()), 6)
+
+        if sum_a != - sum_b:
+            print('count_percent_df - Сумма эквивалентов не сходится!')
+            print(sum_a, sum_b)
+
+        a_percent_dict = {mat: eq / sum_a for mat, eq in new_eq_a.items()}
+        b_percent_dict = {mat: eq / sum_b for mat, eq in new_eq_b.items()}
+
+        if sum_a > 0 and sum_b < 0:
+            # a - Epoxy, b - Amine
+            epoxy_percent_dict = a_percent_dict
+            amine_percent_dict = b_percent_dict
+        elif sum_a < 0 and sum_b > 0:
+            # a - Amine, b - Epoxy
+            epoxy_percent_dict = b_percent_dict
+            amine_percent_dict = a_percent_dict
+        else:
+            print("count_percent_df - продукты не реагируют")
+            return None
+
+        for material_epoxy, percent_epoxy in epoxy_percent_dict.items():
+            for material_amine, percent_amine in amine_percent_dict.items():
+                df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id]\
+                    = percent_epoxy * percent_amine
+
+        df: DataFrame = df * abs(sum_a)
+
+        print('=========================================')
+        print(df)
+
+        for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
+            epoxy_index = material_epoxy.data_material.db_id
+            amine_index = material_amine.data_material.db_id
+            if material_epoxy.data_material.db_id in df.index and material_amine.data_material.db_id in df.columns:
+                if pandas.isna(df.loc[epoxy_index, amine_index]):
+                    df.loc[epoxy_index, amine_index] = 0
+                df.loc[epoxy_index, amine_index] += eq
+            else:
+                df.loc[epoxy_index, amine_index] = eq
+
+
+        # for (material_epoxy, material_amine), eq in b_reacted_dict.items():
+        #     if material_epoxy.data_material.db_id in df.index and material_amine.data_material.db_id in df.columns:
+        #         if df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] is np.NAN:
+        #             df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] = 0
+        #         df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] += eq
+        #     else:
+        #         df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] = eq
+
+        df = normalize_df(df)
+        print(df)
+        self.percent_df = df
 
     def count_tg(self):
         self.count_percent_df()
+
         if self.percent_df is None:
             return None
-
-        self.get_tg_df()
 
         percent_df = copy(self.percent_df)
         tg_df = copy(self.tg_df)
@@ -519,18 +584,21 @@ class ReceiptCounter:
         self.tg = primary_tg
         # TODO продолжить
 
-    def get_tg_df(self) -> None:
+    def update_tg_df(self) -> None:
+
         tg_df = copy(self.profile.get_tg_df())
         if self.percent_df is not None:
             # TODO Продумать алгоритм отслеживания изменения компонентов, чтобы не дропать каждый раз
             # дропаем неиспользуемые колонки и строки стеклования
-            for name in tg_df:
+            for name in tg_df.columns:
                 if name not in self.percent_df.columns.values.tolist():
                     tg_df = tg_df.drop(name, 1)
             for name in tg_df.index:
                 if name not in self.percent_df.index.tolist():
                     tg_df = tg_df.drop(name)
-        self.tg_df = tg_df
+
+        self.__tg_df = tg_df
+
 
     def drop_labels(self) -> None:
         """
@@ -561,7 +629,8 @@ class TgInfluenceCounter:
         ...
 
 
-def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]]):
+def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]]) -> \
+        Tuple[Dict[Material, float], Dict[Tuple[Material, Material], float]]:
     """
 
     :param eq_dict: {Material: eq}  Компоненты и их эквиваленты
@@ -571,9 +640,9 @@ def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]
     master_eq_dict = {}  # только пожиратели
     slave_eq_dict = {}  # Все, кто будут поглощены
     # разделяем компоненты на пожирателей и поглощенных
-    for master_db_id, slave_db_id in pairs_react:
-        master_eq_dict[master_db_id] = eq_dict[master_db_id]
-        slave_eq_dict[slave_db_id] = eq_dict[slave_db_id]
+    for master_mat, slave_mat in pairs_react:
+        master_eq_dict[master_mat] = eq_dict[master_mat]
+        slave_eq_dict[slave_mat] = eq_dict[slave_mat]
 
     # Считаем % каждого пожирателя в системе
     master_sum = sum(master_eq_dict.values())
@@ -584,12 +653,16 @@ def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]
         master_percent_dict[db_id] = eq / master_sum
 
     reacted_dict = {}
-    for master_db_id, master_percent in master_percent_dict.items():
-        for slave_db_id, slave_eq in slave_eq_dict.items():
-            eq_dict[master_db_id] += slave_eq * master_percent
-            reacted_dict[(master_db_id, slave_db_id)] = slave_eq * master_percent
+    for master_mat, master_percent in master_percent_dict.items():
+        for slave_mat, slave_eq in slave_eq_dict.items():
+            eq_dict[master_mat] += slave_eq * master_percent
+            # На первом месте всегда эпоксид
+            if master_mat.mat_type == 'Epoxy':
+                reacted_dict[(master_mat, slave_mat)] = abs(slave_eq * master_percent)
+            else:
+                reacted_dict[(slave_mat, master_mat)] = abs(slave_eq * master_percent)
 
-    for slave_db_id in slave_eq_dict.keys():
-        del eq_dict[slave_db_id]
+    for slave_mat in slave_eq_dict.keys():
+        del eq_dict[slave_mat]
 
     return eq_dict, reacted_dict

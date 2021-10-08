@@ -292,12 +292,12 @@ class Profile:
         self.materials: Dict[str, List[DataMaterial]] = defaultdict(list)  # Тип: Список материалов данного типа
         self.id_material_dict: Dict[int, DataMaterial] = {}
         # Хранение стеклований
-        self.tg_list = []
+        self.tg_list: List[DataGlass] = []
         self.id_tg_dict: Dict[int, DataGlass] = {}
 
         self.orm_db = orm_db
         self.my_main_window: Optional["MyMainWindow"] = None
-        self.tg_df = None
+        self.tg_df: Optional[DataFrame] = None
 
     def add_material(self, material: DataMaterial) -> None:
         """
@@ -402,9 +402,9 @@ class Profile:
                 self.tg_list = self.orm_db.get_tg_by_materials_ids(all_id_epoxy, all_id_amine)
                 for data_glass in self.tg_list:
                     self.id_tg_dict[data_glass.db_id] = data_glass
-                    epoxy_name = self.id_material_dict[data_glass.epoxy].name
-                    amine_name = self.id_material_dict[data_glass.amine].name
-                    self.tg_df.loc[epoxy_name, amine_name] = data_glass.value
+                    epoxy_id = data_glass.epoxy.db_id
+                    amine_id = data_glass.amine.db_id
+                    self.tg_df.loc[epoxy_id, amine_id] = data_glass.value
 
         return self.tg_df
 
@@ -525,7 +525,7 @@ class ORMDataBase:
         connection.close()
         return material
 
-    def get_tg_by_materials_ids(self, epoxy_id: List[int], amine_id: List[int]):
+    def get_tg_by_materials_ids(self, epoxy_id: List[int], amine_id: List[int]) -> List[DataGlass]:
         """
         Проходится
         :param epoxy_id:
@@ -541,7 +541,13 @@ class ORMDataBase:
         )
         cursor.execute(string)
         tg_list = []
-        for tg_id, epoxy, amine, value in cursor.fetchall():
+        for tg_id, epoxy_id, amine_id, value in cursor.fetchall():
+            if epoxy_id not in self.all_materials or amine_id not in self.all_materials:
+                print("ORMDataBase.get_tg_by_materials_ids нет материала в базе")
+                print("epoxy_id", epoxy_id)
+                print("amine_id", amine_id)
+            epoxy = self.all_materials[epoxy_id]
+            amine = self.all_materials[amine_id]
             tg_list.append(DataGlass(epoxy, amine, value, tg_id))
         connection.close()
         return tg_list
