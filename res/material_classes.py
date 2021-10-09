@@ -10,7 +10,7 @@ from pandas import DataFrame
 
 # import init_class
 from res.additional_funcs import normalize, normalize_df
-from res.data_classes import Profile
+from res.data_classes import Profile, TgCorrectionManager
 
 
 class Material:
@@ -239,6 +239,8 @@ class ReceiptCounter:
         self.percent_df: Optional[DataFrame] = None
         self.__tg_df: Optional[DataFrame] = None
 
+        self.tg_correction_manager: Optional[TgCorrectionManager] = None
+
         # TODO прописать ссылки на окна для передачи параметров
         self.profile = self.main_window.profile
         self.pair_react_window: Optional[PairReactWindow] = None
@@ -371,6 +373,12 @@ class ReceiptCounter:
         total_tg_df = tg_df * percent_df
         primary_tg = sum(total_tg_df.sum())
         self.tg = primary_tg
+        inf_receipt_percent_dict = self.count_influence_material_percents()
+        print(inf_receipt_percent_dict)
+        inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
+        print(inf_value)
+
+
         # TODO продолжить
 
     def update_tg_df(self) -> None:
@@ -411,7 +419,7 @@ class ReceiptCounter:
 
         self.drop_labels()
 
-    def count_influence_material_percents(self):
+    def count_influence_material_percents(self) -> Dict[Material, float]:
         """
         Функция для определения содержания непрореагировавших веществ.
         :return:

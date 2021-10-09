@@ -35,6 +35,7 @@ class DataMaterial:
     def get_all_corrections(self):
         return self.correction.get_all_corrections()
 
+
     # def get_tg_influence(self, percent: float) -> float:
     #     return self.correction(percent)
     # def remove_correction(self, correction: Correction):
@@ -230,7 +231,7 @@ class TgCorrectionMaterial:
                             "code": 1,
                         }
         for limit in self.global_correction.keys():
-            if limit[0] <= limit <= limit[1]:
+            if limit[0] <= value <= limit[1]:
                 return {"value": self.global_correction[limit](value), "code": 2}
         return {"value": 0.0, "code": 3}
 
@@ -284,21 +285,26 @@ class TgCorrectionManager:
         :return:
         """
 
+    def fill_data(self):
+        for mat_list in self.profile.materials.values():
+            for material in mat_list:
+                ...
+
     def count_influence_of_one_material(self, material: DataMaterial, percent: float,
                                         pair_list: List[Tuple[DataMaterial, DataMaterial]]) -> DataFrame:
-        # Переходим от класса Material к классу DataMaterial
+
         df = DataFrame()
-        if material in self.used_corrections_materials:
-            for pair in pair_list:
-                result = self.used_corrections_materials[material](percent, pair)
-                # TODO Установить индикаторы согласно кодам
-                if result['code'] == 1:
-                    ...
-                elif result['code'] == 2:
-                    ...
-                elif result['code'] == 3:
-                    ...
-                df.loc[pair[0].db_id, pair[1].db_id] = result["value"]
+
+        for pair in pair_list:
+            result = material.correction(percent, pair)
+            # TODO Установить индикаторы согласно кодам
+            if result['code'] == 1:
+                ...
+            elif result['code'] == 2:
+                ...
+            elif result['code'] == 3:
+                ...
+            df.loc[pair[0].db_id, pair[1].db_id] = result["value"]
         return df
 
     def count_full_influence(self, material_dict: Dict["Material", float], percent_df: DataFrame) -> float:
@@ -307,7 +313,8 @@ class TgCorrectionManager:
         pair_list = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
         total_influence = 0.0
         for material, percent in material_dict.items():
-            mat_inf_df = self.count_influence_of_one_material(material.data_material, percent, pair_list)
+            mat_inf_df = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
+
             mat_sum_inf = sum((mat_inf_df * percent_df).sum())
             total_influence += mat_sum_inf
         return total_influence
@@ -480,6 +487,7 @@ class ORMDataBase:
         # все материалы в базе {material_id: DataMaterial}
         self.all_materials = {}
         self.all_tg = {}
+
         self.update_all_materials()
 
     def read_profile(self, profile_name: str) -> Profile:
@@ -494,20 +502,12 @@ class ORMDataBase:
         self.all_materials = {}
         for name, mat_type, ew, mat_id in self.get_all_materials_data():
             material = DataMaterial(name, mat_type, ew, mat_id)
-
-            # Подключаем все коррекции
-            # TODO Подключить все коррекции
-            # for correction_id in self.get_all_corrections_of_one_material(mat_id):
-            #     correction_id = correction_id[0]
-            #     correction_func, x_min, x_max, pair = self.get_correction_by_id(
-            #         correction_id
-            #     )
-            #     if pair is not None:
-            #
-            #     correction = Correction(x_min, x_max, correction_func)
-            #     material.add_correction(correction)
-
             self.all_materials[mat_id] = material
+        for material in self.all_materials.values():
+            for correction in self.get_all_corrections_of_one_material(material):
+                material.correction.add_correction(correction)
+
+
 
     def get_all_materials(self) -> List[DataMaterial]:
         return [i for i in self.all_materials.values()]
@@ -541,22 +541,24 @@ class ORMDataBase:
         connection.close()
         return result
 
-    # Пока не используется
     def get_material_by_id(self, mat_id: int) -> DataMaterial:
         """
         Получение материала по id. Используется после получения всех id материалов в профиле
         :param mat_id:
         :return:
         """
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute(
-            f"SELECT Name, Type, ew  FROM Materials WHERE (id = '{mat_id}') "
-        )
-        result = cursor.fetchall()
-        material = DataMaterial(*result[0], mat_id)
-        connection.close()
-        return material
+        if mat_id not in self.all_materials:
+            connection = sqlite3.connect(self.db_name)
+            cursor = connection.cursor()
+            cursor.execute(
+                f"SELECT Name, Type, ew  FROM Materials WHERE (id = '{mat_id}') "
+            )
+            result = cursor.fetchall()
+            material = DataMaterial(*result[0], mat_id)
+            connection.close()
+            return material
+        else:
+            return self.all_materials[mat_id]
 
     def get_tg_by_materials_ids(self, epoxy_id: List[int], amine_id: List[int]) -> List[DataGlass]:
         """
@@ -585,7 +587,7 @@ class ORMDataBase:
         connection.close()
         return tg_list
 
-    def get_all_corrections_of_one_material(self, mat_id: int):
+    def _get_all_corrections_id_of_one_material(self, mat_id: int):
         """
         Возвращает список коррекций поданного материала
         :param mat_id: id материала
@@ -597,9 +599,20 @@ class ORMDataBase:
         cursor.execute(
             f"SELECT Correction FROM Mat_cor_map WHERE (Material = '{mat_id}') "
         )
-        result = cursor.fetchall()
+        result = [i[0] for i in cursor.fetchall()]
         connection.close()
         return result
+
+    def get_all_corrections_of_one_material(self, material: DataMaterial) -> List[Correction]:
+        all_corrections_id = self._get_all_corrections_id_of_one_material(material.db_id)
+        all_corrections = []
+        for correction_id in all_corrections_id:
+            cor_func, x_min, x_max, pair = self.get_correction_by_id(correction_id)
+            correction = Correction(x_min, x_max, cor_func, db_id=correction_id,
+                                    amine=pair[1] if pair is not None else None,
+                                    epoxy=pair[0] if pair is not None else None)
+            all_corrections.append(correction)
+        return all_corrections
 
     def get_correction_by_id(self, cor_map_id: int):
         """
@@ -611,24 +624,14 @@ class ORMDataBase:
         cursor = connection.cursor()
         # Получаем информацию о одной функции
         cursor.execute(
-            f"SELECT Amine,  Epoxy, x_max, x_min, Correction_func FROM Correction_map WHERE (id = '{cor_map_id}') "
+            f"SELECT Amine, Epoxy, x_max, x_min, Correction_func FROM Correction_map WHERE (id = '{cor_map_id}') "
         )
 
-        (
-            amine_id,
-            epoxy_id,
-            x_max,
-            x_min,
-            correction_id,
-        ) = cursor.fetchall()[0]
+        amine_id, epoxy_id, x_max, x_min, correction_id = cursor.fetchall()[0]
         pair = None
         # Если есть амин, значит коррекция для пары, а не на всю систему
         if amine_id is not None:
-            cursor.execute(f"SELECT Name FROM Materials WHERE (id = '{amine_id}') ")
-            amine_name = cursor.fetchall()[0][0]
-            cursor.execute(f"SELECT Name FROM Materials WHERE (id = '{epoxy_id}') ")
-            epoxy_name = cursor.fetchall()[0][0]
-            pair = (amine_name, epoxy_name)
+            pair = (self.get_material_by_id(epoxy_id), self.get_material_by_id(amine_id))
 
         # Получаем параметры корректировки
         cursor.execute(
@@ -649,6 +652,8 @@ class ORMDataBase:
         #                                       (amine_name, epoxy_name) if amine_id is not None else None)
         # TODO Возможно, стоит привязывать коррекцию к материалу по id, а не по названию
         connection.close()
+
+        correction = Correction(x_min, x_max, cor_func, db_id=cor_map_id)
         return (cor_func, x_min, x_max, pair)
 
     def get_all_materials_data(self) -> List[Tuple]:

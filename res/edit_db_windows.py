@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from res.additional_funcs import set_qt_stile
-from res.data_classes import DataMaterial, Profile, CorrectionFunction, DataGlass
+from res.data_classes import DataMaterial, Profile, CorrectionFunction, DataGlass, Correction
 
 
 class EditDataWindow(QWidget):
@@ -314,6 +314,7 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.types = self.profile.get_all_types()
         self.type_comboBox.addItems(self.types)
         self.material = material
+        self.corrections: List[Correction] = []
         # Режим редактирования или создания нового материала
         self.edit_mode = False
         if material is not None:
@@ -321,9 +322,6 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
             self.set_material()
 
         set_qt_stile("style.css", self)
-        self.corrections: List[
-            Tuple[CorrectionFunction, Tuple[float, float], Union[Tuple, None]]
-        ] = []
 
         self.corrections_listWidget.currentItemChanged.connect(self.change_row)
         self.corrections_listWidget.itemDoubleClicked.connect(self.show_correction)
@@ -347,16 +345,19 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.corrections_listWidget: QListWidget
         self.cor_textBrowser: QTextBrowser
         row_numb = self.corrections_listWidget.currentRow()
+
         cor = self.corrections[row_numb]
-        self.cor_textBrowser.setText(cor[0].comment)
+        self.cor_textBrowser.setText(cor.correction_func.comment)
 
     def show_correction(self):
         row_numb: int = self.corrections_listWidget.currentRow()
-        cor, limit, pair = self.corrections[row_numb]
+        cor = self.corrections[row_numb]
         import matplotlib.pyplot as plt
         import numpy as np
 
-        x_min, x_max = limit
+        x_min = cor.x_min
+        x_max = cor.x_max
+        pair = (cor.epoxy.name, cor.amine.name)
         # Data for plotting
         t = np.arange(x_min, x_max, 0.1)
         s = [cor(x) for x in t]
