@@ -16,17 +16,26 @@ from res.data_classes import Profile
 class Material:
     def __init__(self, mat_type: str, mat_index: int, profile: Profile, receipt: "Receipt"):
         self.profile = profile
-        self.data_material = profile.get_data_material(mat_type, mat_index)
         self.__mat_type = None
         self.__name = None
         self.__ew = None
-        if self.data_material is not None:
-            self.mat_type = self.data_material.mat_type
-            self.name = self.data_material.name
-            self.ew = self.data_material.ew
-        self.receipt = receipt
+        self.__data_material = None
         self.__percent: float = 0.0
+        self.receipt = receipt
+        self.set_type_and_name(mat_type, mat_index)
         receipt.add_material(self)
+
+    @property
+    def data_material(self):
+        return self.__data_material
+
+    @data_material.setter
+    def data_material(self, data_material):
+        if data_material is not None:
+            self.mat_type = data_material.mat_type
+            self.name = data_material.name
+            self.ew = data_material.ew
+            self.__data_material = data_material
 
     @property
     def percent(self) -> float:
@@ -75,10 +84,7 @@ class Material:
             self.__mat_type = value
 
     def set_type_and_name(self, mat_type: str, mat_index: int) -> None:
-        self.mat_type = mat_type
-        self.data_material = self.receipt.profile.materials[mat_type][mat_index]
-        self.name = self.data_material.name
-        self.ew = self.data_material.ew
+        self.data_material = self.profile.get_data_material(mat_type, mat_index)
         self.receipt.update_all_pairs_material()
         self.receipt.update_all_parameters()
 
