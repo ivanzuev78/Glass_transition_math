@@ -2,7 +2,7 @@ from collections import defaultdict
 from copy import copy
 from itertools import cycle
 from math import inf
-from typing import Optional, Union, List, Iterable
+from typing import Optional, Union, List, Iterable, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
@@ -1595,7 +1595,7 @@ class PairReactWindow(
 
     def add_line(
             self,
-            pair: tuple,
+            pair: Tuple[Material],
             layout: QGridLayout,
             labels_list: list,
             checkboxes_list: list,

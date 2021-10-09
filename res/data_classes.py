@@ -144,7 +144,7 @@ class TgCorrectionMaterial:
     """ """
 
     def __init__(self, material: DataMaterial):
-        self.material = material  # Название материала, который влияет на систему
+        self.material = material  # Материал, который влияет на систему
         self.corrections = defaultdict(dict)
         self.global_correction = {}
         self.__percent = 0.0
