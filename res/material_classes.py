@@ -329,9 +329,6 @@ class ReceiptCounter:
 
         df: DataFrame = df * abs(sum_a)
 
-        print('=========================================')
-        print(df)
-
         for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
             epoxy_index = material_epoxy.data_material.db_id
             amine_index = material_amine.data_material.db_id
@@ -342,17 +339,7 @@ class ReceiptCounter:
             else:
                 df.loc[epoxy_index, amine_index] = eq
 
-
-        # for (material_epoxy, material_amine), eq in b_reacted_dict.items():
-        #     if material_epoxy.data_material.db_id in df.index and material_amine.data_material.db_id in df.columns:
-        #         if df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] is np.NAN:
-        #             df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] = 0
-        #         df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] += eq
-        #     else:
-        #         df.loc[material_epoxy.data_material.db_id, material_amine.data_material.db_id] = eq
-
         df = normalize_df(df)
-        print(df)
         self.percent_df = df
 
     def count_tg(self):
