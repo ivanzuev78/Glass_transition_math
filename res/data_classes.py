@@ -166,13 +166,13 @@ class TgCorrectionMaterial:
         # TODO добавить обработку случаев, когда границы накладываются
         x_min = correction.x_min
         x_max = correction.x_max
-        pair = (correction.amine, correction.epoxy) if correction is not None else None
+        pair = (correction.amine, correction.epoxy) if correction.amine is not None else None
         if pair is not None:
             self.corrections[pair][(x_min, x_max)] = correction
         else:
             self.global_correction[(x_min, x_max)] = correction
 
-    def remove_correction(self, limit: Tuple[float], pair: Tuple[str] = None) -> None:
+    def remove_correction(self, limit: Tuple[float], pair: Tuple[DataMaterial, DataMaterial] = None) -> None:
         """
         Удаляет коррекцию с заданной позиции
         :param pair:
@@ -210,7 +210,7 @@ class TgCorrectionMaterial:
 
         return corrections
 
-    def __call__(self, value: float, pair: Tuple[str] = None) -> dict:
+    def __call__(self, value: float, pair: Tuple[DataMaterial, DataMaterial] = None) -> dict:
         """
         Позволяет рассчитать коррекцию данного вещества для конкретной пары или на систему в целом
         :param value: % материала в системе
@@ -255,10 +255,11 @@ class TgCorrectionMaterial:
 
 
 class TgCorrectionManager:
-    def __init__(self):
+    def __init__(self, profile: "Profile"):
         self.all_corrections_materials = []
         self.all_corrections_funcs = []
-        self.used_corrections_materials = {}
+        self.used_corrections_materials: Dict[DataMaterial, TgCorrectionMaterial] = {}
+        self.profile: Profile = profile
 
     def add_tg_correction_material(
             self, correction_material: TgCorrectionMaterial
@@ -282,6 +283,34 @@ class TgCorrectionManager:
         Выключает коррекцию для конкретного материала в работу
         :return:
         """
+
+    def count_influence_of_one_material(self, material: DataMaterial, percent: float,
+                                        pair_list: List[Tuple[DataMaterial, DataMaterial]]) -> DataFrame:
+        # Переходим от класса Material к классу DataMaterial
+        df = DataFrame()
+        if material in self.used_corrections_materials:
+            for pair in pair_list:
+                result = self.used_corrections_materials[material](percent, pair)
+                # TODO Установить индикаторы согласно кодам
+                if result['code'] == 1:
+                    ...
+                elif result['code'] == 2:
+                    ...
+                elif result['code'] == 3:
+                    ...
+                df.loc[pair[0].db_id, pair[1].db_id] = result["value"]
+        return df
+
+    def count_full_influence(self, material_dict: Dict["Material", float], percent_df: DataFrame) -> float:
+        epoxy_list = [self.profile.get_material_by_db_id(epoxy_id) for epoxy_id in percent_df.index]
+        amine_list = [self.profile.get_material_by_db_id(amine_id) for amine_id in percent_df.columns]
+        pair_list = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
+        total_influence = 0.0
+        for material, percent in material_dict.items():
+            mat_inf_df = self.count_influence_of_one_material(material.data_material, percent, pair_list)
+            mat_sum_inf = sum((mat_inf_df * percent_df).sum())
+            total_influence += mat_sum_inf
+        return total_influence
 
 
 class Profile:
@@ -348,6 +377,10 @@ class Profile:
         :return: Список материалов
         """
         return self.materials[mat_type]
+
+    def get_material_by_db_id(self, db_id: int) -> DataMaterial:
+        if db_id in self.id_material_dict:
+            return self.id_material_dict[db_id]
 
     def get_mat_names_by_type(self, mat_type: str) -> List[str]:
         """

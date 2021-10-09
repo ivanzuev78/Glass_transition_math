@@ -282,12 +282,11 @@ class ReceiptCounter:
         :return:
         """
         a_eq_dict = {material: material.percent / material.ew * self.mass_ratio
-                     if material.ew * self.mass_ratio != 0 else 0 for material in self.receipt_a}
+                     if material.ew * self.mass_ratio != 0 else 0 for material in self.receipt_a if material.mat_type in ('Amine', "Epoxy")}
 
         b_eq_dict = {
             material: material.percent / material.ew if material.ew != 0 else 0
-            for material in self.receipt_b
-        }
+            for material in self.receipt_b  if material.mat_type in ("Amine", "Epoxy")}
 
         pairs_a = self.pair_react_window.get_react_pairs("A")
         if self.receipt_a.ew < 0:
@@ -328,7 +327,8 @@ class ReceiptCounter:
                     = percent_epoxy * percent_amine
 
         df: DataFrame = df * abs(sum_a)
-
+        print("+==================================")
+        print(df)
         for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
             epoxy_index = material_epoxy.data_material.db_id
             amine_index = material_amine.data_material.db_id
@@ -340,6 +340,7 @@ class ReceiptCounter:
                 df.loc[epoxy_index, amine_index] = eq
 
         df = normalize_df(df)
+        print(df)
         self.percent_df = df
 
     def count_tg(self):
@@ -409,6 +410,33 @@ class ReceiptCounter:
                     return None
 
         self.drop_labels()
+
+    def count_influence_material_percents(self):
+        """
+        Функция для определения содержания непрореагировавших веществ.
+        :return:
+        """
+        total = defaultdict(float)  # Для расчёта процентов материала в системе
+        # Для вычисления избытков аминов и эпоксидов
+        total_a = defaultdict(float)
+        total_b = defaultdict(float)
+
+        for material in self.receipt_a:
+            total[material] += material.percent * self.mass_ratio
+            if material.mat_type not in ("Epoxy", "Amine"):
+                total_a[material] += material.percent * self.mass_ratio
+            else:
+                # TODO учёт аминов и эпоксидов при избытке
+                pass
+
+        for material in self.receipt_b:
+            total[material] += material.percent
+            if material.mat_type not in ("Epoxy", "Amine"):
+                total_b[material] += material.percent
+
+        total_percent_dict = {material: value / sum(total.values()) for material, value in
+                              total_a.items() | total_b.items()}
+        return total_percent_dict
 
 
 class TgInfluenceCounter:
