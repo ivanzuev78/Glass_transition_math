@@ -2,7 +2,7 @@ import math
 from collections import defaultdict
 from copy import copy
 from itertools import chain
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Any
 
 import numpy as np
 import pandas
@@ -450,6 +450,77 @@ class ReceiptCounter:
 class TgInfluenceCounter:
     def __init__(self):
         ...
+
+
+class MyTableCounter:
+    data: defaultdict[Any, defaultdict[Any, Optional[float]]]
+
+    def __init__(self, is_percent_table=False):
+        self.epoxy_list = []
+        self.amine_list = []
+        self.is_percent_table = is_percent_table
+        if self.is_percent_table:
+            self.data = defaultdict(lambda: defaultdict(float))
+        else:
+            self.data = defaultdict(lambda: defaultdict(lambda: None))
+
+    def set_value(self, epoxy, amine, value):
+        self.data[epoxy][amine] = value
+        if epoxy not in self.epoxy_list:
+            self.epoxy_list.append(epoxy)
+        if amine not in self.amine_list:
+            self.amine_list.append(amine)
+
+    def loc(self, epoxy, amine):
+        return self.data[epoxy][amine]
+
+    def normalize(self):
+        sum_data = self.sum()
+        for epoxy in self.data:
+            for amine in self.data[epoxy]:
+                self.data[epoxy][amine] = self.data[epoxy][amine] / sum_data
+
+    def sum(self):
+        return sum([sum(i for i in d.values()) for d in self.data.values()])
+
+    def __str__(self):
+        df = DataFrame()
+        for epoxy in self.data:
+            for amine in self.data[epoxy]:
+                df.loc[epoxy, amine] = self.data[epoxy][amine]
+
+        return str(df.fillna(0))
+
+    def __mul__(self, other):
+        if self.is_percent_table:
+            data_table = copy(other)
+            percent_table = copy(self)
+        else:
+            data_table = copy(self)
+            percent_table = copy(other)
+
+        # Убираем все значения, у которых нет стекла / влияния
+        for epoxy in percent_table.epoxy_list:
+            for amine in percent_table.amine_list:
+                if data_table.loc(epoxy, amine) is None:
+                    if percent_table.loc(epoxy, amine) != 0:
+                        # TODO Как-то передавать отсутствие стекла или влияния
+                        percent_table.set_value(epoxy, amine, 0)
+        percent_table.normalize()
+
+        new_df = MyTableCounter()
+
+        for epoxy in percent_table.epoxy_list:
+            for amine in percent_table.amine_list:
+                if data_table.loc(epoxy, amine) is not None:
+                    new_df.set_value(epoxy, amine, data_table.loc(epoxy, amine) * percent_table.loc(epoxy, amine))
+
+        return new_df
+
+
+
+
+
 
 
 def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]]) -> \

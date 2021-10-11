@@ -314,7 +314,7 @@ class TgCorrectionManager:
         total_influence = 0.0
         for material, percent in material_dict.items():
             mat_inf_df = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
-
+            # TODO Обработать отсутствующие стёкла (код 3)
             mat_sum_inf = sum((mat_inf_df * percent_df).sum())
             total_influence += mat_sum_inf
         return total_influence
