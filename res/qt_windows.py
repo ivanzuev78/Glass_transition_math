@@ -17,9 +17,9 @@ from PyQt5.QtWidgets import (
 )
 
 from res.additional_funcs import set_qt_stile
-from res.data_classes import Profile
+
 from res.edit_db_windows import EditDataWindow, EditMaterialWindow
-from res.material_classes import Material, Receipt
+from res.material_classes import Material, Receipt, Profile
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):

@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from res.additional_funcs import set_qt_stile
-from res.data_classes import DataMaterial, Profile, CorrectionFunction, DataGlass, Correction
+from res.material_classes import DataMaterial, Profile, CorrectionFunction, DataGlass, Correction
 
 
 class EditDataWindow(QWidget):

@@ -1,8 +1,8 @@
 import configparser
 from os.path import exists
 
-from res.data_classes import Profile, ORMDataBase, TgCorrectionManager
-from res.material_classes import Receipt, ReceiptCounter
+
+from res.material_classes import Receipt, ReceiptCounter, Profile, ORMDataBase, TgCorrectionManager
 from res.qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
 DB_NAME = "material.db"
