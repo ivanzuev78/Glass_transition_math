@@ -485,6 +485,12 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
     corrections_listWidget: QListWidget
     cor_textBrowser: QTextBrowser
     type_comboBox: QComboBox
+    add_new_cor_but: QPushButton
+    remove_cor_but: QPushButton
+    save_but: QPushButton
+    cancel_but: QPushButton
+    name_lineEdit: QLineEdit
+    ew_lineEdit: QLineEdit
 
 
     def __init__(self, previous_window: EditDataWindow, profile: Profile, material: DataMaterial = None):
@@ -513,6 +519,7 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.save_but.clicked.connect(self.save)
         self.cancel_but.clicked.connect(self.closeEvent)
         self.add_new_cor_but.clicked.connect(self.open_correction_window)
+        self.remove_cor_but.clicked.connect(self.del_correction)
 
         self.new_cor_window = None
 
@@ -523,15 +530,15 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
             self.name_lineEdit.setText(self.material.name)
             self.ew_lineEdit.setText(str(self.material.ew))
             self.corrections = self.material.correction.get_all_corrections()
-            for correction in self.corrections:
-                correction_func = correction.correction_func
-                self.corrections_listWidget.addItem(correction_func.name)
-                self.corrections_in_widget.append(correction)
+
+            self.update_corrections_in_widget()
 
     def change_row(self):
 
         row_numb = self.corrections_listWidget.currentRow()
-
+        if row_numb == -1:
+            print('haha')
+            return None
         cor = self.corrections_in_widget[row_numb]
         self.cor_textBrowser.setText(cor.correction_func.comment)
 
@@ -554,6 +561,16 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
                     cor.inf_material = material
                     self.profile.add_correction_to_db(cor)
 
+    def del_correction(self):
+        row_numb: int = self.corrections_listWidget.currentRow()
+        current_correction = self.corrections_in_widget.pop(row_numb)
+        if current_correction in self.corrections:
+            self.corrections.remove(current_correction)
+            self.profile.remove_correction_from_db(current_correction)
+        elif current_correction in self.corrections_to_add:
+            self.corrections_to_add.remove(current_correction)
+        self.update_corrections_in_widget()
+
     def open_correction_window(self):
         self.new_cor_window = EditCorrectionWindow(self, self.material, close_action=self.get_correction_from_new_cor_window)
         self.new_cor_window.show()
@@ -561,11 +578,24 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.close()
 
     def get_correction_from_new_cor_window(self, correction: Correction) -> None:
-        self.corrections_to_add.append(correction)
-        self.corrections_listWidget.addItem(correction.correction_func.name)
-        self.corrections_in_widget.append(correction)
         if self.edit_mode is True:
             self.profile.add_correction_to_db(correction)
+            self.corrections.append(correction)
+        else:
+            self.corrections_to_add.append(correction)
+        self.update_corrections_in_widget()
+
+    def update_corrections_in_widget(self):
+        self.corrections_in_widget = []
+        self.corrections_listWidget.clear()
+        for correction in self.corrections:
+            correction_func = correction.correction_func
+            self.corrections_listWidget.addItem(correction_func.name)
+            self.corrections_in_widget.append(correction)
+        for correction in self.corrections_to_add:
+            correction_func = correction.correction_func
+            self.corrections_listWidget.addItem(correction_func.name)
+            self.corrections_in_widget.append(correction)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         if not self.open_new_window:

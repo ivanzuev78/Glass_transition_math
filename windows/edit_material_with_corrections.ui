@@ -54,7 +54,7 @@
     <string>Добавить</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="add_exist_cor_but">
+  <widget class="QPushButton" name="remove_cor_but">
    <property name="geometry">
     <rect>
      <x>340</x>

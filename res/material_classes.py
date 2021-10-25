@@ -1069,7 +1069,10 @@ class Profile:
         self.orm_db.add_association_material_to_correction(correction.inf_material, correction)
         self.correction_funcs.append(correction.correction_func)
 
-
+    def remove_correction_from_db(self, correction: Correction):
+        self.orm_db.remove_correction_func(correction.correction_func)
+        self.orm_db.remove_association_material_to_correction(correction.inf_material, correction)
+        self.orm_db.remove_correction(correction)
 
 class ProfileManager:
     def __init__(self, profile_list=None):
