@@ -1,7 +1,7 @@
 import math
 import sqlite3
 from collections import defaultdict
-from copy import copy
+from copy import copy, deepcopy
 from itertools import chain
 from math import exp
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
@@ -234,6 +234,7 @@ class ReceiptCounter:
         self.receipt_a = receipt_a
         self.receipt_b = receipt_b
         self.__tg: Optional[float] = None
+        self.__tg_inf: Optional[float] = None
         self.__mass_ratio: Optional[float] = None
         self.extra_ratio = extra_ratio
         self.percent_df: Optional[MyTableCounter] = None
@@ -265,6 +266,17 @@ class ReceiptCounter:
         self.__tg = value
         self.main_window.set_tg(value)
 
+
+    @property
+    def tg_inf(self):
+        return self.__tg_inf
+
+    @tg_inf.setter
+    def tg_inf(self, value):
+        # TODO сеттер для передачи значений в окна
+        self.__tg_inf = value
+        self.main_window.set_tg_inf(value)
+
     @property
     def mass_ratio(self):
         return self.__mass_ratio
@@ -284,11 +296,12 @@ class ReceiptCounter:
         :return:
         """
         a_eq_dict = {material: material.percent / material.ew * self.mass_ratio
-                     if material.ew * self.mass_ratio != 0 else 0 for material in self.receipt_a if material.mat_type in ('Amine', "Epoxy")}
+        if material.ew * self.mass_ratio != 0 else 0 for material in self.receipt_a if
+                     material.mat_type in ('Amine', "Epoxy")}
 
         b_eq_dict = {
             material: material.percent / material.ew if material.ew != 0 else 0
-            for material in self.receipt_b  if material.mat_type in ("Amine", "Epoxy")}
+            for material in self.receipt_b if material.mat_type in ("Amine", "Epoxy")}
 
         pairs_a = self.pair_react_window.get_react_pairs("A")
         if self.receipt_a.ew < 0:
@@ -346,20 +359,20 @@ class ReceiptCounter:
         percent_df = copy(self.percent_df)
         tg_df = copy(self.tg_df)
         # Получаем все пары, которые не имеют стекла
-        all_pairs_na = []
+        # all_pairs_na = []
         # for name in tg_df:
         #     pairs_a = tg_df[tg_df[name].isna()]
         #     par = [(resin, name) for resin in list(pairs_a.index)]
         #     all_pairs_na += par
-
+        #
         # TODO реализовать обработку отсутствующих пар стёкол (вывод индикатора)
-        all_pairs_na_dict = {}
+        # all_pairs_na_dict = {}
         # Убираем в матрице процентов отсутствующие пары
         # for resin, amine in all_pairs_na:
         #     if amine in percent_df.amine_list and resin in percent_df.epoxy_list:
         #         # all_pairs_na_dict[(resin, amine)] = percent_df[amine][resin]
         #         percent_df[amine][resin] = 0.0
-
+        #
         # percent_df = normalize_df(percent_df)
 
         total_tg_df = tg_df * percent_df
@@ -369,12 +382,10 @@ class ReceiptCounter:
         print(inf_receipt_percent_dict)
         inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
         print(inf_value)
-
-
+        self.tg_inf = self.tg + inf_value
         # TODO продолжить
 
     def update_tg_df(self) -> None:
-
         tg_df = copy(self.profile.get_tg_df())
         # if self.percent_df is not None:
         #     # TODO Продумать алгоритм отслеживания изменения компонентов, чтобы не дропать каждый раз
@@ -396,6 +407,7 @@ class ReceiptCounter:
         self.mass_ratio = None
         self.percent_df = None
         self.tg = None
+        self.tg_inf = None
 
     def update_labels(self) -> None:
         """
@@ -475,9 +487,10 @@ class MyTableCounter:
 
     def normalize(self):
         sum_data = self.sum()
-        for epoxy in self.data:
-            for amine in self.data[epoxy]:
-                self.data[epoxy][amine] = self.data[epoxy][amine] / sum_data
+        if sum_data != 0:
+            for epoxy in self.data:
+                for amine in self.data[epoxy]:
+                    self.data[epoxy][amine] = self.data[epoxy][amine] / sum_data
 
     def sum(self):
         return sum([sum(i for i in d.values()) for d in self.data.values()])
@@ -526,6 +539,13 @@ class MyTableCounter:
     def __rmul__(self, other):
         return self.__mul__(other)
 
+    def __copy__(self):
+        new_instance = MyTableCounter(self.is_percent_table)
+        for epoxy in self.epoxy_list:
+            for amine in self.amine_list:
+                new_instance.set_value(epoxy, amine, self.loc(epoxy, amine))
+        return new_instance
+
 
 def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]]) -> \
         Tuple[Dict[Material, float], Dict[Tuple[Material, Material], float]]:
@@ -565,6 +585,7 @@ def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]
 
     return eq_dict, reacted_dict
 
+
 # ===========================================
 
 
@@ -597,7 +618,11 @@ class DataMaterial:
     def get_all_corrections(self):
         return self.correction.get_all_corrections()
 
+    def __str__(self):
+        return self.name
 
+    def __repr__(self):
+        return f"<{self.name}>"
     # def get_tg_influence(self, percent: float) -> float:
     #     return self.correction(percent)
     # def remove_correction(self, correction: Correction):
@@ -763,7 +788,7 @@ class TgCorrectionMaterial:
         # TODO добавить обработку случаев, когда границы накладываются
         x_min = correction.x_min
         x_max = correction.x_max
-        pair = (correction.amine, correction.epoxy) if correction.amine is not None else None
+        pair = (correction.epoxy, correction.amine) if correction.amine is not None else None
         if pair is not None:
             self.corrections[pair][(x_min, x_max)] = correction
         else:
@@ -821,7 +846,7 @@ class TgCorrectionMaterial:
         if pair is not None:
             if pair in self.corrections.keys():
                 for limit in self.corrections[pair].keys():
-                    if limit[0] <= limit <= limit[1]:
+                    if limit[0] <= value <= limit[1]:
                         return {
                             "value": self.corrections[pair][limit](value),
                             "code": 1,
@@ -894,12 +919,14 @@ class TgCorrectionManager:
             result = material.correction(percent, pair)
             # TODO Установить индикаторы согласно кодам
             if result['code'] == 1:
+                df.set_value(pair[0], pair[1], result["value"])
                 ...
             elif result['code'] == 2:
+                df.set_value(pair[0], pair[1], result["value"])
                 ...
             elif result['code'] == 3:
                 ...
-            df.set_value(pair[0], pair[1],  result["value"])
+
         return df
 
     def count_full_influence(self, material_dict: Dict["Material", float], percent_df: MyTableCounter) -> float:
@@ -908,9 +935,11 @@ class TgCorrectionManager:
         pair_list = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
         total_influence = 0.0
         for material, percent in material_dict.items():
-            mat_inf_df = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
+            mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
-            mat_sum_inf = (mat_inf_df * percent_df).sum()
+            mat_inf_table = mat_inf_df * percent_df
+            print(f"{material}\n", mat_inf_table)
+            mat_sum_inf = mat_inf_table.sum()
             total_influence += mat_sum_inf
         return total_influence
 
@@ -1073,6 +1102,7 @@ class Profile:
         self.orm_db.remove_correction_func(correction.correction_func)
         self.orm_db.remove_association_material_to_correction(correction.inf_material, correction)
         self.orm_db.remove_correction(correction)
+
 
 class ProfileManager:
     def __init__(self, profile_list=None):

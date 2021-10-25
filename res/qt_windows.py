@@ -442,6 +442,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         else:
             self.tg_main_label.setText(f"Стеклование базовое:\n\t{round(value, 1)}°C")
 
+    def set_tg_inf(self, value) -> None:
+        """
+        Устанавливает базовое стеклование в соответствующий лейбл
+        :param value: Значение базового стеклования
+        """
+        if value is None:
+            self.tg_cor_label.setText(f"Стеклование с коррекцией:\n\tотсутствует")
+        else:
+            self.tg_cor_label.setText(f"Стеклование с коррекцией:\n\t{round(value, 1)}°C")
+
     # ========================= Окна ===========================
 
     def add_receipt_window(self, component: str) -> callable:
