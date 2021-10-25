@@ -365,14 +365,13 @@ class ReceiptCounter:
         total_tg_df = tg_df * percent_df
         primary_tg = total_tg_df.sum()
         self.tg = primary_tg
-        # inf_receipt_percent_dict = self.count_influence_material_percents()
-        # print(inf_receipt_percent_dict)
-        # inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
-        # print(inf_value)
+        inf_receipt_percent_dict = self.count_influence_material_percents()
+        print(inf_receipt_percent_dict)
+        inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
+        print(inf_value)
 
 
         # TODO продолжить
-
 
     def update_tg_df(self) -> None:
 
@@ -449,8 +448,8 @@ class MyTableCounter:
     data: defaultdict[Any, defaultdict[Any, Optional[float]]]
 
     def __init__(self, is_percent_table=False):
-        self.epoxy_list = []
-        self.amine_list = []
+        self.epoxy_list: List[DataMaterial] = []
+        self.amine_list: List[DataMaterial] = []
         self.is_percent_table = is_percent_table
         if self.is_percent_table:
             self.data = defaultdict(lambda: defaultdict(float))
@@ -528,12 +527,6 @@ class MyTableCounter:
         return self.__mul__(other)
 
 
-
-
-
-
-
-
 def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]]) -> \
         Tuple[Dict[Material, float], Dict[Tuple[Material, Material], float]]:
     """
@@ -572,13 +565,7 @@ def count_first_state(eq_dict: dict, pairs_react: List[Tuple[Material, Material]
 
     return eq_dict, reacted_dict
 
-
-
-
 # ===========================================
-
-
-
 
 
 class DataMaterial:
@@ -637,15 +624,15 @@ class CorrectionFunction:
 
     def __init__(
             self,
-            cor_name: str,
-            cor_comment: str,
+            cor_name: str = '',
+            cor_comment: str = '',
             k_e: float = 0,
             k_exp: float = 0,
             db_id: int = None,
             polynomial_coefficients: Iterable = None,
     ):
-        self.name = cor_name
-        self.comment = cor_comment
+        self.name = str(cor_name)
+        self.comment = str(cor_comment)
         self.k_e = k_e
         self.k_exp = k_exp
         if polynomial_coefficients is not None:
@@ -704,7 +691,9 @@ class CorrectionFunction:
 
 class Correction:
     def __init__(self, x_min: float, x_max: float, correction_func: CorrectionFunction,
-                 amine: DataMaterial = None, epoxy: DataMaterial = None, db_id: int = None):
+                 amine: DataMaterial = None, epoxy: DataMaterial = None, db_id: int = None,
+                 inf_material: DataMaterial = None):
+        self.inf_material = inf_material
         self.x_min = x_min
         self.x_max = x_max
         self.amine = amine
@@ -714,6 +703,38 @@ class Correction:
 
     def __call__(self, value):
         return self.correction_func(value)
+
+    def show_graph(self, save=False):
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        x_min = self.x_min
+        x_max = self.x_max
+        if self.epoxy is not None:
+            pair = (self.epoxy.name, self.amine.name)
+        else:
+            pair = None
+        # Data for plotting
+        t = np.arange(x_min, x_max, 0.1)
+        s = [self(x) for x in t]
+
+        fig, ax = plt.subplots()
+        ax.plot(t, s)
+        string = "систему в целом "
+        if self.inf_material:
+            title = f"Влияние '{self.inf_material.name}' на {pair if pair is not None else string}"
+        else:
+            title = "Красивый график"
+        ax.set(
+            xlabel="Содержание вещества в системе, %",
+            ylabel="Влияние на температуру стеклования, °С",
+            title=title,
+        )
+        ax.grid()
+        if save:
+            filename = "graph.png"
+            fig.savefig(filename)
+        plt.show()
 
 
 class TgCorrectionMaterial:
@@ -866,9 +887,8 @@ class TgCorrectionManager:
                 ...
 
     def count_influence_of_one_material(self, material: DataMaterial, percent: float,
-                                        pair_list: List[Tuple[DataMaterial, DataMaterial]]) -> DataFrame:
-
-        df = DataFrame()
+                                        pair_list: List[Tuple[DataMaterial, DataMaterial]]) -> MyTableCounter:
+        df = MyTableCounter()
 
         for pair in pair_list:
             result = material.correction(percent, pair)
@@ -879,18 +899,18 @@ class TgCorrectionManager:
                 ...
             elif result['code'] == 3:
                 ...
-            df.loc[pair[0].db_id, pair[1].db_id] = result["value"]
+            df.set_value(pair[0], pair[1],  result["value"])
         return df
 
-    def count_full_influence(self, material_dict: Dict["Material", float], percent_df: DataFrame) -> float:
-        epoxy_list = [self.profile.get_material_by_db_id(epoxy_id) for epoxy_id in percent_df.index]
-        amine_list = [self.profile.get_material_by_db_id(amine_id) for amine_id in percent_df.columns]
+    def count_full_influence(self, material_dict: Dict["Material", float], percent_df: MyTableCounter) -> float:
+        epoxy_list = percent_df.epoxy_list
+        amine_list = percent_df.amine_list
         pair_list = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
         total_influence = 0.0
         for material, percent in material_dict.items():
             mat_inf_df = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
-            mat_sum_inf = sum((mat_inf_df * percent_df).sum())
+            mat_sum_inf = (mat_inf_df * percent_df).sum()
             total_influence += mat_sum_inf
         return total_influence
 
@@ -905,6 +925,7 @@ class Profile:
         # Хранение стеклований
         self.tg_list: List[DataGlass] = []
         self.id_tg_dict: Dict[int, DataGlass] = {}
+        self.correction_funcs = []
 
         self.orm_db = orm_db
         self.my_main_window: Optional["MyMainWindow"] = None
@@ -917,6 +938,8 @@ class Profile:
         :return:
         """
         if material not in self.materials[material.mat_type]:
+            if material.db_id is None:
+                self.orm_db.add_material(material, self)
             self.materials[material.mat_type].append(material)
             self.id_material_dict[material.db_id] = material
             if self.my_main_window is not None:
@@ -933,6 +956,7 @@ class Profile:
         material = DataMaterial(mat_name, mat_type, ew)
         self.orm_db.add_material(material, profile=self if add_to_profile else None)
         self.add_material(material)
+        return material
 
     def remove_material(self, material: DataMaterial) -> None:
         """
@@ -986,6 +1010,11 @@ class Profile:
             return all_types
         return all_types
 
+    def get_all_correction_funcs(self) -> List[CorrectionFunction]:
+        if not self.correction_funcs:
+            self.correction_funcs = self.orm_db.get_all_correction_funcs()
+        return self.correction_funcs
+
     def copy_profile(self, profile_name: str) -> "Profile":
         """
         Функция для копирования профиля
@@ -1034,6 +1063,13 @@ class Profile:
         self.id_tg_dict[data_glass.db_id] = data_glass
         return data_glass
 
+    def add_correction_to_db(self, correction: Correction):
+        self.orm_db.add_correction_func(correction.correction_func)
+        self.orm_db.add_correction(correction)
+        self.orm_db.add_association_material_to_correction(correction.inf_material, correction)
+        self.correction_funcs.append(correction.correction_func)
+
+
 
 class ProfileManager:
     def __init__(self, profile_list=None):
@@ -1077,39 +1113,10 @@ class ORMDataBase:
             for correction in self.get_all_corrections_of_one_material(material):
                 material.correction.add_correction(correction)
 
-
-
     def get_all_materials(self) -> List[DataMaterial]:
         return [i for i in self.all_materials.values()]
 
-    # =========================== Получение сырых данных из БД ==================================
-    def get_all_profiles(self) -> List[str]:
-        """
-        Получение всех профилей из базы
-        """
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute("SELECT name FROM Profiles")
-        all_profiles = [res[0] for res in cursor.fetchall()]
-        connection.close()
-        return all_profiles
-
-    def get_profile_materials(self, profile_name: Union[str, Profile]) -> List[int]:
-        """
-        Получение списка всех материалов в профиле и их коррекций
-        :param profile_name: Имя профиля или сам профиль
-        :return: Список материалов, которые подключены к профилю
-        """
-        if isinstance(profile_name, Profile):
-            profile_name = profile_name.profile_name
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        cursor.execute(
-            f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile_name}') "
-        )
-        result = [i[0] for i in cursor.fetchall()]
-        connection.close()
-        return result
+    # =========================== Получение обработанных данных из БД ==================================
 
     def get_material_by_id(self, mat_id: int) -> DataMaterial:
         """
@@ -1157,7 +1164,88 @@ class ORMDataBase:
         connection.close()
         return tg_list
 
-    def _get_all_corrections_id_of_one_material(self, mat_id: int):
+    def get_all_corrections_of_one_material(self, material: DataMaterial) -> List[Correction]:
+        all_corrections_id = self._get_all_corrections_id_of_one_material(material.db_id)
+        all_corrections = []
+        for correction_id in all_corrections_id:
+            cor_func, x_min, x_max, pair = self.get_correction_by_id(correction_id)
+            correction = Correction(x_min, x_max, cor_func, db_id=correction_id,
+                                    amine=pair[1] if pair is not None else None,
+                                    epoxy=pair[0] if pair is not None else None,
+                                    inf_material=material)
+            all_corrections.append(correction)
+        return all_corrections
+
+    def get_all_tg(self) -> List[DataGlass]:
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"SELECT * FROM Tg"
+        cursor.execute(string)
+        tg_list = []
+        for tg_id, epoxy, amine, value in cursor.fetchall():
+            tg_list.append(DataGlass(epoxy, amine, value, tg_id))
+        connection.close()
+        return tg_list
+
+    def get_all_correction_funcs(self) -> List[CorrectionFunction]:
+        """
+        Получение всех графиков коррекций
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        # Получаем параметры корректировки
+        cursor.execute(
+            f"SELECT id, Name, Comment, k_e, k_exp FROM Correction_funcs "
+        )
+
+        all_corrections = []
+        for correction_id, cor_name, cor_comment, k_e, k_exp in cursor.fetchall():
+            # Получаем полиномиальные коэффициенты корректировки
+            cursor.execute(
+                f"SELECT Power, coef FROM corr_poly_coef_map WHERE (Correction = '{correction_id}') "
+            )
+            polynom_coefs = cursor.fetchall()
+
+            cor_func = CorrectionFunction(cor_name, cor_comment, k_e, k_exp, correction_id)
+            for power, coef in polynom_coefs:
+                cor_func.edit_polynomial_coefficient(coef, power)
+
+            all_corrections.append(cor_func)
+
+        connection.close()
+        return all_corrections
+
+    # =========================== Получение сырых данных из БД ==================================
+    def get_all_profiles(self) -> List[str]:
+        """
+        Получение всех профилей из базы
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute("SELECT name FROM Profiles")
+        all_profiles = [res[0] for res in cursor.fetchall()]
+        connection.close()
+        return all_profiles
+
+    def get_profile_materials(self, profile_name: Union[str, Profile]) -> List[int]:
+        """
+        Получение списка всех материалов в профиле и их коррекций
+        :param profile_name: Имя профиля или сам профиль
+        :return: Список материалов, которые подключены к профилю
+        """
+        if isinstance(profile_name, Profile):
+            profile_name = profile_name.profile_name
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(
+            f"SELECT Material FROM Prof_mat_map WHERE (Profile = '{profile_name}') "
+        )
+        result = [i[0] for i in cursor.fetchall()]
+        connection.close()
+        return result
+
+    def _get_all_corrections_id_of_one_material(self, mat_id: int) -> List[int]:
         """
         Возвращает список коррекций поданного материала
         :param mat_id: id материала
@@ -1172,17 +1260,6 @@ class ORMDataBase:
         result = [i[0] for i in cursor.fetchall()]
         connection.close()
         return result
-
-    def get_all_corrections_of_one_material(self, material: DataMaterial) -> List[Correction]:
-        all_corrections_id = self._get_all_corrections_id_of_one_material(material.db_id)
-        all_corrections = []
-        for correction_id in all_corrections_id:
-            cor_func, x_min, x_max, pair = self.get_correction_by_id(correction_id)
-            correction = Correction(x_min, x_max, cor_func, db_id=correction_id,
-                                    amine=pair[1] if pair is not None else None,
-                                    epoxy=pair[0] if pair is not None else None)
-            all_corrections.append(correction)
-        return all_corrections
 
     def get_correction_by_id(self, cor_map_id: int):
         """
@@ -1233,17 +1310,6 @@ class ORMDataBase:
         result = cursor.fetchall()
         connection.close()
         return result
-
-    def get_all_tg(self) -> List[DataGlass]:
-        connection = sqlite3.connect(self.db_name)
-        cursor = connection.cursor()
-        string = f"SELECT * FROM Tg"
-        cursor.execute(string)
-        tg_list = []
-        for tg_id, epoxy, amine, value in cursor.fetchall():
-            tg_list.append(DataGlass(epoxy, amine, value, tg_id))
-        connection.close()
-        return tg_list
 
     # ============================= Редактирование БД =======================================
     def add_material(self, material: DataMaterial, profile: Profile = None):
@@ -1298,25 +1364,25 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
-    def add_correction_func(self, correction: CorrectionFunction):
+    def add_correction_func(self, correction_func: CorrectionFunction):
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT MAX(id) FROM Correction_funcs")
         max_id = cursor.fetchone()
         cor_id = max_id[0] + 1 if max_id[0] is not None else 1
-        correction.db_id = cor_id
+        correction_func.db_id = cor_id
         data = [
             cor_id,
-            correction.name,
-            correction.comment,
-            correction.k_e,
-            correction.k_exp,
+            correction_func.name,
+            correction_func.comment,
+            correction_func.k_e,
+            correction_func.k_exp,
         ]
         insert = f"INSERT INTO Correction_funcs (id, Name, Comment, k_e, k_exp) VALUES (?, ?, ?, ?, ?);"
         cursor.execute(insert, data)
         # Добавляем коэффициенты в таблицу полиномиальных коэффициентов
-        for power, coef in enumerate(correction.polynomial_coefficients):
+        for power, coef in enumerate(correction_func.polynomial_coefficients):
             if coef != 0.0:
                 data = [cor_id, power, coef]
                 insert = f"INSERT INTO corr_poly_coef_map (Correction, Power, coef) VALUES (?, ?, ?);"

@@ -1,5 +1,5 @@
 import sys
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union, Callable
 
 from PyQt5 import QtGui, QtWidgets, uic
 from PyQt5.QtWidgets import (
@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QListWidgetItem,
     QWidget,
     QPushButton,
-    QTextBrowser,
+    QTextBrowser, QTableWidget, QTableWidgetItem, QRadioButton, QTextEdit,
 )
 
 from res.additional_funcs import set_qt_stile
@@ -274,38 +274,219 @@ class CreateMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_ma
 
 
 class EditCorrectionWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_correction.ui")[0]):
-    def __init__(self, previous_window, correction: CorrectionFunction = None):
+    power_lineEdit: QLineEdit  # Выбор степени
+    coef_lineEdit: QLineEdit  # Добавление коэффициента перед степенью
+    coef_tableWidget: QTableWidget  # Таблица полиномиальных коэффициентов
+    k_e_lineEdit: QLineEdit
+    k_exp_lineEdit: QLineEdit
+    inf_full_radio: QRadioButton  # Выбор влияния на систему в целом
+    inf_pair_radio: QRadioButton  # Выбор влияния на пару
+    moove_to_zero_but: QRadioButton  # Сдвиг функции в 0
+    epoxy_combobox: QComboBox  # Выбор эпоксида при влияния на пару
+    amine_combobox: QComboBox  # Выбор амина при влияния на пару
+    x_min_line: QLineEdit  # Выбор начала диапазона влияния
+    x_max_line: QLineEdit  # Выбор конца диапазона влияния
+    move_x_line: QLineEdit  # Выбор конца диапазона влияния
+    move_y_line: QLineEdit  # Выбор конца диапазона влияния
+    name_line: QLineEdit  # Выбор конца диапазона влияния
+    comment_text_edit: QTextEdit  # Выбор конца диапазона влияния
+
+    def __init__(self, previous_window, material: DataMaterial = None, correction: CorrectionFunction = None,
+                 close_action: Callable = None):
         super(EditCorrectionWindow, self).__init__()
         self.setupUi(self)
-        self.previos_window = previous_window
+        self.previous_window = previous_window
         self.correction = correction
+        self.coef_tableWidget.resizeColumnsToContents()
+        self.polynomial_coefficients = []
+        self.profile = previous_window.profile
+        self.inf_material = material
+        self.close_action = close_action
+
+        self.epoxy_list = self.profile.get_materials_by_type("Epoxy")
+        self.amine_list = self.profile.get_materials_by_type("Amine")
+
+        self.epoxy_combobox.addItems(self.profile.get_mat_names_by_type("Epoxy"))
+        self.amine_combobox.addItems(self.profile.get_mat_names_by_type("Amine"))
+        self.coef_tableWidget.currentItemChanged.connect(self.set_power_to_widget)
+
         if correction is not None:
             # TODO Загрузка коррекции в окно
             ...
 
         # Вынести путь к стилю в настройки
         set_qt_stile("style.css", self)
+        self.cancel_but.clicked.connect(self.close)
+        self.add_coef_but.clicked.connect(self.add_power_coef)
+        self.save_but.clicked.connect(self.save_data)
+        self.create_graph_but.clicked.connect(self.plot_graph)
+        self.del_coef_but.clicked.connect(self.del_poly_coef)
+        self.move_to_zero_but.clicked.connect(self.move_func)
+        self.move_func_but.clicked.connect(
+            lambda: self.move_func(float(self.move_x_line.text()), float(self.move_y_line.text())))
 
-        self.cancel_but.clicked.connect(self.closeEvent)
+        self.k_e_lineEdit.editingFinished.connect(lambda: self.check_float_text(self.k_e_lineEdit))
+        self.k_exp_lineEdit.editingFinished.connect(lambda: self.check_float_text(self.k_exp_lineEdit))
+        self.x_min_line.editingFinished.connect(lambda: self.check_float_text(self.x_min_line))
+        self.x_max_line.editingFinished.connect(lambda: self.check_float_text(self.x_max_line))
+        self.move_x_line.editingFinished.connect(lambda: self.check_float_text(self.move_x_line))
+        self.move_y_line.editingFinished.connect(lambda: self.check_float_text(self.move_y_line))
+
+        self.inf_full_radio.toggled.connect(self.change_influence_radiobutton)
+        self.inf_pair_radio.toggled.connect(self.change_influence_radiobutton)
+
+    def update_polynomial_coefficients(self):
+        self.coef_tableWidget.clear()
+        self.coef_tableWidget.setRowCount(sum([1 if i else 0 for i in self.polynomial_coefficients]))
+        self.coef_tableWidget.setVerticalHeaderLabels([f"k{power}" for power, coef in enumerate(self.polynomial_coefficients) if coef])
+        self.coef_tableWidget.setHorizontalHeaderLabels(["Степень X", "Коэффициент"])
+
+        row = 0
+        for power, coef in enumerate(self.polynomial_coefficients):
+            if coef == 0:
+                continue
+            self.coef_tableWidget.setItem(row, 0, QTableWidgetItem(f"{power}"))
+            self.coef_tableWidget.setItem(row, 1, QTableWidgetItem(f"{coef}"))
+            row += 1
+        self.coef_tableWidget.resizeColumnsToContents()
+
+    def add_power_coef(self):
+        power = self.power_lineEdit.text().replace(",", ".")
+        coef = self.coef_lineEdit.text().replace(",", ".")
+        try:
+            power = int(power)
+            coef = float(coef)
+            while len(self.polynomial_coefficients) <= power:
+                self.polynomial_coefficients.append(0.0)
+            self.polynomial_coefficients[power] = coef
+            self.update_polynomial_coefficients()
+        except:
+            pass
+
+        self.power_lineEdit.setText("")
+        self.coef_lineEdit.setText("")
+
+    def set_power_to_widget(self):
+        index = self.coef_tableWidget.currentIndex()
+        row = index.row()
+        power_item = self.coef_tableWidget.item(row, 0)
+        if power_item is not None:
+            power = power_item.data(0)
+            data = self.coef_tableWidget.item(row, 1).data(0)
+            if row != -1:
+                self.power_lineEdit.setText(power)
+                self.coef_lineEdit.setText(data)
+
+    def move_func(self, x=0.0, y=0.0):
+        k_e = float(self.k_e_lineEdit.text())
+        k_exp = float(self.k_exp_lineEdit.text())
+        cor_func = CorrectionFunction(k_e=k_e, k_exp=k_exp, polynomial_coefficients=self.polynomial_coefficients)
+        number = round(cor_func(x), 10)
+        while number != y:
+            if len(self.polynomial_coefficients) == 0:
+                self.polynomial_coefficients.append(0)
+            self.polynomial_coefficients[0] -= number - y
+            self.update_polynomial_coefficients()
+            cor_func.polynomial_coefficients = self.polynomial_coefficients
+            number = round(cor_func(x), 10)
+
+    @staticmethod
+    def check_float_text(widget):
+        try:
+            text = float(widget.text().replace(",", "."))
+            widget.setText(str(text))
+        except:
+            widget.setText('0')
 
     def save_data(self):
-        if self.material is not None:
-            # TODO Описать логику редактирования материала
-            ...
+        name = self.name_line.text()
+        comment = self.comment_text_edit.toPlainText()
+        k_e = float(self.k_e_lineEdit.text())
+        k_exp = float(self.k_exp_lineEdit.text())
+        cor_func = CorrectionFunction(name, comment, k_e, k_exp, polynomial_coefficients=self.polynomial_coefficients)
+        x_min = float(self.x_min_line.text())
+        x_max = float(self.x_max_line.text())
+        amine = self.amine_list[self.amine_combobox.currentIndex()] if self.inf_pair_radio.isChecked() else None
+        epoxy = self.epoxy_list[self.epoxy_combobox.currentIndex()] if self.inf_pair_radio.isChecked() else None
+        correction = Correction(x_min, x_max, cor_func, amine, epoxy, inf_material=self.inf_material)
+        if self.close_action is not None:
+            self.close_action(correction)
+        # self.profile.add_correction_to_db(correction)
+        self.close()
+
+    def plot_graph(self):
+        k_e = float(self.k_e_lineEdit.text())
+        k_exp = float(self.k_exp_lineEdit.text())
+        cor_func = CorrectionFunction(k_e=k_e, k_exp=k_exp, polynomial_coefficients=self.polynomial_coefficients)
+        x_min = float(self.x_min_line.text())
+        x_max = float(self.x_max_line.text())
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        amine = self.amine_list[self.amine_combobox.currentIndex()] if self.inf_pair_radio.isChecked() else None
+        epoxy = self.epoxy_list[self.epoxy_combobox.currentIndex()] if self.inf_pair_radio.isChecked() else None
+        if amine is not None:
+            pair = (epoxy.name, amine.name)
         else:
-            # TODO Описать логику создания нового материала
-            name = self.name_lineEdit.text()
-            mat_type = self.type_comboBox.currentText()
-            ew = self.ew_lineEdit.text()
-            material = DataMaterial(name, mat_type, ew)
+            pair = None
+
+        # Data for plotting
+        t = np.arange(x_min, x_max, (x_max-x_min) / 100)
+        s = [cor_func(x) for x in t]
+
+        fig, ax = plt.subplots()
+        ax.plot(t, s)
+        string = "систему в целом "
+        if self.inf_material:
+            title = f"Влияние '{self.inf_material.name}' на {pair if pair is not None else string}"
+        else:
+            title = "Красивый график"
+        ax.set(
+            xlabel="Содержание вещества в системе, %",
+            ylabel="Влияние на температуру стеклования, °С",
+            title=title,
+        )
+        if len(s) > 0:
+            plt.annotate(f"{s[0]}", (0, s[0]))
+        ax.grid()
+        # if save:
+        #     filename = "graph.png"
+        #     fig.savefig(filename)
+        plt.show()
+
+    def del_poly_coef(self):
+        index = self.coef_tableWidget.currentIndex()
+        row = index.row()
+        power_item = self.coef_tableWidget.item(row, 0)
+        if power_item is not None:
+            power = int(power_item.data(0))
+            if row != -1:
+                self.polynomial_coefficients[power] = 0
+                self.update_polynomial_coefficients()
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        self.main_window.show()
-        self.main_window.close_to_edit_material = False
-        del self
+        self.previous_window.show()
+        if isinstance(self.previous_window, EditDataWindow):
+            self.previous_window.close_to_edit_material = False
+        a0.accept()
+
+    def change_influence_radiobutton(self):
+
+        if self.inf_full_radio.isChecked():
+            self.epoxy_combobox.setEnabled(False)
+            self.amine_combobox.setEnabled(False)
+        else:
+            self.epoxy_combobox.setEnabled(True)
+            self.amine_combobox.setEnabled(True)
 
 
 class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_material_with_corrections.ui")[0]):
+    corrections_listWidget: QListWidget
+    cor_textBrowser: QTextBrowser
+    type_comboBox: QComboBox
+
+
     def __init__(self, previous_window: EditDataWindow, profile: Profile, material: DataMaterial = None):
         super(EditMaterialWindow, self).__init__()
         self.setupUi(self)
@@ -314,7 +495,11 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.types = self.profile.get_all_types()
         self.type_comboBox.addItems(self.types)
         self.material = material
-        self.corrections: List[Correction] = []
+        self.corrections: List[Correction] = []  # Коррекции, которые уже в БД
+        self.corrections_to_add: List[Correction] = []  # Коррекции для добавления в БД
+        self.corrections_in_widget: List[Correction] = []  # Коррекции в виджете
+
+        self.open_new_window = False
         # Режим редактирования или создания нового материала
         self.edit_mode = False
         if material is not None:
@@ -325,12 +510,13 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
 
         self.corrections_listWidget.currentItemChanged.connect(self.change_row)
         self.corrections_listWidget.itemDoubleClicked.connect(self.show_correction)
+        self.save_but.clicked.connect(self.save)
+        self.cancel_but.clicked.connect(self.closeEvent)
+        self.add_new_cor_but.clicked.connect(self.open_correction_window)
+
+        self.new_cor_window = None
 
     def set_material(self):
-        self.type_comboBox: QComboBox
-        self.corrections_listWidget: QListWidget
-        self.cor_textBrowser: QTextBrowser
-
         if self.edit_mode:
             index = self.types.index(self.material.mat_type)
             self.type_comboBox.setCurrentIndex(index)
@@ -340,45 +526,56 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
             for correction in self.corrections:
                 correction_func = correction.correction_func
                 self.corrections_listWidget.addItem(correction_func.name)
+                self.corrections_in_widget.append(correction)
 
     def change_row(self):
-        self.corrections_listWidget: QListWidget
-        self.cor_textBrowser: QTextBrowser
+
         row_numb = self.corrections_listWidget.currentRow()
 
-        cor = self.corrections[row_numb]
+        cor = self.corrections_in_widget[row_numb]
         self.cor_textBrowser.setText(cor.correction_func.comment)
 
     def show_correction(self):
         row_numb: int = self.corrections_listWidget.currentRow()
-        cor = self.corrections[row_numb]
-        import matplotlib.pyplot as plt
-        import numpy as np
+        self.corrections_in_widget[row_numb].show_graph()
 
-        x_min = cor.x_min
-        x_max = cor.x_max
-        pair = (cor.epoxy.name, cor.amine.name)
-        # Data for plotting
-        t = np.arange(x_min, x_max, 0.1)
-        s = [cor(x) for x in t]
+    def save(self):
+        if not self.edit_mode:
+            ew = self.ew_lineEdit.text().replace(',', '.')
+            try:
+                ew = float(ew)
+            except:
+                return None
+            name = self.name_lineEdit.text()
+            mat_type = self.type_comboBox.currentText()
+            material = self.profile.add_material_to_db(name, mat_type, ew)
+            if self.corrections_to_add:
+                for cor in self.corrections_to_add:
+                    cor.inf_material = material
+                    self.profile.add_correction_to_db(cor)
 
-        fig, ax = plt.subplots()
-        ax.plot(t, s)
-        string = "систему в целом "
-        ax.set(
-            xlabel="Содержание вещества в системе, %",
-            ylabel="Влияние на температуру стеклования, °С",
-            title=f"Влияние '{self.material.name}' на {pair if pair is not None else string}",
-        )
-        ax.grid()
+    def open_correction_window(self):
+        self.new_cor_window = EditCorrectionWindow(self, self.material, close_action=self.get_correction_from_new_cor_window)
+        self.new_cor_window.show()
+        self.open_new_window = True
+        self.close()
 
-        fig.savefig("test.png")
-        plt.show()
+    def get_correction_from_new_cor_window(self, correction: Correction) -> None:
+        self.corrections_to_add.append(correction)
+        self.corrections_listWidget.addItem(correction.correction_func.name)
+        self.corrections_in_widget.append(correction)
+        if self.edit_mode is True:
+            self.profile.add_correction_to_db(correction)
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
-        self.previos_window.show()
-        self.previos_window.close_to_edit_material = False
-        del self
+        if not self.open_new_window:
+            self.previos_window.show()
+            # if isinstance(self.previos_window, EditDataWindow):
+            #     self.previos_window.close_to_edit_material = False
+            #     del self
+
+        self.open_new_window = False
+        self.close()
 
 
 class EditTgWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg.ui")[0]):
@@ -436,6 +633,61 @@ class EditTgWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Add_Tg.ui")[0]
             self.tg_lineEdit.setText('')
 
 
+# пока не актуально
+class ConnectFuncPair(QtWidgets.QMainWindow, uic.loadUiType("windows/connect_func_and_pair.ui")[0]):
+    epoxy_combobox: QComboBox
+    amine_combobox: QComboBox
+    x_min_line: QLineEdit
+    x_max_line: QLineEdit
+    func_list_widget: QListWidget
+    create_graph_but: QPushButton
+    cancel_but: QPushButton
+    save_but: QPushButton
+
+    def __init__(self, previous_window: EditDataWindow):
+        super(ConnectFuncPair, self).__init__()
+        self.setupUi(self)
+        self.previos_window = previous_window
+        self.profile = previous_window.profile
+
+        self.new_cor_window = None
+        self.open_new_window = False
+
+        set_qt_stile("style.css", self)
+        self.correction_funcs = self.profile.get_all_correction_funcs()
+        self.func_list_widget.addItems([cor_func.name for cor_func in self.correction_funcs])
+
+        self.epoxy_list = self.profile.get_materials_by_type("Epoxy")
+        self.amine_list = self.profile.get_materials_by_type("Amine")
+
+        self.epoxy_combobox.addItems(self.profile.get_mat_names_by_type("Epoxy"))
+        self.amine_combobox.addItems(self.profile.get_mat_names_by_type("Amine"))
+
+        self.save_but.clicked.connect(self.save)
+        self.cancel_but.clicked.connect(self.closeEvent)
+        self.create_graph_but.clicked.connect(self.create_correction_function)
+
+    def save(self):
+        epoxy = self.epoxy_list[self.epoxy_combobox.currentIndex()]
+        amine = self.amine_list[self.amine_combobox.currentIndex()]
+
+        print(epoxy.name, epoxy.db_id)
+        print(amine.name, amine.db_id)
+
+    def create_correction_function(self):
+        self.new_cor_window = EditCorrectionWindow(self)
+        self.new_cor_window.show()
+        self.open_new_window = True
+        self.close()
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        if not self.open_new_window:
+            self.previos_window.show()
+            # if isinstance(self.previos_window, EditDataWindow):
+            #     self.previos_window.close_to_edit_material = False
+            #     del self
+        self.open_new_window = False
+        self.close()
 
 
 if __name__ == "__main__":
