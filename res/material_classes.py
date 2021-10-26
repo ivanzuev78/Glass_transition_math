@@ -358,22 +358,6 @@ class ReceiptCounter:
 
         percent_df = copy(self.percent_df)
         tg_df = copy(self.tg_df)
-        # Получаем все пары, которые не имеют стекла
-        # all_pairs_na = []
-        # for name in tg_df:
-        #     pairs_a = tg_df[tg_df[name].isna()]
-        #     par = [(resin, name) for resin in list(pairs_a.index)]
-        #     all_pairs_na += par
-        #
-        # TODO реализовать обработку отсутствующих пар стёкол (вывод индикатора)
-        # all_pairs_na_dict = {}
-        # Убираем в матрице процентов отсутствующие пары
-        # for resin, amine in all_pairs_na:
-        #     if amine in percent_df.amine_list and resin in percent_df.epoxy_list:
-        #         # all_pairs_na_dict[(resin, amine)] = percent_df[amine][resin]
-        #         percent_df[amine][resin] = 0.0
-        #
-        # percent_df = normalize_df(percent_df)
 
         total_tg_df = tg_df * percent_df
         primary_tg = total_tg_df.sum()
@@ -383,7 +367,6 @@ class ReceiptCounter:
         inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
         print(inf_value)
         self.tg_inf = self.tg + inf_value
-        # TODO продолжить
 
     def update_tg_df(self) -> None:
         tg_df = copy(self.profile.get_tg_df())

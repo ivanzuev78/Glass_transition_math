@@ -2,6 +2,7 @@ from collections import defaultdict
 from copy import copy
 from itertools import cycle
 from math import inf
+from random import randint
 from typing import Optional, Union, List, Iterable, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
@@ -16,6 +17,7 @@ from PyQt5.QtWidgets import (
     QListWidget,
 )
 
+from res.additional_classes import MyQLabel, MyQGridLayout
 from res.additional_funcs import set_qt_stile
 
 from res.edit_db_windows import EditDataWindow, EditMaterialWindow
@@ -108,6 +110,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # ======================== Подключаем кнопки =======================================
         self.connect_buttons()
 
+        # ======================== тесты по зеленым квадратикам ============================
+
+        self.inf_window = None
+        self.warring_grid = MyQGridLayout(self.centralwidget)
+
     def debug(self) -> None:
         # print(self.pair_react_window.checkboxes_a)
         # print(self.pair_react_window.labels_a)
@@ -115,36 +122,36 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # self.receipt_a.receipt_counter.count_percent_df()
         # print(self.receipt_a.receipt_counter.percent_df)
+        self.warring_grid.update_items()
 
-        self.add_a_line()
-        self.add_a_line()
-        self.material_a_types[0].setCurrentIndex(2)
-        self.material_a_types[1].setCurrentIndex(2)
-        self.material_comboboxes_a[0].setCurrentIndex(3)
-        self.material_comboboxes_a[1].setCurrentIndex(4)
-        self.material_percent_lines_a[0].setText("50.00")
-        self.material_list_a[0].percent = 50
-        self.material_percent_lines_a[1].setText("50.00")
-        self.material_list_a[1].percent = 50
-
-        # self.normalise_func('A')
-        # self.to_float('A')
-        self.normalise_func("A")
-
-        self.add_b_line()
-        self.add_b_line()
-        # self.material_b_types[0].setCurrentIndex(2)
-        # self.material_b_types[1].setCurrentIndex(2)
-        self.material_comboboxes_b[0].setCurrentIndex(4)
-        self.material_comboboxes_b[1].setCurrentIndex(3)
-        self.material_percent_lines_b[0].setText("50.00")
-        self.material_list_b[0].percent = 50
-        self.material_percent_lines_b[1].setText("50.00")
-        self.material_list_b[1].percent = 50
+        # self.add_a_line()
+        # self.add_a_line()
+        # self.material_a_types[0].setCurrentIndex(2)
+        # self.material_a_types[1].setCurrentIndex(2)
+        # self.material_comboboxes_a[0].setCurrentIndex(3)
+        # self.material_comboboxes_a[1].setCurrentIndex(4)
+        # self.material_percent_lines_a[0].setText("50.00")
+        # self.material_list_a[0].percent = 50
+        # self.material_percent_lines_a[1].setText("50.00")
+        # self.material_list_a[1].percent = 50
+        #
+        # # self.normalise_func('A')
+        # # self.to_float('A')
+        # self.normalise_func("A")
+        #
+        # self.add_b_line()
+        # self.add_b_line()
+        # # self.material_b_types[0].setCurrentIndex(2)
+        # # self.material_b_types[1].setCurrentIndex(2)
+        # self.material_comboboxes_b[0].setCurrentIndex(4)
+        # self.material_comboboxes_b[1].setCurrentIndex(3)
+        # self.material_percent_lines_b[0].setText("50.00")
+        # self.material_list_b[0].percent = 50
+        # self.material_percent_lines_b[1].setText("50.00")
+        # self.material_list_b[1].percent = 50
 
     def debug_2(self) -> None:
-        global profile
-        print(profile)
+        self.create_warring()
 
     def hide_top(self, component: str) -> None:
         """
@@ -839,6 +846,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # ====================================== Кнопки дебага =======================================
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
+
+    def create_warring(self):
+
+        rect = MyQLabel("test")
+        if randint(1, 3) == 1:
+            rect.extra_cor = False
+        elif randint(1, 3) == 3:
+            rect.extra_cor = False
+            rect.base_cor = False
+        self.warring_grid.add_label(rect)
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):

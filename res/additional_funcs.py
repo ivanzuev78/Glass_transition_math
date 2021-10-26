@@ -53,3 +53,4 @@ def set_qt_stile(style_path, window, *args):
             widget_list.setStyleSheet(style)
         elif isinstance(widget_list, QComboBox):
             widget_list.setStyleSheet(style_combobox)
+
