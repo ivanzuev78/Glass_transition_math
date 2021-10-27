@@ -970,6 +970,11 @@ class Profile:
         self.add_material(material)
         return material
 
+    def update_material_in_db(self, material: DataMaterial, new_type: str = None, new_ew = None):
+        self.orm_db.update_material(material.name, new_type, new_ew)
+        material.ew = new_ew
+        material.mat_type = new_type
+
     def remove_material(self, material: DataMaterial) -> None:
         """
         Функция для удаления материала из профиля
@@ -1232,6 +1237,14 @@ class ORMDataBase:
         connection.close()
         return all_corrections
 
+    def get_all_mat_types(self):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute("SELECT DISTINCT Type FROM Materials")
+        all_types = [data[0] for data in cursor.fetchall()]
+        connection.close()
+        return all_types
+
     # =========================== Получение сырых данных из БД ==================================
     def get_all_profiles(self) -> List[str]:
         """
@@ -1340,10 +1353,11 @@ class ORMDataBase:
         cursor = connection.cursor()
         # Проверяем, что материала нет в базе
         cursor.execute(
-            f"SELECT * FROM Materials WHERE Name='{material.name}' AND Type='{material.mat_type}' AND ew={material.ew}")
+            f"SELECT * FROM Materials WHERE Name='{material.name}'")
         result = cursor.fetchall()
         if len(result) > 0:
             # TODO Подумать, что делать, если пытаются добавить материал, который уже есть в базе.
+            self.update_material(material.name, mat_type=material.mat_type, ew=material.ew)
             return None
 
         cursor.execute(f"SELECT MAX(id) FROM Materials")
@@ -1377,6 +1391,19 @@ class ORMDataBase:
 
         for string in strings:
             cursor.execute(string)
+        connection.commit()
+        connection.close()
+
+    def update_material(self, name: str, mat_type: str = None, ew: float = None):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT ew, Type FROM Materials WHERE Name='{name}'")
+        result = list(cursor.fetchone())
+        if mat_type is not None:
+            result[0] = mat_type
+        if ew is not None:
+            result[1] = ew
+        cursor.execute(f"UPDATE Materials SET ew={result[1]}, Type='{result[0]}' WHERE Name='{name}'")
         connection.commit()
         connection.close()
 

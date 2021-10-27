@@ -50,7 +50,7 @@
      <string>Удалить пользователя</string>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit">
+   <widget class="QLineEdit" name="prof_name_line">
     <property name="geometry">
      <rect>
       <x>280</x>

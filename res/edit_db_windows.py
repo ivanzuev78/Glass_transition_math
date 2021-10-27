@@ -88,6 +88,8 @@ class EditDataWindow(QWidget):
         if self.main_window is not None and not self.close_to_edit_material:
             self.main_window.show()
             del self
+        else:
+            self.close_to_edit_material = False
 
     def faf(self):
         # Текущий ряд
@@ -492,13 +494,13 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
     name_lineEdit: QLineEdit
     ew_lineEdit: QLineEdit
 
-
     def __init__(self, previous_window: EditDataWindow, profile: Profile, material: DataMaterial = None):
         super(EditMaterialWindow, self).__init__()
         self.setupUi(self)
         self.previos_window = previous_window
         self.profile = profile
-        self.types = self.profile.get_all_types()
+        self.types = self.profile.orm_db.get_all_mat_types()
+        print('Types: ', self.types)
         self.type_comboBox.addItems(self.types)
         self.material = material
         self.corrections: List[Correction] = []  # Коррекции, которые уже в БД
@@ -511,6 +513,7 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         if material is not None:
             self.edit_mode = True
             self.set_material()
+            self.name_lineEdit.setEnabled(False)
 
         set_qt_stile("style.css", self)
 
@@ -547,22 +550,33 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.corrections_in_widget[row_numb].show_graph()
 
     def save(self):
-        if not self.edit_mode:
-            ew = self.ew_lineEdit.text().replace(',', '.')
-            try:
-                ew = float(ew)
-            except:
-                return None
-            name = self.name_lineEdit.text()
-            mat_type = self.type_comboBox.currentText()
+
+        ew = self.ew_lineEdit.text().replace(',', '.')
+        try:
+            ew = float(ew)
+        except:
+            ew = 0
+        name = self.name_lineEdit.text()
+        if name == '':
+            # TODO Попросить ввести имя
+            return None
+        mat_type = self.type_comboBox.currentText()
+        if self.edit_mode:
+            material = self.material
+            self.profile.update_material_in_db(material, mat_type, ew)
+        else:
             material = self.profile.add_material_to_db(name, mat_type, ew)
-            if self.corrections_to_add:
-                for cor in self.corrections_to_add:
-                    cor.inf_material = material
-                    self.profile.add_correction_to_db(cor)
+        if self.corrections_to_add:
+            for cor in self.corrections_to_add:
+                cor.inf_material = material
+                self.profile.add_correction_to_db(cor)
+
+        self.close()
 
     def del_correction(self):
         row_numb: int = self.corrections_listWidget.currentRow()
+        if row_numb == -1:
+            return None
         current_correction = self.corrections_in_widget.pop(row_numb)
         if current_correction in self.corrections:
             self.corrections.remove(current_correction)
@@ -603,7 +617,6 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
             # if isinstance(self.previos_window, EditDataWindow):
             #     self.previos_window.close_to_edit_material = False
             #     del self
-
         self.open_new_window = False
         self.close()
 

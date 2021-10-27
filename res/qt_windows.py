@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QSpacerItem,
-    QListWidget,
+    QListWidget, QPushButton,
 )
 
 from res.additional_classes import MyQLabel, MyQGridLayout
@@ -122,33 +122,32 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # self.receipt_a.receipt_counter.count_percent_df()
         # print(self.receipt_a.receipt_counter.percent_df)
-        self.warring_grid.update_items()
 
-        # self.add_a_line()
-        # self.add_a_line()
-        # self.material_a_types[0].setCurrentIndex(2)
-        # self.material_a_types[1].setCurrentIndex(2)
-        # self.material_comboboxes_a[0].setCurrentIndex(3)
-        # self.material_comboboxes_a[1].setCurrentIndex(4)
-        # self.material_percent_lines_a[0].setText("50.00")
-        # self.material_list_a[0].percent = 50
-        # self.material_percent_lines_a[1].setText("50.00")
-        # self.material_list_a[1].percent = 50
-        #
-        # # self.normalise_func('A')
-        # # self.to_float('A')
-        # self.normalise_func("A")
-        #
-        # self.add_b_line()
-        # self.add_b_line()
-        # # self.material_b_types[0].setCurrentIndex(2)
-        # # self.material_b_types[1].setCurrentIndex(2)
-        # self.material_comboboxes_b[0].setCurrentIndex(4)
-        # self.material_comboboxes_b[1].setCurrentIndex(3)
-        # self.material_percent_lines_b[0].setText("50.00")
-        # self.material_list_b[0].percent = 50
-        # self.material_percent_lines_b[1].setText("50.00")
-        # self.material_list_b[1].percent = 50
+        self.add_a_line()
+        self.add_a_line()
+        self.material_a_types[0].setCurrentIndex(2)
+        self.material_a_types[1].setCurrentIndex(2)
+        self.material_comboboxes_a[0].setCurrentIndex(3)
+        self.material_comboboxes_a[1].setCurrentIndex(4)
+        self.material_percent_lines_a[0].setText("50.00")
+        self.material_list_a[0].percent = 50
+        self.material_percent_lines_a[1].setText("50.00")
+        self.material_list_a[1].percent = 50
+
+        # self.normalise_func('A')
+        # self.to_float('A')
+        self.normalise_func("A")
+
+        self.add_b_line()
+        self.add_b_line()
+        # self.material_b_types[0].setCurrentIndex(2)
+        # self.material_b_types[1].setCurrentIndex(2)
+        self.material_comboboxes_b[0].setCurrentIndex(4)
+        self.material_comboboxes_b[1].setCurrentIndex(3)
+        self.material_percent_lines_b[0].setText("50.00")
+        self.material_list_b[0].percent = 50
+        self.material_percent_lines_b[1].setText("50.00")
+        self.material_list_b[1].percent = 50
 
     def debug_2(self) -> None:
         self.create_warring()
@@ -1687,18 +1686,22 @@ class PairReactWindow(
 class ProfileManagerWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/profile_manager_window.ui")[0]
 ):
+    add_profile_but: QPushButton
+    remove_profile_but: QPushButton
+    prof_name_line: QLineEdit
+    profile_widget: QListWidget
+
     def __init__(self, profile_list: list, init_class):
         super(ProfileManagerWindow, self).__init__()
         self.setupUi(self)
-        self.profile_widget: QListWidget
         self.profile_list = profile_list
         self.init_class = init_class
-        # Добавляем имена из БД
-        for name in profile_list:
-            self.profile_widget.addItem(name)
+        self.update_profiles()
 
         self.choose_profile_but.clicked.connect(self.choose_profile)
         self.edit_profile_but.clicked.connect(self.edit_materials)
+        self.add_profile_but.clicked.connect(self.add_profile)
+        self.remove_profile_but.clicked.connect(self.remove_profile)
 
         # Вынести путь к стилю в настройки
         set_qt_stile("style.css", self)
@@ -1723,3 +1726,30 @@ class ProfileManagerWindow(
         )
         self.close()
         self.edit_material_window.show()
+
+    def add_profile(self):
+        """
+        Добавление профиля в БД
+        :return:
+        """
+        name = self.prof_name_line.text()
+        if name and name not in self.profile_list:
+            self.init_class.orm_db.add_profile(name)
+            self.profile_list.append(name)
+            self.profile_widget.addItem(name)
+
+    def remove_profile(self):
+        line = self.profile_widget.currentIndex().row()
+        print(line)
+        if line != -1:
+            name = self.profile_list.pop(line)
+            self.init_class.orm_db.remove_profile(name)
+            self.update_profiles()
+
+    def update_profiles(self):
+        """
+        Обновляем имена в виджете
+        """
+        self.profile_widget.clear()
+        for name in self.profile_list:
+            self.profile_widget.addItem(name)
