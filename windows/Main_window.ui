@@ -753,7 +753,7 @@ c избытком</string>
     <addaction name="menu_Excel"/>
     <addaction name="menu_7"/>
    </widget>
-   <widget class="QMenu" name="menu_2">
+   <widget class="QMenu" name="add_menu">
     <property name="title">
      <string>Добавить</string>
     </property>
@@ -762,7 +762,7 @@ c избытком</string>
     <addaction name="menu_add_tg_inf"/>
     <addaction name="menu_prof_edit"/>
    </widget>
-   <widget class="QMenu" name="menu_3">
+   <widget class="QMenu" name="look_menu">
     <property name="title">
      <string>Просмотреть</string>
     </property>
@@ -771,16 +771,16 @@ c избытком</string>
     <addaction name="menu_final_receipt"/>
     <addaction name="menu_pair_table"/>
    </widget>
-   <widget class="QMenu" name="menu_4">
+   <widget class="QMenu" name="func_menu">
     <property name="title">
      <string>Функции</string>
     </property>
     <addaction name="menu_sintez_edit"/>
    </widget>
    <addaction name="menu"/>
-   <addaction name="menu_2"/>
-   <addaction name="menu_3"/>
-   <addaction name="menu_4"/>
+   <addaction name="add_menu"/>
+   <addaction name="look_menu"/>
+   <addaction name="func_menu"/>
   </widget>
   <action name="actionaaa">
    <property name="text">

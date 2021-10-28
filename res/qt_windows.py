@@ -2,7 +2,8 @@ from collections import defaultdict
 from copy import copy
 from itertools import cycle
 from math import inf
-from typing import Optional, Union, List, Iterable
+from random import randint
+from typing import Optional, Union, List, Iterable, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
@@ -13,13 +14,14 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QSpacerItem,
-    QListWidget,
+    QListWidget, QPushButton,
 )
 
+from res.additional_classes import MyQLabel, MyQGridLayout
 from res.additional_funcs import set_qt_stile
-from res.data_classes import Profile
-from res.edit_db_windows import EditDataWindow
-from res.material_classes import Material, Receipt
+
+from res.edit_db_windows import EditDataWindow, EditMaterialWindow
+from res.material_classes import Material, Receipt, Profile
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
@@ -108,6 +110,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # ======================== Подключаем кнопки =======================================
         self.connect_buttons()
 
+        # ======================== тесты по зеленым квадратикам ============================
+
+        self.inf_window = None
+        self.warring_grid = MyQGridLayout(self.centralwidget)
+
     def debug(self) -> None:
         # print(self.pair_react_window.checkboxes_a)
         # print(self.pair_react_window.labels_a)
@@ -143,8 +150,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_list_b[1].percent = 50
 
     def debug_2(self) -> None:
-        global profile
-        print(profile)
+        self.create_warring()
 
     def hide_top(self, component: str) -> None:
         """
@@ -229,12 +235,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.change_list_of_materials(material_combobox, materia_typel_combobox)
         )
 
-        material = Material(
-            materia_typel_combobox.currentText(),
-            material_combobox.currentText(),
-            receipt,
-        )
-
         materia_typel_combobox.addItems(self.types_of_items)
         materia_typel_combobox.setFixedHeight(20)
         materia_typel_combobox.setFont(QtGui.QFont("Times New Roman", self.font_size))
@@ -247,6 +247,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         percent_line.editingFinished.connect(lambda: self.to_float(component))
 
+        material = Material(materia_typel_combobox.currentText(), material_combobox.currentIndex(),
+                            self.profile, receipt)
         # Подключение функций, которые передают параметры в Material при изменении
         percent_line.editingFinished.connect(
             self.change_percent_material(material, percent_line)
@@ -446,6 +448,16 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         else:
             self.tg_main_label.setText(f"Стеклование базовое:\n\t{round(value, 1)}°C")
 
+    def set_tg_inf(self, value) -> None:
+        """
+        Устанавливает базовое стеклование в соответствующий лейбл
+        :param value: Значение базового стеклования
+        """
+        if value is None:
+            self.tg_cor_label.setText(f"Стеклование с коррекцией:\n\tотсутствует")
+        else:
+            self.tg_cor_label.setText(f"Стеклование с коррекцией:\n\t{round(value, 1)}°C")
+
     # ========================= Окна ===========================
 
     def add_receipt_window(self, component: str) -> callable:
@@ -492,6 +504,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.profile_edit_window = EditDataWindow(self, self.profile)
         self.profile_edit_window.show()
         self.close()
+
+    def add_material_window(self):
+        self.material_window = EditMaterialWindow(self, self.profile)
+        self.close()
+        self.material_window.show()
 
     # =========================  ===========================
 
@@ -556,7 +573,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     # Меняет список сырья при смене типа в рецептуре
     def change_list_of_materials(
-        self, material_combobox: QComboBox, material_type: QComboBox
+            self, material_combobox: QComboBox, material_type: QComboBox
     ) -> callable:
         """Меняет список сырья при смене типа в рецептуре
         Обёрнута в замыкание для вызова триггером"""
@@ -602,9 +619,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     @staticmethod
     def change_type_name_material(
-        material: Material,
-        material_type_combobox: QComboBox,
-        material_combobox: QComboBox,
+            material: Material,
+            material_type_combobox: QComboBox,
+            material_combobox: QComboBox,
     ) -> callable:
         """
         Функция, которая вызывается при смене индекса QComboBox с названием материала
@@ -624,7 +641,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     @staticmethod
     def change_percent_material(
-        material: Material, percent_line: QLineEdit
+            material: Material, percent_line: QLineEdit
     ) -> callable:
         """
         Меняет процент в материале, который хранится в рецептуре
@@ -667,7 +684,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 sum_all += material
             if sum_all:
                 for material, checkbox, percent_line in zip(
-                    material_lines, lock_checkbox, percent_lines
+                        material_lines, lock_checkbox, percent_lines
                 ):
                     if checkbox.isChecked():
                         continue
@@ -680,7 +697,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     sum_all_without_last += percent
                 if sum_all_after != 100:
                     for material, checkbox, percent_line in reversed(
-                        list(zip(material_lines, lock_checkbox, percent_lines))
+                            list(zip(material_lines, lock_checkbox, percent_lines))
                     ):
                         current_numb = float(material)
                         if current_numb != 0 and not checkbox.isChecked():
@@ -768,7 +785,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             return None
         receipt.scope_trigger = len(percents) - 1
         for material, percent_line, percent in zip(
-            material_lines, material_percent_lines, percents
+                material_lines, material_percent_lines, percents
         ):
             percent_line.setText(str(percent))
             material.percent = percent
@@ -823,9 +840,21 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # ====================================== Кнопки меню =======================================
         self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
         self.menu_prof_edit.triggered.connect(self.add_profile_edit_window)
+        self.menu_add_mat.triggered.connect(self.add_material_window)
+
         # ====================================== Кнопки дебага =======================================
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
+
+    def create_warring(self):
+
+        rect = MyQLabel("test")
+        if randint(1, 3) == 1:
+            rect.extra_cor = False
+        elif randint(1, 3) == 3:
+            rect.extra_cor = False
+            rect.base_cor = False
+        self.warring_grid.add_label(rect)
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
@@ -974,11 +1003,11 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         for index, name in enumerate(self.name_list):
             if len(self.name_list) > index + 1:
                 for next_index, next_name in enumerate(
-                    self.name_list[index + 1 :], start=index + 1
+                        self.name_list[index + 1:], start=index + 1
                 ):
                     if self.percents[next_index] != 0:
                         self.component_ratio[(index, next_index)] = (
-                            self.percents[index] / self.percents[next_index]
+                                self.percents[index] / self.percents[next_index]
                         )
                     else:
                         self.component_ratio[(index, next_index)] = inf
@@ -1007,10 +1036,10 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         return wrapper
 
     def add_line(
-        self,
-        numb_of_line,
-        mat_type,
-        percent=None,
+            self,
+            numb_of_line,
+            mat_type,
+            percent=None,
     ):
 
         items_type = self.material_types
@@ -1027,7 +1056,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         materia_type_combobox.setCurrentIndex(
             self.main_window_material_types[numb_of_line].currentIndex()
         )
-        print(self.main_window_material_types[numb_of_line].currentIndex())
+
         materia_type_combobox.setFixedWidth(60)
 
         materia_type_combobox.currentIndexChanged.connect(
@@ -1169,7 +1198,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 sum_ostatok_percent += 100 - self.percents[line]
 
             if ((sum_percent > delta) and change_way_is_up) or (
-                (sum_ostatok_percent > delta) and not change_way_is_up
+                    (sum_ostatok_percent > delta) and not change_way_is_up
             ):
 
                 self.percents[numb_of_line] = round(self.percents[numb_of_line], 2)
@@ -1295,10 +1324,10 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 if change_way_is_up:
                     if self.percents[changed_line] >= delta:
                         self.percents[changed_line] = (
-                            self.percents[changed_line] - delta
+                                self.percents[changed_line] - delta
                         )
                         self.percents[numb_of_line] = (
-                            self.percents[numb_of_line] + delta
+                                self.percents[numb_of_line] + delta
                         )
                     else:
                         self.percents[numb_of_line] = 100.0 - sum(
@@ -1315,10 +1344,10 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                 else:
                     if 100 - self.percents[changed_line] > delta:
                         self.percents[changed_line] = (
-                            self.percents[changed_line] + delta
+                                self.percents[changed_line] + delta
                         )
                         self.percents[numb_of_line] = (
-                            self.percents[numb_of_line] - delta
+                                self.percents[numb_of_line] - delta
                         )
                     else:
                         self.percents[changed_line] = 100.0 - sum(
@@ -1375,7 +1404,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                     step = 0.01
                 current_percent_ratio = self.get_percent_ratio(current_percent_line)
                 if fix_loop == 2:
-                    print("fix loop 0")
                     break
 
                 index = self.choose_component_to_change(
@@ -1445,7 +1473,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
 
     @staticmethod
     def choose_component_to_change(
-        current_ratio, base_ratio, lines_to_change, change_way_is_up
+            current_ratio, base_ratio, lines_to_change, change_way_is_up
     ):
         if len(lines_to_change) == 1:
             return lines_to_change[0]
@@ -1481,7 +1509,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         for index, percent in enumerate(percent_list):
             if len_percent_list > index + 1:
                 for next_index, next_percent in enumerate(
-                    percent_list[index + 1 :], start=index + 1
+                        percent_list[index + 1:], start=index + 1
                 ):
                     if next_percent != 0:
                         ds[(index, next_index)] = percent / next_percent
@@ -1536,7 +1564,7 @@ class PairReactWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/choose_pair_react.ui")[0]
 ):
     def __init__(
-        self, main_window: MyMainWindow, receipt_a: Receipt, receipt_b: Receipt
+            self, main_window: MyMainWindow, receipt_a: Receipt, receipt_b: Receipt
     ):
         super(PairReactWindow, self).__init__()
         self.setupUi(self)
@@ -1591,12 +1619,12 @@ class PairReactWindow(
                 )
 
     def add_line(
-        self,
-        pair: tuple,
-        layout: QGridLayout,
-        labels_list: list,
-        checkboxes_list: list,
-        checkboxes_means: defaultdict,
+            self,
+            pair: Tuple[Material],
+            layout: QGridLayout,
+            labels_list: list,
+            checkboxes_list: list,
+            checkboxes_means: defaultdict,
     ):
         label = QLabel()
         label.setText(f"{pair[0]} + {pair[1]}")
@@ -1618,7 +1646,7 @@ class PairReactWindow(
         layout.addWidget(label, row_count + 1, 1)
 
     def change_checkbox_state(
-        self, checkbox: QCheckBox, checkboxes_means: defaultdict, pair: tuple
+            self, checkbox: QCheckBox, checkboxes_means: defaultdict, pair: tuple
     ):
         def wrapper():
             checkboxes_means[f"{pair[0]}-{pair[1]}"] = checkbox.isChecked()
@@ -1648,7 +1676,7 @@ class PairReactWindow(
 
     def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
         if not all(
-            chbox.isChecked() for chbox in self.checkboxes_b + self.checkboxes_a
+                chbox.isChecked() for chbox in self.checkboxes_b + self.checkboxes_a
         ):
             self.main_window.sintez_pair_label.setText("Ступенчатый синтез")
         a0.accept()
@@ -1657,18 +1685,22 @@ class PairReactWindow(
 class ProfileManagerWindow(
     QtWidgets.QMainWindow, uic.loadUiType("windows/profile_manager_window.ui")[0]
 ):
+    add_profile_but: QPushButton
+    remove_profile_but: QPushButton
+    prof_name_line: QLineEdit
+    profile_widget: QListWidget
+
     def __init__(self, profile_list: list, init_class):
         super(ProfileManagerWindow, self).__init__()
         self.setupUi(self)
-        self.profile_widget: QListWidget
         self.profile_list = profile_list
         self.init_class = init_class
-        # Добавляем имена из БД
-        for name in profile_list:
-            self.profile_widget.addItem(name)
+        self.update_profiles()
 
         self.choose_profile_but.clicked.connect(self.choose_profile)
         self.edit_profile_but.clicked.connect(self.edit_materials)
+        self.add_profile_but.clicked.connect(self.add_profile)
+        self.remove_profile_but.clicked.connect(self.remove_profile)
 
         # Вынести путь к стилю в настройки
         set_qt_stile("style.css", self)
@@ -1693,3 +1725,29 @@ class ProfileManagerWindow(
         )
         self.close()
         self.edit_material_window.show()
+
+    def add_profile(self):
+        """
+        Добавление профиля в БД
+        :return:
+        """
+        name = self.prof_name_line.text()
+        if name and name not in self.profile_list:
+            self.init_class.orm_db.add_profile(name)
+            self.profile_list.append(name)
+            self.profile_widget.addItem(name)
+
+    def remove_profile(self):
+        line = self.profile_widget.currentIndex().row()
+        if line != -1:
+            name = self.profile_list.pop(line)
+            self.init_class.orm_db.remove_profile(name)
+            self.update_profiles()
+
+    def update_profiles(self):
+        """
+        Обновляем имена в виджете
+        """
+        self.profile_widget.clear()
+        for name in self.profile_list:
+            self.profile_widget.addItem(name)

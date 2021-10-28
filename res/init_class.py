@@ -1,8 +1,8 @@
 import configparser
 from os.path import exists
 
-from res.data_classes import Profile, ORMDataBase
-from res.material_classes import Receipt, ReceiptCounter
+
+from res.material_classes import Receipt, ReceiptCounter, Profile, ORMDataBase, TgCorrectionManager
 from res.qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
 
 DB_NAME = "material.db"
@@ -69,6 +69,9 @@ class InitClass:
         # self.receipt_counter.profile = profile
         self.receipt_a.receipt_counter = self.receipt_counter
         self.receipt_b.receipt_counter = self.receipt_counter
+
+        self.tg_correction_manager = TgCorrectionManager(self.profile)
+        self.receipt_counter.tg_correction_manager = self.tg_correction_manager
 
         if not self.debug:
             self.my_main_window.show()
