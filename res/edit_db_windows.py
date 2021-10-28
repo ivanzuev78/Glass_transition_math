@@ -91,14 +91,6 @@ class EditDataWindow(QWidget):
         else:
             self.close_to_edit_material = False
 
-    def faf(self):
-        # Текущий ряд
-        print(self.listwidget2.currentIndex().row())
-        # Текущий текст
-        print(self.listwidget2.currentIndex().data())
-
-        print("faf")
-
 
 class ProfileMaterialWidget(QListWidget):
     def __init__(self, parent: EditDataWindow):
@@ -199,13 +191,12 @@ class DataMaterialWidget(QListWidget):
         self.addItem(material.name)
 
     def mimeData(self, my_list: Iterable, lwi: QListWidgetItem = None):
-        print("my_list", my_list, lwi)
         mimedata = super().mimeData(my_list)
         mimedata.setText(str(self.currentIndex().row()))
         return mimedata
 
     def dropMimeData(self, index, data, action):
-        print("dropMimeData")
+
         if data.hasText():
             self.addItem(data.text())
             return True
@@ -214,24 +205,16 @@ class DataMaterialWidget(QListWidget):
 
     # вызывается при попадании в область
     def dragEnterEvent(self, e):
-        print("dragEnterEvent")
         self.takeItem(0)
-        print(e.mimeData())
         # Позволяет или нет перетащить объект в этот виджет
         e.accept()
 
     # вызывается при покидании области
     def dragLeaveEvent(self, e):
-        print("QDragLeaveEvent")
-
         e.accept()
 
     def dropEvent(self, e):
-
-        print("dropEvent")
-
         e.accept()
-        print(e.mimeData().text())
         # self.addItem()
 
 
@@ -340,7 +323,8 @@ class EditCorrectionWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_c
     def update_polynomial_coefficients(self):
         self.coef_tableWidget.clear()
         self.coef_tableWidget.setRowCount(sum([1 if i else 0 for i in self.polynomial_coefficients]))
-        self.coef_tableWidget.setVerticalHeaderLabels([f"k{power}" for power, coef in enumerate(self.polynomial_coefficients) if coef])
+        self.coef_tableWidget.setVerticalHeaderLabels(
+            [f"k{power}" for power, coef in enumerate(self.polynomial_coefficients) if coef])
         self.coef_tableWidget.setHorizontalHeaderLabels(["Степень X", "Коэффициент"])
 
         row = 0
@@ -434,7 +418,7 @@ class EditCorrectionWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_c
             pair = None
 
         # Data for plotting
-        t = np.arange(x_min, x_max, (x_max-x_min) / 100)
+        t = np.arange(x_min, x_max, (x_max - x_min) / 100)
         s = [cor_func(x) for x in t]
 
         fig, ax = plt.subplots()
@@ -500,7 +484,6 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.previos_window = previous_window
         self.profile = profile
         self.types = self.profile.orm_db.get_all_mat_types()
-        print('Types: ', self.types)
         self.type_comboBox.addItems(self.types)
         self.material = material
         self.corrections: List[Correction] = []  # Коррекции, которые уже в БД
@@ -540,7 +523,6 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
 
         row_numb = self.corrections_listWidget.currentRow()
         if row_numb == -1:
-            print('haha')
             return None
         cor = self.corrections_in_widget[row_numb]
         self.cor_textBrowser.setText(cor.correction_func.comment)
@@ -586,7 +568,8 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
         self.update_corrections_in_widget()
 
     def open_correction_window(self):
-        self.new_cor_window = EditCorrectionWindow(self, self.material, close_action=self.get_correction_from_new_cor_window)
+        self.new_cor_window = EditCorrectionWindow(self, self.material,
+                                                   close_action=self.get_correction_from_new_cor_window)
         self.new_cor_window.show()
         self.open_new_window = True
         self.close()
@@ -713,9 +696,6 @@ class ConnectFuncPair(QtWidgets.QMainWindow, uic.loadUiType("windows/connect_fun
     def save(self):
         epoxy = self.epoxy_list[self.epoxy_combobox.currentIndex()]
         amine = self.amine_list[self.amine_combobox.currentIndex()]
-
-        print(epoxy.name, epoxy.db_id)
-        print(amine.name, amine.db_id)
 
     def create_correction_function(self):
         self.new_cor_window = EditCorrectionWindow(self)

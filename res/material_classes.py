@@ -127,15 +127,15 @@ class Receipt:
 
         self.react_pairs: List[(Material, Material)] = []
 
-    def check_all_react(self):
-        # TODO доделать
-        for mat in self.materials:
-            if self.ew and self.ew < 0:
-                if mat.mat_type == "Amine":
-                    if mat not in chain.from_iterable(self.react_pairs):
-                        print("good")
-                    else:
-                        print("Bad")
+    # def check_all_react(self):
+    #     # TODO доделать
+    #     for mat in self.materials:
+    #         if self.ew and self.ew < 0:
+    #             if mat.mat_type == "Amine":
+    #                 if mat not in chain.from_iterable(self.react_pairs):
+    #                     print("good")
+    #                 else:
+    #                     print("Bad")
 
     def add_material(self, material: Material):
         # TODO пересчёт всего в связи с изменением рецептуры
@@ -318,9 +318,9 @@ class ReceiptCounter:
         sum_a = round(sum(new_eq_a.values()), 6)
         sum_b = round(sum(new_eq_b.values()), 6)
 
-        if sum_a != - sum_b:
-            print('count_percent_df - Сумма эквивалентов не сходится!')
-            print(sum_a, sum_b)
+        # if sum_a != - sum_b:
+        #     print('count_percent_df - Сумма эквивалентов не сходится!')
+        #     print(sum_a, sum_b)
 
         a_percent_dict = {mat: eq / sum_a for mat, eq in new_eq_a.items()}
         b_percent_dict = {mat: eq / sum_b for mat, eq in new_eq_b.items()}
@@ -334,7 +334,7 @@ class ReceiptCounter:
             epoxy_percent_dict = b_percent_dict
             amine_percent_dict = a_percent_dict
         else:
-            print("count_percent_df - продукты не реагируют")
+            # print("count_percent_df - продукты не реагируют")
             return None
 
         for material_epoxy, percent_epoxy in epoxy_percent_dict.items():
@@ -343,14 +343,14 @@ class ReceiptCounter:
 
         df = df * abs(sum_a)
         os.system('cls')
-        print("+==================================")
+        # print("+==================================")
 
         for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
             df.add_value(material_epoxy.data_material, material_amine.data_material, eq)
 
         df.normalize()
-        print('Матрица процентов пар')
-        print(df)
+        # print('Матрица процентов пар')
+        # print(df)
         self.percent_df = df
 
     def count_tg(self):
@@ -366,14 +366,15 @@ class ReceiptCounter:
         primary_tg = total_tg_df.sum()
         self.tg = primary_tg
         inf_receipt_percent_dict = self.count_influence_material_percents()
-        if inf_receipt_percent_dict:
-            print("-------------------------------------")
-            print("Содержание непрореагировавших веществ")
-            for name, percent in inf_receipt_percent_dict.items():
-                print(name, round(percent * 100, 4), " %")
+
+        # if inf_receipt_percent_dict:
+        #     print("-------------------------------------")
+        #     print("Содержание непрореагировавших веществ")
+        #     for name, percent in inf_receipt_percent_dict.items():
+        #         print(name, round(percent * 100, 4), " %")
         inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
-        print("-------------------------------------")
-        print("Полное влияние: ", round(inf_value, 4), " °C")
+        # print("-------------------------------------")
+        # print("Полное влияние: ", round(inf_value, 4), " °C")
 
         self.tg_inf = self.tg + inf_value
 
@@ -461,8 +462,8 @@ class MyTableCounter:
             self.data = defaultdict(lambda: defaultdict(lambda: None))
 
     def set_value(self, epoxy: "DataMaterial", amine: "DataMaterial", value: float):
-        if not isinstance(epoxy, DataMaterial):
-            print('debug')
+        # if not isinstance(epoxy, DataMaterial):
+        #     print('debug')
         self.data[epoxy][amine] = value
         if epoxy not in self.epoxy_list:
             self.epoxy_list.append(epoxy)
@@ -470,8 +471,8 @@ class MyTableCounter:
             self.amine_list.append(amine)
 
     def add_value(self, epoxy: "DataMaterial", amine: "DataMaterial", value: float):
-        if not isinstance(epoxy, DataMaterial):
-            print('debug')
+        # if not isinstance(epoxy, DataMaterial):
+        #     print('debug')
         self.data[epoxy][amine] += value
         if epoxy not in self.epoxy_list:
             self.epoxy_list.append(epoxy)
@@ -935,12 +936,12 @@ class TgCorrectionManager:
             mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
             mat_inf_table = mat_inf_df * percent_df
-            print("-------------------------------------")
-            print(f"Матрица влияния '{material}'")
-            if mat_inf_table.sum() == 0:
-                print("\tВлияние при данной концентрации отсутствует")
-            else:
-                print(mat_inf_table)
+            # print("-------------------------------------")
+            # print(f"Матрица влияния '{material}'")
+            # if mat_inf_table.sum() == 0:
+            #     print("\tВлияние при данной концентрации отсутствует")
+            # else:
+            #     print(mat_inf_table)
             mat_sum_inf = mat_inf_table.sum()
             total_influence += mat_sum_inf
         return total_influence
@@ -1194,10 +1195,10 @@ class ORMDataBase:
         cursor.execute(string)
         tg_list = []
         for tg_id, epoxy_id, amine_id, value in cursor.fetchall():
-            if epoxy_id not in self.all_materials or amine_id not in self.all_materials:
-                print("ORMDataBase.get_tg_by_materials_ids нет материала в базе")
-                print("epoxy_id", epoxy_id)
-                print("amine_id", amine_id)
+            # if epoxy_id not in self.all_materials or amine_id not in self.all_materials:
+            #     print("ORMDataBase.get_tg_by_materials_ids нет материала в базе")
+            #     print("epoxy_id", epoxy_id)
+            #     print("amine_id", amine_id)
             epoxy = self.all_materials[epoxy_id]
             amine = self.all_materials[amine_id]
             tg_list.append(DataGlass(epoxy, amine, value, tg_id))

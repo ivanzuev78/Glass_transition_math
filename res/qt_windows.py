@@ -1056,7 +1056,7 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
         materia_type_combobox.setCurrentIndex(
             self.main_window_material_types[numb_of_line].currentIndex()
         )
-        print(self.main_window_material_types[numb_of_line].currentIndex())
+
         materia_type_combobox.setFixedWidth(60)
 
         materia_type_combobox.currentIndexChanged.connect(
@@ -1404,7 +1404,6 @@ class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0
                     step = 0.01
                 current_percent_ratio = self.get_percent_ratio(current_percent_line)
                 if fix_loop == 2:
-                    print("fix loop 0")
                     break
 
                 index = self.choose_component_to_change(
@@ -1740,7 +1739,6 @@ class ProfileManagerWindow(
 
     def remove_profile(self):
         line = self.profile_widget.currentIndex().row()
-        print(line)
         if line != -1:
             name = self.profile_list.pop(line)
             self.init_class.orm_db.remove_profile(name)
