@@ -1,4 +1,5 @@
 import math
+import os
 import sqlite3
 from collections import defaultdict
 from copy import copy, deepcopy
@@ -341,12 +342,14 @@ class ReceiptCounter:
                 df.set_value(material_epoxy.data_material, material_amine.data_material, percent_epoxy * percent_amine)
 
         df = df * abs(sum_a)
+        os.system('cls')
         print("+==================================")
-        print(df)
+
         for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
-            df.add_value(material_epoxy, material_amine, eq)
+            df.add_value(material_epoxy.data_material, material_amine.data_material, eq)
 
         df.normalize()
+        print('Матрица процентов пар')
         print(df)
         self.percent_df = df
 
@@ -363,9 +366,15 @@ class ReceiptCounter:
         primary_tg = total_tg_df.sum()
         self.tg = primary_tg
         inf_receipt_percent_dict = self.count_influence_material_percents()
-        print(inf_receipt_percent_dict)
+        if inf_receipt_percent_dict:
+            print("-------------------------------------")
+            print("Содержание непрореагировавших веществ")
+            for name, percent in inf_receipt_percent_dict.items():
+                print(name, round(percent * 100, 4), " %")
         inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
-        print(inf_value)
+        print("-------------------------------------")
+        print("Полное влияние: ", round(inf_value, 4), " °C")
+
         self.tg_inf = self.tg + inf_value
 
     def update_tg_df(self) -> None:
@@ -452,6 +461,8 @@ class MyTableCounter:
             self.data = defaultdict(lambda: defaultdict(lambda: None))
 
     def set_value(self, epoxy: "DataMaterial", amine: "DataMaterial", value: float):
+        if not isinstance(epoxy, DataMaterial):
+            print('debug')
         self.data[epoxy][amine] = value
         if epoxy not in self.epoxy_list:
             self.epoxy_list.append(epoxy)
@@ -459,6 +470,8 @@ class MyTableCounter:
             self.amine_list.append(amine)
 
     def add_value(self, epoxy: "DataMaterial", amine: "DataMaterial", value: float):
+        if not isinstance(epoxy, DataMaterial):
+            print('debug')
         self.data[epoxy][amine] += value
         if epoxy not in self.epoxy_list:
             self.epoxy_list.append(epoxy)
@@ -917,11 +930,17 @@ class TgCorrectionManager:
         amine_list = percent_df.amine_list
         pair_list = [(epoxy, amine) for epoxy in epoxy_list for amine in amine_list]
         total_influence = 0.0
+
         for material, percent in material_dict.items():
             mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
             mat_inf_table = mat_inf_df * percent_df
-            print(f"{material}\n", mat_inf_table)
+            print("-------------------------------------")
+            print(f"Матрица влияния '{material}'")
+            if mat_inf_table.sum() == 0:
+                print("\tВлияние при данной концентрации отсутствует")
+            else:
+                print(mat_inf_table)
             mat_sum_inf = mat_inf_table.sum()
             total_influence += mat_sum_inf
         return total_influence
