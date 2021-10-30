@@ -343,14 +343,15 @@ class ReceiptCounter:
 
         df = df * abs(sum_a)
         os.system('cls')
-        # print("+==================================")
+        print(self.tg_df)
+        print("+==================================")
 
         for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
             df.add_value(material_epoxy.data_material, material_amine.data_material, eq)
 
         df.normalize()
-        # print('Матрица процентов пар')
-        # print(df)
+        print('Матрица процентов пар')
+        print(df)
         self.percent_df = df
 
     def count_tg(self):
@@ -367,14 +368,14 @@ class ReceiptCounter:
         self.tg = primary_tg
         inf_receipt_percent_dict = self.count_influence_material_percents()
 
-        # if inf_receipt_percent_dict:
-        #     print("-------------------------------------")
-        #     print("Содержание непрореагировавших веществ")
-        #     for name, percent in inf_receipt_percent_dict.items():
-        #         print(name, round(percent * 100, 4), " %")
+        if inf_receipt_percent_dict:
+            print("-------------------------------------")
+            print("Содержание непрореагировавших веществ")
+            for name, percent in inf_receipt_percent_dict.items():
+                print(name, round(percent * 100, 4), " %")
         inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
-        # print("-------------------------------------")
-        # print("Полное влияние: ", round(inf_value, 4), " °C")
+        print("-------------------------------------")
+        print("Полное влияние: ", round(inf_value, 4), " °C")
 
         self.tg_inf = self.tg + inf_value
 
@@ -936,12 +937,12 @@ class TgCorrectionManager:
             mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
             mat_inf_table = mat_inf_df * percent_df
-            # print("-------------------------------------")
-            # print(f"Матрица влияния '{material}'")
-            # if mat_inf_table.sum() == 0:
-            #     print("\tВлияние при данной концентрации отсутствует")
-            # else:
-            #     print(mat_inf_table)
+            print("-------------------------------------")
+            print(f"Матрица влияния '{material}'")
+            if mat_inf_table.sum() == 0:
+                print("\tВлияние при данной концентрации отсутствует")
+            else:
+                print(mat_inf_table)
             mat_sum_inf = mat_inf_table.sum()
             total_influence += mat_sum_inf
         return total_influence
@@ -1012,6 +1013,7 @@ class Profile:
         # Если материал Амин или Эпоксид, обнуляем tg_df
         if self.tg_df is not None and material.mat_type in ("Amine", "Epoxy"):
             self.tg_df = None
+        self.orm_db.remove_material_from_profile(material, self)
 
     def get_materials_by_type(self, mat_type: str) -> List[DataMaterial]:
         """

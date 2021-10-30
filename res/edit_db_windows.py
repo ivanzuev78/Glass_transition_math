@@ -2,6 +2,7 @@ import sys
 from typing import Iterable, List, Optional, Tuple, Union, Callable
 
 from PyQt5 import QtGui, QtWidgets, uic
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
@@ -10,7 +11,7 @@ from PyQt5.QtWidgets import (
     QListWidgetItem,
     QWidget,
     QPushButton,
-    QTextBrowser, QTableWidget, QTableWidgetItem, QRadioButton, QTextEdit,
+    QTextBrowser, QTableWidget, QTableWidgetItem, QRadioButton, QTextEdit, QLabel,
 )
 
 from res.additional_funcs import set_qt_stile
@@ -38,14 +39,14 @@ class EditDataWindow(QWidget):
         self.setGeometry(self.left, self.top, self.width, self.height)
 
         self.data_material_widget = DataMaterialWidget(self)
-        self.data_material_widget.move(400, 30)
+        self.data_material_widget.move(235, 30)
 
         self.profile_material_widget = ProfileMaterialWidget(self)
         self.profile_material_widget.move(10, 30)
 
         but_width = 155
         but_height = 25
-        but_x_pos = 630
+        but_x_pos = 450
         but_y_pos = 30
         but_y_delta = 35
 
@@ -61,13 +62,31 @@ class EditDataWindow(QWidget):
         self.add_tg_but.setText("Добавить стеклование")
         self.add_tg_but.clicked.connect(self.add_tg_but_click)
 
-        self.add_tg_inf_but = QPushButton(self)
-        self.add_tg_inf_but.move(but_x_pos, but_y_pos + 2 * but_y_delta)
-        self.add_tg_inf_but.resize(but_width, but_height)
-        self.add_tg_inf_but.setText("Добавить влияние на стекло")
+        self.del_mat_from_prof_but = QPushButton(self)
+        self.del_mat_from_prof_but.move(10, 450)
+        self.del_mat_from_prof_but.resize(200, but_height)
+        self.del_mat_from_prof_but.setText("Удалить материал из профиля")
+        self.del_mat_from_prof_but.clicked.connect(self.profile_material_widget.del_mat_from_prof)
+
+        self.del_mat_from_db_but = QPushButton(self)
+        self.del_mat_from_db_but.move(235, 450)
+        self.del_mat_from_db_but.resize(200, but_height)
+        self.del_mat_from_db_but.setText("Удалить материал из программы")
 
         self.profile_material_widget.data_material_widget = self.data_material_widget
         self.data_material_widget.profile_material_widget = self.profile_material_widget
+
+        self.label_1 = QLabel(self)
+        self.label_1.move(290, 10)
+        self.label_1.resize(but_width, but_height)
+        self.label_1.setText('Все материалы')
+        self.label_1.setFont(QFont("Times", 10))
+
+        self.label_2 = QLabel(self)
+        self.label_2.move(45, 10)
+        self.label_2.resize(but_width, but_height)
+        self.label_2.setText('Материалы профиля')
+        self.label_2.setFont(QFont("Times", 10))
 
         # РАБОТАЕТ
         self.show()
@@ -98,7 +117,7 @@ class ProfileMaterialWidget(QListWidget):
         self.edit_window = parent
         self.setAcceptDrops(True)
         # self.setDragEnabled(True)
-        self.resize(200, 450)
+        self.resize(200, 410)
         self.data_material_widget: Optional[
             DataMaterialWidget
         ] = parent.data_material_widget
@@ -118,6 +137,16 @@ class ProfileMaterialWidget(QListWidget):
         self.currentItemChanged.connect(self.change_index_in_data_material_widget)
         # TODO Добавить вызов окна редактирования материала
         self.itemDoubleClicked.connect(self.data_material_widget.open_mat_editor)
+
+    def del_mat_from_prof(self):
+        index = self.currentIndex().row()
+        print(index)
+        if index != -1:
+            material = self.profile_materials.pop(index)
+            self.profile_materials_names.pop(index)
+            self.profile.remove_material(material)
+            self.clear()
+            self.addItems(self.profile_materials_names)
 
     def change_index_in_data_material_widget(self):
         text = self.currentIndex().data()
@@ -157,7 +186,7 @@ class DataMaterialWidget(QListWidget):
 
         # self.setAcceptDrops(True)
         self.setDragEnabled(True)
-        self.resize(200, 450)
+        self.resize(200, 410)
         self.orm_db = self.edit_window.profile.orm_db
         self.material_list: List[DataMaterial] = self.orm_db.get_all_materials()
         self.names_list: List[str] = []
