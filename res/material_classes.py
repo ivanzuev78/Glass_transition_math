@@ -1410,9 +1410,10 @@ class ORMDataBase:
         # TODO Возможно, не обязательно вручную всё удалять. Нужны тесты и рефакторинг
         # strings.append(f"DELETE FROM Prof_mat_map WHERE Material={material.db_id}")
         # strings.append(f"DELETE FROM Correction_map WHERE Material_id={material.db_id}")
-
         for string in strings:
             cursor.execute(string)
+        del self.all_materials[material.db_id]
+        del material
         connection.commit()
         connection.close()
 
@@ -1420,7 +1421,10 @@ class ORMDataBase:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT ew, Type FROM Materials WHERE Name='{name}'")
-        result = list(cursor.fetchone())
+        result = cursor.fetchone()
+        if result is None:
+            return None
+        result = list(result)
         if mat_type is not None:
             result[0] = mat_type
         if ew is not None:

@@ -72,6 +72,7 @@ class EditDataWindow(QWidget):
         self.del_mat_from_db_but.move(235, 450)
         self.del_mat_from_db_but.resize(200, but_height)
         self.del_mat_from_db_but.setText("Удалить материал из программы")
+        self.del_mat_from_db_but.clicked.connect(self.data_material_widget.del_mat_from_db)
 
         self.profile_material_widget.data_material_widget = self.data_material_widget
         self.data_material_widget.profile_material_widget = self.profile_material_widget
@@ -138,15 +139,23 @@ class ProfileMaterialWidget(QListWidget):
         # TODO Добавить вызов окна редактирования материала
         self.itemDoubleClicked.connect(self.data_material_widget.open_mat_editor)
 
-    def del_mat_from_prof(self):
+    def del_mat_from_prof(self, *args, material_to_del: DataMaterial = None):
         index = self.currentIndex().row()
-        print(index)
-        if index != -1:
-            material = self.profile_materials.pop(index)
-            self.profile_materials_names.pop(index)
-            self.profile.remove_material(material)
-            self.clear()
-            self.addItems(self.profile_materials_names)
+
+        if material_to_del is not None:
+            if material_to_del not in self.profile_materials:
+                return None
+            material = material_to_del
+            index = self.profile_materials.index(material)
+        elif index != -1:
+            material = self.profile_materials[index]
+        else:
+            return None
+        self.profile_materials.remove(material)
+        self.profile_materials_names.pop(index)
+        self.profile.remove_material(material)
+        self.clear()
+        self.addItems(self.profile_materials_names)
 
     def change_index_in_data_material_widget(self):
         text = self.currentIndex().data()
@@ -169,6 +178,9 @@ class ProfileMaterialWidget(QListWidget):
         e.accept()
         index = int(e.mimeData().text())
         material: DataMaterial = self.data_material_widget.material_list[index]
+        self.add_material_to_profile(material)
+
+    def add_material_to_profile(self, material: DataMaterial):
         mat_name = material.name
         if mat_name not in self.profile_materials_names:
             self.addItem(mat_name)
@@ -177,7 +189,6 @@ class ProfileMaterialWidget(QListWidget):
             # материала в дб к профилю
             self.orm_db.add_material_to_profile(material, self.profile)
             self.profile.add_material(material)
-
 
 class DataMaterialWidget(QListWidget):
     def __init__(self, parent: EditDataWindow):
@@ -199,6 +210,17 @@ class DataMaterialWidget(QListWidget):
         # TODO Добавить вызов окна редактирования материала
         self.itemDoubleClicked.connect(self.open_mat_editor)
         self.currentItemChanged.connect(self.change_index_in_profile_material_widget)
+
+    def del_mat_from_db(self):
+        index = self.currentIndex().row()
+        print(index)
+        if index != -1:
+            material = self.material_list.pop(index)
+            self.names_list.pop(index)
+            self.orm_db.remove_material(material)
+            self.clear()
+            self.addItems(self.names_list)
+            self.profile_material_widget.del_mat_from_prof(material_to_del=material)
 
     def change_index_in_profile_material_widget(self):
         row = self.currentIndex().row()
@@ -577,6 +599,8 @@ class EditMaterialWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_mat
             self.profile.update_material_in_db(material, mat_type, ew)
         else:
             material = self.profile.add_material_to_db(name, mat_type, ew)
+            self.previos_window.data_material_widget.add_material(material)
+            self.previos_window.profile_material_widget.add_material_to_profile(material)
         if self.corrections_to_add:
             for cor in self.corrections_to_add:
                 cor.inf_material = material
