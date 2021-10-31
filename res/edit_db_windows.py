@@ -317,7 +317,7 @@ class EditCorrectionWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/edit_c
     k_exp_lineEdit: QLineEdit
     inf_full_radio: QRadioButton  # Выбор влияния на систему в целом
     inf_pair_radio: QRadioButton  # Выбор влияния на пару
-    moove_to_zero_but: QRadioButton  # Сдвиг функции в 0
+    moove_to_zero_but: QPushButton  # Сдвиг функции в 0
     epoxy_combobox: QComboBox  # Выбор эпоксида при влияния на пару
     amine_combobox: QComboBox  # Выбор амина при влияния на пару
     x_min_line: QLineEdit  # Выбор начала диапазона влияния

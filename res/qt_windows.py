@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QSpacerItem,
-    QListWidget, QPushButton,
+    QListWidget, QPushButton, QRadioButton, QLayout, QButtonGroup,
 )
 
 from res.additional_classes import MyQLabel, MyQGridLayout
@@ -42,7 +42,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.label_5,
             self.label_6,
             self.label_7,
-            self.label_8,
             self.eew_label,
             self.ahew_label,
             self.extra_ew_label,
@@ -50,7 +49,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.debug_string,
             self.lineEdit_name_a,
             self.lineEdit_name_b,
-            self.lineEdit_sintez_mass,
             self.tg_cor_label,
             self.tg_extra_label,
             self.extra_ratio_line,
@@ -60,8 +58,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.font_size_big = 5
 
         # QSpacerItem в gridLayout для подпирания строк снизу
-        self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
-        self.gridLayout_b.addItem(QSpacerItem(100, 100), 100, 0, 100, 2)
+        self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 20)
+        self.gridLayout_b.addItem(QSpacerItem(100, 100), 100, 0, 100, 20)
 
         with open("style.css", "r") as f:
             self.style, self.style_combobox, self.style_red_but = f.read().split(
@@ -81,21 +79,37 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.final_b = None
         self.final_a_numb_label = None
         self.final_b_numb_label = None
+        self.final_mass_a: QLineEdit = None
+        self.final_mass_b: QLineEdit = None
+        self.mass_radio_used_group_a = QButtonGroup()
+        self.mass_radio_used_group_b = QButtonGroup()
+        self.default_radio_a = QRadioButton()
+        self.default_radio_b = QRadioButton()
+        self.mass_radio_used_group_a.addButton(self.default_radio_a, 0)
+        self.mass_radio_used_group_b.addButton(self.default_radio_b, 0)
+        self.cur_mass_radio_used_a = None
+        self.cur_mass_radio_used_b = None
+        self.remember_mass_a = 0
+        self.remember_mass_b = 0
 
         self.hide_top("A")
         self.hide_top("B")
 
         # ========================  Контейнеры для хранения строк ========================
-        self.material_a_types = []
-        self.material_b_types = []
-        self.material_comboboxes_a = []
-        self.material_comboboxes_b = []
-        self.material_percent_lines_a = []
-        self.material_percent_lines_b = []
-        self.lock_checkboxies_a = []
-        self.lock_checkboxies_b = []
-        self.material_list_a = []
-        self.material_list_b = []
+        self.material_a_types: List[QComboBox] = []
+        self.material_b_types: List[QComboBox] = []
+        self.material_comboboxes_a: List[QComboBox] = []
+        self.material_comboboxes_b: List[QComboBox] = []
+        self.material_percent_lines_a: List[QLineEdit] = []
+        self.material_percent_lines_b: List[QLineEdit] = []
+        self.lock_checkboxies_a: List[QCheckBox] = []
+        self.lock_checkboxies_b: List[QCheckBox] = []
+        self.material_list_a: List[Material] = []
+        self.material_list_b: List[Material] = []
+        self.mass_lines_a: List[QLineEdit] = []
+        self.mass_lines_b: List[QLineEdit] = []
+        self.mass_radio_list_a: List[QRadioButton] = []
+        self.mass_radio_list_b: List[QRadioButton] = []
 
         self.receipt_a: Optional[Receipt] = None
         self.receipt_b: Optional[Receipt] = None
@@ -116,12 +130,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.warring_grid = MyQGridLayout(self.centralwidget)
 
     def debug(self) -> None:
-        # print(self.pair_react_window.checkboxes_a)
-        # print(self.pair_react_window.labels_a)
-        # print(self.material_list_a)
-
-        # self.receipt_a.receipt_counter.count_percent_df()
-        # print(self.receipt_a.receipt_counter.percent_df)
 
         self.add_a_line()
         self.add_a_line()
@@ -163,11 +171,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.label_5.hide()
             self.normalise_A.hide()
             self.label_lock_a.hide()
+            self.normalise_mass_A.hide()
+
         elif component == "B":
             self.label_4.hide()
             self.label_6.hide()
             self.normalise_B.hide()
             self.label_lock_b.hide()
+            self.normalise_mass_B.hide()
 
     def add_line(self, component: str) -> None:
         """
@@ -188,6 +199,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             | QtCore.Qt.TextSelectableByMouse
         )
 
+        final_mass = QLineEdit()
+        final_mass.setText("0.00")
+        final_mass.setFixedWidth(50)
+        final_mass.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+        final_mass.setStyleSheet("QLineEdit{background : lightblue;}")
+        final_mass.editingFinished.connect(lambda: self.to_float(component))
+
         if component == "A":
             items_type = self.material_a_types
             items = self.material_comboboxes_a
@@ -196,11 +214,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             lock_checkboxes = self.lock_checkboxies_a
             if self.final_a:
                 self.final_a.deleteLater()
-            self.final_a = final_label
-            if self.final_a_numb_label:
                 self.final_a_numb_label.deleteLater()
+                self.final_mass_a.deleteLater()
+            self.final_a = final_label
             self.final_a_numb_label = final_label_numb
+            self.final_mass_a = final_mass
             receipt = self.receipt_a
+            mass_lines = self.mass_lines_a
+            radio_lines = self.mass_radio_list_a
+            group_button = self.mass_radio_used_group_a
 
         elif component == "B":
             items_type = self.material_b_types
@@ -211,11 +233,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             lock_checkboxes = self.lock_checkboxies_b
             if self.final_b:
                 self.final_b.deleteLater()
-            self.final_b = final_label
-            if self.final_b_numb_label:
                 self.final_b_numb_label.deleteLater()
+                self.final_mass_b.deleteLater()
+            self.final_b = final_label
             self.final_b_numb_label = final_label_numb
+            self.final_mass_b = final_mass
             receipt = self.receipt_b
+            mass_lines = self.mass_lines_b
+            radio_lines = self.mass_radio_list_b
+            group_button = self.mass_radio_used_group_b
         else:
             return None
 
@@ -242,10 +268,21 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         percent_line = QLineEdit()
         percent_line.setText("0.00")
-        percent_line.setFixedWidth(65)
+        percent_line.setFixedWidth(45)
         percent_line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
-
         percent_line.editingFinished.connect(lambda: self.to_float(component))
+
+
+        mass_line = QLineEdit()
+        mass_line.setText("0.00")
+        mass_line.setFixedWidth(50)
+        mass_line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+        mass_line.editingFinished.connect(lambda: self.to_float(component))
+
+        radio = QRadioButton()
+        radio.resize(20, 20)
+        radio.clicked.connect(self.update_mass_radio(row_count, component))
+        group_button.addButton(radio, row_count + 1)
 
         material = Material(materia_typel_combobox.currentText(), material_combobox.currentIndex(),
                             self.profile, receipt)
@@ -259,20 +296,26 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 material, materia_typel_combobox, material_combobox
             )
         )
-
         check = QCheckBox()
+        check.setFixedWidth(22)
         lock_checkboxes.append(check)
         items_type.append(materia_typel_combobox)
         items.append(material_combobox)
         items_lines.append(percent_line)
-
+        mass_lines.append(mass_line)
+        radio_lines.append(radio)
+        grid: QGridLayout
         grid.addWidget(materia_typel_combobox, row_count + 1, 0)
         grid.addWidget(material_combobox, row_count + 1, 1)
         grid.addWidget(percent_line, row_count + 1, 2)
         grid.addWidget(check, row_count + 1, 3)
+        grid.addWidget(mass_line, row_count + 1, 4)
+        grid.addWidget(radio, row_count + 1, 5)
 
         grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
         grid.addWidget(final_label_numb, row_count + 2, 2)
+        grid.addWidget(final_mass, row_count + 2, 4)
+
         receipt.count_sum()
 
     def add_a_line(self) -> None:
@@ -288,12 +331,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             self.label_3.show()
             self.label_5.show()
             self.normalise_A.show()
+            self.normalise_mass_A.show()
             self.label_lock_a.show()
 
         if component == "B":
             self.label_4.show()
             self.label_6.show()
             self.normalise_B.show()
+            self.normalise_mass_B.show()
             self.label_lock_b.show()
 
     # Удаляет последнюю строку в рецептуре
@@ -305,14 +350,18 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             items_type = self.material_a_types
             items = self.material_comboboxes_a
             items_lines = self.material_percent_lines_a
+            mass_lines = self.mass_lines_a
+            mass_radio = self.mass_radio_list_a
             grid = self.gridLayout_a
             lock_check_boxes = self.lock_checkboxies_a
             if self.final_a:
                 self.final_a.deleteLater()
                 self.final_a = None
-            if self.final_a_numb_label:
                 self.final_a_numb_label.deleteLater()
                 self.final_a_numb_label = None
+                self.final_mass_a.deleteLater()
+                self.final_mass_a = None
+
             self.receipt_a.remove_material()
 
         elif component == "B":
@@ -321,14 +370,17 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             items_type = self.material_b_types
             items = self.material_comboboxes_b
             items_lines = self.material_percent_lines_b
+            mass_lines = self.mass_lines_b
+            mass_radio = self.mass_radio_list_b
             grid = self.gridLayout_b
             lock_check_boxes = self.lock_checkboxies_b
             if self.final_b:
                 self.final_b.deleteLater()
                 self.final_b = None
-            if self.final_b_numb_label:
                 self.final_b_numb_label.deleteLater()
                 self.final_b_numb_label = None
+                self.final_mass_b.deleteLater()
+                self.final_mass_b = None
             self.receipt_b.remove_material()
 
         else:
@@ -339,6 +391,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             items_lines.pop(-1).deleteLater()
             items_type.pop(-1).deleteLater()
             lock_check_boxes.pop(-1).deleteLater()
+            mass_lines.pop(-1).deleteLater()
+            mass_radio.pop(-1).deleteLater()
 
             if items:
                 final_label = QLabel("Итого")
@@ -350,18 +404,27 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     (QtGui.QFont("Times New Roman", self.font_size))
                 )
 
+                final_mass = QLineEdit()
+                final_mass.setText("0.00")
+                final_mass.setFixedWidth(50)
+                final_mass.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+                final_mass.setStyleSheet("QLineEdit{background : lightblue;}")
+                final_mass.editingFinished.connect(lambda: self.to_float(component))
+
+                grid: QGridLayout
                 row_count = grid.count()
-                grid.addWidget(
-                    final_label, row_count + 1, 1, alignment=QtCore.Qt.AlignRight
-                )
+                grid.addWidget(final_label, row_count + 1, 1, alignment=QtCore.Qt.AlignRight)
                 grid.addWidget(final_label_numb, row_count + 1, 2)
+                grid.addWidget(final_mass, row_count + 1, 4)
                 if component == "A":
                     self.final_a = final_label
                     self.final_a_numb_label = final_label_numb
+                    self.final_mass_a = final_mass
                     self.receipt_a.count_sum()
                 elif component == "B":
                     self.final_b = final_label
                     self.final_b_numb_label = final_label_numb
+                    self.final_mass_b = final_mass
                     self.receipt_b.count_sum()
             else:
                 self.hide_top(component)
@@ -525,13 +588,17 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def to_float(self, component: str) -> None:
         """Приводит все проценты в рецептуре к типу float и считает +-*/ если есть в строке"""
         if component == "A":
-            items_lines = self.material_percent_lines_a
+            percent_lines = self.material_percent_lines_a
+            mass_lines = self.mass_lines_a
+            final_mass = [self.final_mass_a]
         elif component == "B":
-            items_lines = self.material_percent_lines_b
+            percent_lines = self.material_percent_lines_b
+            mass_lines = self.mass_lines_b
+            final_mass = [self.final_mass_b]
         else:
             return None
         numb: Union[str, float]
-        for widget in items_lines:
+        for widget in percent_lines + mass_lines + final_mass:
             numb = widget.text().replace(",", ".")
             if len(numb.split("+")) > 1:
                 split_numb = numb.split("+")
@@ -586,6 +653,80 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         return wrapper
 
+    def update_mass_radio(self, current_line: int, component: str) -> callable:
+        """
+        Обрабатывает смену QRadioButton для строк загрузки
+        :param current_line:
+        :param component:
+        :return:
+        """
+        def wrapper():
+            if component == 'A':
+                default = self.mass_radio_used_group_a.button(0)
+                if self.cur_mass_radio_used_a == current_line:
+                    self.cur_mass_radio_used_a = None
+                    default.setChecked(True)
+                else:
+                    self.cur_mass_radio_used_a = current_line
+
+            elif component == "B":
+                default = self.mass_radio_used_group_b.button(0)
+                if self.cur_mass_radio_used_b == current_line:
+                    self.cur_mass_radio_used_b = None
+                    default.setChecked(True)
+                else:
+                    self.cur_mass_radio_used_b = current_line
+        return wrapper
+
+    def update_mass(self):
+        self.update_mass_in_one_line('A')
+        self.update_mass_in_one_line('B')
+
+    def update_mass_in_one_line(self, component: str):
+        if component == "A":
+            current_index = self.cur_mass_radio_used_a
+            mass_lines = self.mass_lines_a
+            material_lines = self.material_list_a
+            if current_index is not None:
+                mass = float(mass_lines[current_index].text())
+                percent = material_lines[current_index].percent
+                if mass == 0:
+                    mass = self.remember_mass_a
+                    mass_lines[current_index].setText(str(mass))
+                if percent != 0:
+                    self.final_mass_a.setText(str(round(mass / percent * 100, 2)))
+
+                else:
+                    self.remember_mass_a = mass
+                    mass_lines[current_index].setText('0.00')
+            mass = float(self.final_mass_a.text())
+
+        elif component == "B":
+            current_index = self.cur_mass_radio_used_b
+            mass_lines = self.mass_lines_b
+            material_lines = self.material_list_b
+            if current_index is not None:
+                mass = float(mass_lines[current_index].text())
+                percent = material_lines[current_index].percent
+                if mass == 0:
+                    mass = float(self.final_mass_a.text())
+                    mass_lines[current_index].setText(str(mass))
+                if percent != 0:
+                    self.final_mass_b.setText(str(round(mass / percent * 100, 2)))
+                else:
+                    mass_lines[current_index].setText('0.00')
+            mass = float(self.final_mass_b.text())
+        else:
+            return None
+
+        for index, mass_line in enumerate(mass_lines):
+            if index == current_index:
+                continue
+            percent = material_lines[index].percent
+            numb = round(percent * mass / 100, 2)
+            # setText(f"{float(numb):.{2}f}")
+            mass_line.setText(f"{float(numb):.{2}f}")
+
     def update_list_of_material_names(self):
         """
         Обновляет список материалов в окне
@@ -639,10 +780,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         return wrapper
 
-    @staticmethod
-    def change_percent_material(
-            material: Material, percent_line: QLineEdit
-    ) -> callable:
+    def change_percent_material(self, material: Material, percent_line: QLineEdit) -> callable:
         """
         Меняет процент в материале, который хранится в рецептуре
         :param material:
@@ -652,6 +790,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         def wrapper():
             material.percent = float(percent_line.text())
+            self.update_mass_in_one_line(material.receipt.component)
 
         return wrapper
 
@@ -789,6 +928,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         ):
             percent_line.setText(str(percent))
             material.percent = percent
+        self.update_mass_in_one_line(component)
 
     def change_receipt_color(self, component: str, color_red: bool):
         if component == "A":
