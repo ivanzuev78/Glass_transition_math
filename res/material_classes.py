@@ -1606,6 +1606,18 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
+    def save_receipt(self, materials: List[Material], name: str, comment: str, mass: float, profile: Profile):
+        """
+        Сохраняет рецептуру в БД
+        :param profile:
+        :param comment:
+        :param name:
+        :param materials:
+        :param mass:
+        :return:
+        """
+
+
     # ============================= Создание БД =======================================
 
     def create_db(self):
