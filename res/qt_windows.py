@@ -199,12 +199,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             | QtCore.Qt.TextSelectableByMouse
         )
 
-        final_mass = QLineEdit()
-        final_mass.setText("0.00")
-        final_mass.setFixedWidth(50)
-        final_mass.setFont((QtGui.QFont("Times New Roman", self.font_size)))
-        final_mass.setStyleSheet("QLineEdit{background : lightblue;}")
-        final_mass.editingFinished.connect(lambda: self.to_float(component))
+        final_mass_line = QLineEdit()
+        final_mass_line.setText("0.00")
+        final_mass_line.setFixedWidth(50)
+        final_mass_line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+        final_mass_line.setStyleSheet("QLineEdit{background : lightblue;}")
+        final_mass_line.editingFinished.connect(lambda: (self.to_float(component), self.update_mass_in_one_line(component)))
+
+
 
         if component == "A":
             items_type = self.material_a_types
@@ -213,12 +215,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             grid = self.gridLayout_a
             lock_checkboxes = self.lock_checkboxies_a
             if self.final_a:
+                final_mass_line.setText(self.final_mass_a.text())
                 self.final_a.deleteLater()
                 self.final_a_numb_label.deleteLater()
                 self.final_mass_a.deleteLater()
+
             self.final_a = final_label
             self.final_a_numb_label = final_label_numb
-            self.final_mass_a = final_mass
+            self.final_mass_a = final_mass_line
             receipt = self.receipt_a
             mass_lines = self.mass_lines_a
             radio_lines = self.mass_radio_list_a
@@ -232,12 +236,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
             lock_checkboxes = self.lock_checkboxies_b
             if self.final_b:
+                final_mass_line.setText(self.final_mass_b.text())
                 self.final_b.deleteLater()
                 self.final_b_numb_label.deleteLater()
                 self.final_mass_b.deleteLater()
             self.final_b = final_label
             self.final_b_numb_label = final_label_numb
-            self.final_mass_b = final_mass
+            self.final_mass_b = final_mass_line
             receipt = self.receipt_b
             mass_lines = self.mass_lines_b
             radio_lines = self.mass_radio_list_b
@@ -314,7 +319,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         grid.addWidget(final_label, row_count + 2, 1, alignment=QtCore.Qt.AlignRight)
         grid.addWidget(final_label_numb, row_count + 2, 2)
-        grid.addWidget(final_mass, row_count + 2, 4)
+        grid.addWidget(final_mass_line, row_count + 2, 4)
 
         receipt.count_sum()
 
@@ -344,6 +349,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     # Удаляет последнюю строку в рецептуре
     def del_line(self, component: str) -> None:
         """Удаляет последнюю строку в рецептуре"""
+
+        final_mass = "0.00"
         if component == "A":
             if len(self.material_list_a) == 0:
                 return None
@@ -355,6 +362,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             grid = self.gridLayout_a
             lock_check_boxes = self.lock_checkboxies_a
             if self.final_a:
+                final_mass = self.final_mass_a.text()
                 self.final_a.deleteLater()
                 self.final_a = None
                 self.final_a_numb_label.deleteLater()
@@ -375,6 +383,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             grid = self.gridLayout_b
             lock_check_boxes = self.lock_checkboxies_b
             if self.final_b:
+
+                final_mass = self.final_mass_b.text()
                 self.final_b.deleteLater()
                 self.final_b = None
                 self.final_b_numb_label.deleteLater()
@@ -404,27 +414,27 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     (QtGui.QFont("Times New Roman", self.font_size))
                 )
 
-                final_mass = QLineEdit()
-                final_mass.setText("0.00")
-                final_mass.setFixedWidth(50)
-                final_mass.setFont((QtGui.QFont("Times New Roman", self.font_size)))
-                final_mass.setStyleSheet("QLineEdit{background : lightblue;}")
-                final_mass.editingFinished.connect(lambda: self.to_float(component))
+                final_mass_line = QLineEdit()
+                final_mass_line.setText(final_mass)
+                final_mass_line.setFixedWidth(50)
+                final_mass_line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
+                final_mass_line.setStyleSheet("QLineEdit{background : lightblue;}")
+                final_mass_line.editingFinished.connect(lambda: self.to_float(component))
 
                 grid: QGridLayout
                 row_count = grid.count()
                 grid.addWidget(final_label, row_count + 1, 1, alignment=QtCore.Qt.AlignRight)
                 grid.addWidget(final_label_numb, row_count + 1, 2)
-                grid.addWidget(final_mass, row_count + 1, 4)
+                grid.addWidget(final_mass_line, row_count + 1, 4)
                 if component == "A":
                     self.final_a = final_label
                     self.final_a_numb_label = final_label_numb
-                    self.final_mass_a = final_mass
+                    self.final_mass_a = final_mass_line
                     self.receipt_a.count_sum()
                 elif component == "B":
                     self.final_b = final_label
                     self.final_b_numb_label = final_label_numb
-                    self.final_mass_b = final_mass
+                    self.final_mass_b = final_mass_line
                     self.receipt_b.count_sum()
             else:
                 self.hide_top(component)
@@ -851,6 +861,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.receipt_a.set_sum_to_qt()
             elif component == "B":
                 self.receipt_b.set_sum_to_qt()
+            self.update_mass_in_one_line(component)
 
         return wrap
 
