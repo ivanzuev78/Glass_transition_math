@@ -6,7 +6,8 @@ from random import randint
 from typing import Optional, Union, List, Iterable, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
-from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap
+from PyQt5.QtCore import QSize, QPoint
+from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap, QDragLeaveEvent
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -14,17 +15,24 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QSpacerItem,
-    QListWidget, QPushButton, QRadioButton, QLayout, QButtonGroup,
+    QListWidget, QPushButton, QRadioButton, QLayout, QButtonGroup, QWidget, QListWidgetItem, QTextEdit,
 )
 
 from res.additional_classes import MyQLabel, MyQGridLayout
 from res.additional_funcs import set_qt_stile
 
 from res.edit_db_windows import EditDataWindow, EditMaterialWindow
-from res.material_classes import Material, Receipt, Profile
+from res.material_classes import Material, Receipt, Profile, ReceiptData
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
+    saved_receipt_listWidget: "SavedReceiptWidget"
+
+    lineEdit_name_a: QLineEdit
+    lineEdit_name_b: QLineEdit
+    comment_textEdit_a: QTextEdit
+    comment_textEdit_b: QTextEdit
+
     def __init__(self, profile: Profile, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
@@ -89,8 +97,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.mass_radio_used_group_b.addButton(self.default_radio_b, 0)
         self.cur_mass_radio_used_a = None
         self.cur_mass_radio_used_b = None
-        self.remember_mass_a = 0
-        self.remember_mass_b = 0
+        self.remember_mass_a = 0.0
+        self.remember_mass_b = 0.0
 
         self.hide_top("A")
         self.hide_top("B")
@@ -129,6 +137,40 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.inf_window = None
         self.warring_grid = MyQGridLayout(self.centralwidget)
 
+        # ======================== Настройка перетаскивания рецептуры ============================
+
+        self.adw_a = AcceptDropWidget(self, 'load', "A")
+        self.adw_a.move(QPoint(405, 35))
+        self.adw_a.resize(QSize(100, 40))
+        self.adw_a.show()
+
+        pixmap = QPixmap("icons/set_receipt.png")
+        self.adw_a.setScaledContents(True)
+        self.adw_a.setPixmap(pixmap)
+
+        self.adw_b = AcceptDropWidget(self, 'load', "B")
+        self.adw_b.move(QPoint(785, 35))
+        self.adw_b.resize(QSize(100, 40))
+        self.adw_b.show()
+
+        self.adw_b.setScaledContents(True)
+        self.adw_b.setPixmap(pixmap)
+
+        self.receipt_bin = AcceptDropWidget(self, "delete")
+        self.receipt_bin.move(QPoint(1080, 35))
+        self.receipt_bin.resize(QSize(30, 30))
+        self.receipt_bin.show()
+
+        pixmap = QPixmap("icons/bin.png")
+        self.receipt_bin.setScaledContents(True)
+        self.receipt_bin.setPixmap(pixmap)
+
+        self.saved_receipt_listWidget = SavedReceiptWidget(self)
+        self.all_receipts = sorted(self.profile.orm_db.get_profile_receipts(self.profile), key=lambda x: x.date)
+        for index, receipt in enumerate(self.all_receipts):
+            self.saved_receipt_listWidget.addItem(str(receipt.name))
+            self.saved_receipt_listWidget.item(index).setToolTip(str(receipt.comment))
+
     def debug(self) -> None:
 
         self.add_a_line()
@@ -158,7 +200,11 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.material_list_b[1].percent = 50
 
     def debug_2(self) -> None:
-        self.create_warring()
+        # self.create_warring()
+
+        self.save_receipt('A')
+
+        print('debug')
 
     def hide_top(self, component: str) -> None:
         """
@@ -204,7 +250,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         final_mass_line.setFixedWidth(50)
         final_mass_line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
         final_mass_line.setStyleSheet("QLineEdit{background : lightblue;}")
-        final_mass_line.editingFinished.connect(lambda: (self.to_float(component), self.update_mass_in_one_line(component)))
+        final_mass_line.editingFinished.connect(lambda: (self.to_float(component),
+                                                         self.update_mass_in_component_lines(component)))
 
 
 
@@ -689,10 +736,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         return wrapper
 
     def update_mass(self):
-        self.update_mass_in_one_line('A')
-        self.update_mass_in_one_line('B')
+        self.update_mass_in_component_lines('A')
+        self.update_mass_in_component_lines('B')
 
-    def update_mass_in_one_line(self, component: str):
+    def update_mass_in_component_lines(self, component: str):
         if component == "A":
             current_index = self.cur_mass_radio_used_a
             mass_lines = self.mass_lines_a
@@ -800,7 +847,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         def wrapper():
             material.percent = float(percent_line.text())
-            self.update_mass_in_one_line(material.receipt.component)
+            self.update_mass_in_component_lines(material.receipt.component)
 
         return wrapper
 
@@ -861,7 +908,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                 self.receipt_a.set_sum_to_qt()
             elif component == "B":
                 self.receipt_b.set_sum_to_qt()
-            self.update_mass_in_one_line(component)
+            self.update_mass_in_component_lines(component)
 
         return wrap
 
@@ -939,7 +986,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         ):
             percent_line.setText(str(percent))
             material.percent = percent
-        self.update_mass_in_one_line(component)
+        self.update_mass_in_component_lines(component)
 
     def change_receipt_color(self, component: str, color_red: bool):
         if component == "A":
@@ -1006,6 +1053,100 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             rect.extra_cor = False
             rect.base_cor = False
         self.warring_grid.add_label(rect)
+
+    def save_receipt(self, component: str):
+        """
+
+        :param component:
+        :return:
+        """
+
+        if component == "A":
+            materials = self.material_list_a
+            name = self.lineEdit_name_a.text()
+            if not (materials and name):
+                return None
+            comment = self.comment_textEdit_a.toPlainText()
+            mass = float(self.final_mass_a.text())
+
+        elif component == "B":
+            materials = self.material_list_b
+            name = self.lineEdit_name_b.text()
+            if not (materials and name):
+                return None
+            comment = self.comment_textEdit_b.toPlainText()
+            mass = float(self.final_mass_b.text())
+        else:
+            return None
+
+        receipt = self.profile.orm_db.save_receipt(materials, name, comment, mass, self.profile)
+        if receipt is not None:
+            self.saved_receipt_listWidget.addItem(name)
+            self.saved_receipt_listWidget.item(len(self.all_receipts)).setToolTip(str(receipt.comment))
+            self.all_receipts.append(receipt)
+
+        # self.saved_receipt_listWidget.item(0).hint
+
+    def load_receipt(self, component: str, line: int):
+        self.set_receipt(component, self.all_receipts[line])
+
+    def set_receipt(self, component: str, receipt: ReceiptData):
+
+        if component == 'A':
+            material_list = self.material_list_a
+            material_types = self.material_a_types
+            material_comboboxes = self.material_comboboxes_a
+            percent_lines = self.material_percent_lines_a
+            self.remember_mass_a = receipt.mass
+            name_line = self.lineEdit_name_a
+            comment_line = self.comment_textEdit_a
+
+        elif component == 'B':
+
+            material_list = self.material_list_b
+            material_types = self.material_b_types
+            material_comboboxes = self.material_comboboxes_b
+            percent_lines = self.material_percent_lines_b
+            self.remember_mass_b = receipt.mass
+            name_line = self.lineEdit_name_b
+            comment_line = self.comment_textEdit_b
+
+        else:
+            return None
+
+        while material_list:
+            self.del_line(component)
+
+        for line, (material_id, percent) in enumerate(receipt):
+            self.add_line(component)
+            material = self.profile.get_material_by_db_id(material_id)
+            if material is not None:
+                material_types[line].setCurrentText(material.mat_type)
+                material_comboboxes[line].setCurrentText(material.name)
+            else:
+                # TODO Уведомление, что материал удалён из БД
+                ...
+            percent_lines[line].setText(str(percent))
+            material_list[line].percent = percent
+
+        if component == "A":
+            self.final_mass_a.setText(str(receipt.mass))
+        elif component == "B":
+            self.final_mass_b.setText(str(receipt.mass))
+
+        name_line.setText(str(receipt.name))
+        comment_line.setText(str(receipt.comment))
+
+        self.to_float(component)
+        self.update_mass_in_component_lines(component)
+
+    def delete_receipt(self, index: int):
+
+        receipt = self.all_receipts.pop(index)
+        item = self.saved_receipt_listWidget.item(index)
+
+        self.saved_receipt_listWidget.takeItem(index)
+        self.profile.orm_db.remove_receipt(receipt)
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
@@ -1902,3 +2043,45 @@ class ProfileManagerWindow(
         self.profile_widget.clear()
         for name in self.profile_list:
             self.profile_widget.addItem(name)
+
+
+class AcceptDropWidget(QLabel):
+    def __init__(self, parent: MyMainWindow, action: str, component: str = None):
+        super().__init__(parent)
+        self.main_window = parent
+        self.setAcceptDrops(True)
+        self.component = component
+        self.action = action
+
+    # вызывается при попадании в область
+    def dragEnterEvent(self, e):
+        # Позволяет перетащить объект в этот виджет
+        e.accept()
+        # e.ignore()
+
+    # вызывается, когда объект кидается в области
+    def dropEvent(self, e):
+        e.accept()
+        text = e.mimeData().text()
+        if text.isdigit():
+            index = int(text)
+            if self.action == 'load':
+                self.main_window.load_receipt(self.component, index)
+            elif self.action == 'delete':
+                self.main_window.delete_receipt(index)
+
+
+class SavedReceiptWidget(QListWidget):
+    def __init__(self, parent: MyMainWindow):
+        super().__init__(parent)
+        self.main_window = parent
+
+        self.resize(QSize(150, 520))
+        self.move(QPoint(920, 60))
+
+        self.setDragEnabled(True)
+
+    def mimeData(self, my_list: Iterable, lwi: QListWidgetItem = None):
+        mimedata = super().mimeData(my_list)
+        mimedata.setText(str(self.currentIndex().row()))
+        return mimedata

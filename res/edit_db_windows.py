@@ -190,6 +190,7 @@ class ProfileMaterialWidget(QListWidget):
             self.orm_db.add_material_to_profile(material, self.profile)
             self.profile.add_material(material)
 
+
 class DataMaterialWidget(QListWidget):
     def __init__(self, parent: EditDataWindow):
         super().__init__(parent)

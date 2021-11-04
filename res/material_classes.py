@@ -3,12 +3,14 @@ import os
 import sqlite3
 from collections import defaultdict
 from copy import copy, deepcopy
+from datetime import datetime
 from itertools import chain
 from math import exp
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas
+from PyQt5.QtWidgets import QWidget
 from pandas import DataFrame
 # import init_class
 from res.additional_funcs import normalize, normalize_df
@@ -27,7 +29,7 @@ class Material:
         receipt.add_material(self)
 
     @property
-    def data_material(self):
+    def data_material(self) -> "DataMaterial":
         return self.__data_material
 
     @data_material.setter
@@ -640,6 +642,22 @@ class DataGlass:
         self.value = value
 
 
+class ReceiptData:
+    def __init__(self, name: str, comment: str, profile: "Profile",
+                 materials: List[int], percents: List[float], mass: float, date: datetime, receipt_id: int):
+        self.name = name
+        self.comment = comment
+        self.profile = profile
+        self.materials = materials
+        self.percents = percents
+        self.mass = mass
+        self.date = date
+        self.receipt_id = receipt_id
+
+    def __iter__(self):
+        return iter(zip(self.materials, self.percents))
+
+
 class CorrectionFunction:
     """
     f(x) = k_e * exp(k_exp * x) + k0 + k1 * x + k2 * x2 ...
@@ -970,6 +988,8 @@ class Profile:
         :param material:
         :return:
         """
+        if material is None:
+            return None
         if material not in self.materials[material.mat_type]:
             if material.db_id is None:
                 self.orm_db.add_material(material, self)
@@ -1026,6 +1046,10 @@ class Profile:
     def get_material_by_db_id(self, db_id: int) -> DataMaterial:
         if db_id in self.id_material_dict:
             return self.id_material_dict[db_id]
+        else:
+            material = self.orm_db.get_material_by_id(db_id)
+            self.add_material(material)
+            return material
 
     def get_mat_names_by_type(self, mat_type: str) -> List[str]:
         """
@@ -1161,7 +1185,7 @@ class ORMDataBase:
 
     # =========================== Получение обработанных данных из БД ==================================
 
-    def get_material_by_id(self, mat_id: int) -> DataMaterial:
+    def get_material_by_id(self, mat_id: int) -> Optional[DataMaterial]:
         """
         Получение материала по id. Используется после получения всех id материалов в профиле
         :param mat_id:
@@ -1174,6 +1198,8 @@ class ORMDataBase:
                 f"SELECT Name, Type, ew  FROM Materials WHERE (id = '{mat_id}') "
             )
             result = cursor.fetchall()
+            if len(result) == 0:
+                return None
             material = DataMaterial(*result[0], mat_id)
             connection.close()
             return material
@@ -1266,6 +1292,39 @@ class ORMDataBase:
         all_types = [data[0] for data in cursor.fetchall()]
         connection.close()
         return all_types
+
+    def get_profile_receipts(self, profile: Profile) -> List[ReceiptData]:
+        """
+
+        :param profile:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT receipt_id FROM Receipt_profile_map WHERE profile='{profile.profile_name}'")
+
+        all_receipt_id = [data[0] for data in cursor.fetchall()]
+        print(*all_receipt_id)
+        # for receipt_id in all_receipt_id:
+        insert = ", ".join([f"{i}" for i in all_receipt_id])
+        print(f"SELECT * FROM Receipt WHERE receipt_id in ({insert})")
+        cursor.execute(f"SELECT * FROM Receipt WHERE receipt_id in ({insert})")
+        all_receipts = []
+        receipt_data = cursor.fetchall()
+        for receipt_id, name, comment, mass, date in receipt_data:
+            materials = []
+            percents = []
+            date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            cursor.execute(f"SELECT material, percent FROM Receipt_data WHERE receipt_id={receipt_id}")
+            # cursor.execute(f"SELECT material, percent FROM Receipt_data")
+            cur_receipt = cursor.fetchall()
+            for material, percent in cur_receipt:
+                materials.append(material)
+                percents.append(percent)
+            all_receipts.append(ReceiptData(name, comment, profile, materials, percents, mass, date, receipt_id))
+
+        connection.close()
+        return all_receipts
 
     # =========================== Получение сырых данных из БД ==================================
     def get_all_profiles(self) -> List[str]:
@@ -1616,7 +1675,58 @@ class ORMDataBase:
         :param mass:
         :return:
         """
+        time = datetime.utcnow()
 
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT receipt_id FROM Receipt WHERE name='{name}'")
+        receipt_id = cursor.fetchone()
+        if receipt_id is not None:
+            # Обновить рецептуру
+            ...
+            return None
+
+        # Добавление данных о рецептуре
+        cursor.execute(f"SELECT MAX(receipt_id) FROM Receipt")
+        max_id = cursor.fetchone()
+        receipt_id = max_id[0] + 1 if max_id[0] is not None else 1
+        insert = f"INSERT INTO Receipt (receipt_id, name, comment, mass, date) VALUES (?, ?, ?, ?, ?);"
+        insert_data = [receipt_id, name, comment, mass, time]
+        cursor.execute(insert, insert_data)
+
+        # Добавление самой рецептуры
+        for material in materials:
+            insert = f"INSERT INTO Receipt_data (receipt_id, material, percent) VALUES (?, ?, ?);"
+            insert_data = [receipt_id, material.data_material.db_id, material.percent]
+            cursor.execute(insert, insert_data)
+
+        # Добавление рецептуры к профилю
+        insert = f"INSERT INTO Receipt_profile_map (profile, receipt_id) VALUES (?, ?);"
+        insert_data = [profile.profile_name, receipt_id]
+        cursor.execute(insert, insert_data)
+
+        connection.commit()
+        connection.close()
+        return ReceiptData(name, comment, profile, [mat.data_material.db_id for mat in materials],
+                           [mat.percent for mat in materials], mass, time, receipt_id)
+
+    def remove_receipt(self, receipt: ReceiptData):
+        """
+        Удаляет рецептуру из БД
+        :param receipt: Рецептура
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Receipt WHERE receipt_id={receipt.receipt_id}"
+        cursor.execute(string)
+        string = f"DELETE FROM Receipt_data WHERE receipt_id={receipt.receipt_id}"
+        cursor.execute(string)
+        string = f"DELETE FROM Receipt_profile_map WHERE receipt_id={receipt.receipt_id}"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()
+        del receipt
 
     # ============================= Создание БД =======================================
 
@@ -1625,3 +1735,5 @@ class ORMDataBase:
         # TODO реализовать создание базы данных при отсутствии файла
         (После того, как структура будет окончательной)
         """
+
+
