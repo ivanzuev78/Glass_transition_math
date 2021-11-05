@@ -31,8 +31,6 @@ from res.edit_db_windows import EditDataWindow, EditMaterialWindow
 from res.material_classes import Material, Receipt, Profile, ReceiptData
 
 
-
-
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
     saved_receipt_listWidget: "SavedReceiptWidget"
 
@@ -1048,6 +1046,10 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.menu_prof_edit.triggered.connect(self.add_profile_edit_window)
         self.menu_add_mat.triggered.connect(self.add_material_window)
 
+        self.excel_save_A.triggered.connect(lambda: self.export_to_excel("A"))
+        self.excel_save_B.triggered.connect(lambda: self.export_to_excel("B"))
+        self.excel_save_all.triggered.connect(lambda: self.export_to_excel("AB"))
+
         # ====================================== Кнопки дебага =======================================
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
@@ -1225,7 +1227,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # lines_to_add.append(row_with_ew)
         lines_to_add.append([])
-        if self.receipt_a.receipt_counter.mass_ratio is not None:
+        if component == "AB" and self.receipt_a.receipt_counter.mass_ratio is not None:
             lines_to_add.append(['Массовое соотношение:', "", self.mass_ratio_label.text().split('\n')[1],
                                  f"={receipts[0].final_ew_link}/{receipts[1].final_ew_link}",
                                  f"={receipts[1].final_ew_link}/{receipts[0].final_ew_link}"])
@@ -1254,9 +1256,19 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if col % 6 == 0:
                 ws.column_dimensions[letter(col)].hidden = True
 
-        filename = "_".join([receipt.name for receipt in receipts])
-        wb.save(filename + '.xlsx')
-        os.startfile(filename + '.xlsx')
+        filename_base = "_".join([receipt.name for receipt in receipts])
+        filename = filename_base
+        saved = False
+        iteration = 1
+        while not saved:
+            try:
+                wb.save(filename + '.xlsx')
+                os.startfile(filename + '.xlsx')
+                saved = True
+            except:
+                filename = filename_base + f"_{iteration}"
+                iteration += 1
+
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
