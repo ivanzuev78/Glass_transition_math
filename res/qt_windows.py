@@ -1,10 +1,16 @@
+import itertools
+import os
 from collections import defaultdict
 from copy import copy
+from datetime import datetime
 from itertools import cycle
 from math import inf
 from random import randint
 from typing import Optional, Union, List, Iterable, Tuple
 
+import openpyxl as opx
+from openpyxl.styles import Border, Side
+from openpyxl.utils import get_column_letter as letter
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 from PyQt5.QtCore import QSize, QPoint
 from PyQt5.QtGui import QBrush, QImage, QPalette, QPixmap, QDragLeaveEvent
@@ -23,6 +29,8 @@ from res.additional_funcs import set_qt_stile
 
 from res.edit_db_windows import EditDataWindow, EditMaterialWindow
 from res.material_classes import Material, Receipt, Profile, ReceiptData
+
+
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
@@ -202,8 +210,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
     def debug_2(self) -> None:
         # self.create_warring()
 
-        self.save_receipt('A')
-
+        # self.save_receipt('A')
+        self.export_to_excel('AB')
         print('debug')
 
     def hide_top(self, component: str) -> None:
@@ -1087,6 +1095,32 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         # self.saved_receipt_listWidget.item(0).hint
 
+    def create_receipt(self, component: str):
+        if component == "A":
+            materials = self.material_list_a
+            name = self.lineEdit_name_a.text()
+            if not (materials and name):
+                return None
+            comment = self.comment_textEdit_a.toPlainText()
+            mass = float(self.final_mass_a.text())
+
+        elif component == "B":
+            materials = self.material_list_b
+            name = self.lineEdit_name_b.text()
+            if not (materials and name):
+                return None
+            comment = self.comment_textEdit_b.toPlainText()
+            mass = float(self.final_mass_b.text())
+        else:
+            return None
+
+        receipt = ReceiptData(name, comment, self.profile, [mat.data_material.db_id for mat in materials],
+                              [mat.percent for mat in materials], mass, datetime.now(), None,
+                              [mat.data_material for mat in materials])
+        return receipt
+
+
+
     def load_receipt(self, component: str, line: int):
         self.set_receipt(component, self.all_receipts[line])
 
@@ -1147,6 +1181,82 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.saved_receipt_listWidget.takeItem(index)
         self.profile.orm_db.remove_receipt(receipt)
+
+    def export_to_excel(self, component: str):
+
+        receipts_lines = []
+        receipts: List[ReceiptData] = []
+        if "A" in component:
+            receipt = self.create_receipt('A')
+            receipts_lines.append(receipt.to_excel())
+            receipts.append(receipt)
+
+        if "B" in component:
+            receipt = self.create_receipt('B')
+            receipts_lines.append(receipt.to_excel(col_start=len(receipts_lines) * 6 + 1))
+            receipts.append(receipt)
+
+        wb = opx.Workbook()
+        ws = wb.active
+
+        # lines = map(lambda x: x.to_excel(), receipts)
+        lines_to_add = []
+
+        for line in itertools.zip_longest(*receipts_lines, fillvalue=['' for _ in range(6)]):
+
+            a = list(itertools.chain(*line))
+            lines_to_add.append(a)
+
+        # row_with_ew = ['' for _ in lines_to_add[0]]
+
+        # for col in range(1, len(lines_to_add[-1]) + 1):
+        #     if col % 6 == 3:
+        #         lines_to_add[-1][col-1] = f"=SUM({letter(col)}4:{letter(col)}{len(lines_to_add) - 1})"
+        #     if col % 6 == 4:
+        #         for row in range(4, len(lines_to_add)):
+        #             lines_to_add[row-1][col - 1] = f"={letter(col-1)}{row} * {letter(col)}{len(lines_to_add)} / 100"
+        #         row_with_ew[col-1] = f'=IF({letter(col+2)}{len(lines_to_add)}>0,"EEW","AHEW")'
+        #     if col % 6 == 0:
+        #         for row in range(4, len(lines_to_add)):
+        #             lines_to_add[row-1][col - 1] = f"=IF({letter(col-1)}{row}<>0, IF({letter(col-5)}{row}=\"Amine\", - {letter(col-3)}{row}/{letter(col-1)}{row}, {letter(col-3)}{row}/{letter(col-1)}{row}), 0)"
+        #         lines_to_add[-1][col - 1] = f"=SUM({letter(col)}4:{letter(col)}{len(lines_to_add) - 1})"
+        #     if col % 6 == 5:
+        #         row_with_ew[col-1] = f"=ABS(100/{letter(col+1)}{len(lines_to_add) })"
+
+        # lines_to_add.append(row_with_ew)
+        lines_to_add.append([])
+        if self.receipt_a.receipt_counter.mass_ratio is not None:
+            lines_to_add.append(['Массовое соотношение:', "", self.mass_ratio_label.text().split('\n')[1],
+                                 f"={receipts[0].final_ew_link}/{receipts[1].final_ew_link}",
+                                 f"={receipts[1].final_ew_link}/{receipts[0].final_ew_link}"])
+            lines_to_add.append(['Стеклование:', "", self.receipt_a.receipt_counter.tg])
+            lines_to_add.append(['Стеклование c коррекцией:', "", self.receipt_a.receipt_counter.tg_inf])
+
+        for line in lines_to_add:
+            ws.append(line)
+
+        right_border = Border(left=Side(style='thin'))
+        for cell in ws['G']:
+            cell.border = right_border
+            print(cell)
+        for col in range(1, ws.max_column + 1):
+
+            if col % 6 == 1:
+                ws.column_dimensions[letter(col)].width = 12
+            if col % 6 == 2:
+                ws.column_dimensions[letter(col)].width = 15
+            if col % 6 == 3:
+                ws.column_dimensions[letter(col)].width = 15
+            if col % 6 == 4:
+                ws.column_dimensions[letter(col)].width = 13
+            if col % 6 == 5:
+                ws.column_dimensions[letter(col)].width = 12
+            if col % 6 == 0:
+                ws.column_dimensions[letter(col)].hidden = True
+
+        filename = "_".join([receipt.name for receipt in receipts])
+        wb.save(filename + '.xlsx')
+        os.startfile(filename + '.xlsx')
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):

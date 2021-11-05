@@ -7,6 +7,7 @@ from datetime import datetime
 from itertools import chain
 from math import exp
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from openpyxl.utils import get_column_letter as letter
 
 import numpy as np
 import pandas
@@ -644,18 +645,70 @@ class DataGlass:
 
 class ReceiptData:
     def __init__(self, name: str, comment: str, profile: "Profile",
-                 materials: List[int], percents: List[float], mass: float, date: datetime, receipt_id: int):
-        self.name = name
-        self.comment = comment
+                 materials_id: List[int], percents: List[float], mass: float, date: datetime, receipt_id: int, materials: List[DataMaterial] = None):
+        self.name = str(name)
+        self.comment = str(comment)
         self.profile = profile
-        self.materials = materials
+        self.materials_id = materials_id
+        if materials is None:
+            self.materials = [profile.get_material_by_db_id(id_db) for id_db in materials_id]
+        else:
+            self.materials = materials
         self.percents = percents
         self.mass = mass
         self.date = date
         self.receipt_id = receipt_id
+        self.col_start = 1
+        self.row_start = 1
 
     def __iter__(self):
-        return iter(zip(self.materials, self.percents))
+        return iter(zip(self.materials_id, self.percents))
+
+    def to_excel(self, row_start: int = None, col_start: int = None, empty_rows_end: int = 0):
+        if row_start is not None:
+            self.row_start = row_start
+        else:
+            row_start = self.row_start
+        if col_start is not None:
+            self.col_start = col_start
+        else:
+            col_start = self.col_start
+        row_end = row_start + len(self.materials) + 3
+        col_type = letter(col_start)
+        # col_comp = letter(col_start+1)
+        col_percent = letter(col_start + 2)
+        col_mass = letter(col_start + 3)
+        col_ew = letter(col_start + 4)
+        col_1_div_ew = letter(col_start + 5)
+        rows = list()
+        rows.append([self.name, "", "", self.date.date(), "", ""])
+        rows.append([self.comment] + ["" for _ in range(5)])
+        rows.append(["Тип", "Компонент", "Содержание, %", "Загрузка, г", "ew", r"% / ew"])
+        for row, (mat_id, percent) in enumerate(zip(self.materials_id, self.percents), start=row_start+3):
+            material = self.profile.get_material_by_db_id(mat_id)
+            formula_1_div_ew = f"=IF({col_ew}{row}<>0, IF({col_type}{row}=\"Amine\", - {col_percent}{row}/{col_ew}{row}, {col_percent}{row}/{col_ew}{row}), 0)"
+            formula_mass = f"={col_percent}{row} * {col_mass}{row_end} / 100"
+            if material is not None:
+                row_line = [material.mat_type, material.name, percent, formula_mass, material.ew, formula_1_div_ew]
+                rows.append(row_line)
+            else:
+                row_line = ["None", "Материал не найден", percent, formula_mass, 0, formula_1_div_ew]
+                rows.append(row_line)
+        formula_sum_percent = f"=SUM({col_percent}{row_start+3}:{col_percent}{row_end-1})"
+        formula_1_div_ew = f"=SUM({col_1_div_ew}{row_start+3}:{col_1_div_ew}{row_end-1})"
+        row_line = ["", "", formula_sum_percent, self.mass, "", formula_1_div_ew]
+        rows.append(row_line)
+        formula_eew_ahew = f'=IF({col_1_div_ew}{row_end}>0,"EEW","AHEW")'
+        row_line = ["", "", "", formula_eew_ahew, f"=ABS(100/{col_1_div_ew}{row_end})", ""]
+        rows.append(row_line)
+        for _ in range(empty_rows_end):
+            rows.append(["" for _ in range(6)])
+        return rows
+
+    @property
+    def final_ew_link(self):
+        return f"{letter(self.col_start + 4)}{self.row_start + len(self.materials) + 4}"
+
 
 
 class CorrectionFunction:
@@ -1675,7 +1728,7 @@ class ORMDataBase:
         :param mass:
         :return:
         """
-        time = datetime.utcnow()
+        time = datetime.now()
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
