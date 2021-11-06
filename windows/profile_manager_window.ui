@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>465</width>
+    <width>462</width>
     <height>303</height>
    </rect>
   </property>
@@ -28,7 +28,7 @@
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>60</y>
+      <y>90</y>
       <width>161</width>
       <height>31</height>
      </rect>
@@ -41,7 +41,7 @@
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>150</y>
+      <y>180</y>
       <width>161</width>
       <height>31</height>
      </rect>
@@ -54,7 +54,7 @@
     <property name="geometry">
      <rect>
       <x>280</x>
-      <y>100</y>
+      <y>130</y>
       <width>161</width>
       <height>20</height>
      </rect>
@@ -90,6 +90,19 @@
     </property>
     <property name="text">
      <string>Редактировать пользователя</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="remember_profile_checkBox">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>60</y>
+      <width>151</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Запомнить профиль</string>
     </property>
    </widget>
   </widget>

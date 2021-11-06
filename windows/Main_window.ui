@@ -793,24 +793,10 @@ c избытком</string>
      <addaction name="save_a"/>
      <addaction name="save_b"/>
     </widget>
-    <widget class="QMenu" name="menu_6">
-     <property name="title">
-      <string>Сохранить как...</string>
-     </property>
-     <addaction name="save_as_a"/>
-     <addaction name="save_as_b"/>
-    </widget>
-    <widget class="QMenu" name="menu_7">
-     <property name="title">
-      <string>Загрузить</string>
-     </property>
-     <addaction name="load_a"/>
-     <addaction name="load_b"/>
-    </widget>
     <addaction name="menu_5"/>
-    <addaction name="menu_6"/>
     <addaction name="menu_Excel"/>
-    <addaction name="menu_7"/>
+    <addaction name="separator"/>
+    <addaction name="menu_change_profile"/>
    </widget>
    <widget class="QMenu" name="add_menu">
     <property name="title">
@@ -944,6 +930,11 @@ c избытком</string>
   <action name="menu_prof_edit">
    <property name="text">
     <string>Настройки профиля</string>
+   </property>
+  </action>
+  <action name="menu_change_profile">
+   <property name="text">
+    <string>Сменить профиль</string>
    </property>
   </action>
  </widget>

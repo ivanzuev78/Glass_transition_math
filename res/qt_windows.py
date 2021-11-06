@@ -1,5 +1,7 @@
+import getpass
 import itertools
 import os
+import socket
 from collections import defaultdict
 from copy import copy
 from datetime import datetime
@@ -61,12 +63,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     all_receipts: List[ReceiptData]  # Список всех рецептур в профиле
 
-    def __init__(self, profile: Profile, debug=False):
+    def __init__(self, profile: Profile, init_class, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
 
         self.profile = profile
         self.debug_flag = debug
+        self.init_class = init_class
+
 
         # TODO Вынести изменения шрифта в init_class, чтобы установка происходила через него и сразу всем
         self.all_labels = [
@@ -214,6 +218,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.save_a.triggered.connect(lambda: self.save_receipt("A"))
         self.save_b.triggered.connect(lambda: self.save_receipt("B"))
 
+        self.menu_change_profile.triggered.connect(self.change_profile)
+
         # ====================================== Кнопки дебага =======================================
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
@@ -256,6 +262,13 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         for index, receipt in enumerate(self.all_receipts):
             self.saved_receipt_listWidget.addItem(str(receipt.name))
             self.saved_receipt_listWidget.item(index).setToolTip(str(receipt.comment))
+
+    def change_profile(self):
+        user_name: str = getpass.getuser()
+        computer_name: str = socket.gethostname()
+        self.profile.orm_db.remove_computer_from_db(user_name, computer_name)
+        self.init_class.choose_profile()
+        self.close()
 
     def debug(self) -> None:
 
@@ -2162,6 +2175,7 @@ class ProfileManagerWindow(
     remove_profile_but: QPushButton
     prof_name_line: QLineEdit
     profile_widget: QListWidget
+    remember_profile_checkBox: QCheckBox
 
     def __init__(self, profile_list: list, init_class):
         super(ProfileManagerWindow, self).__init__()
@@ -2185,7 +2199,11 @@ class ProfileManagerWindow(
     def choose_profile(self):
         # TODO Реализовать логику по подключению данных профиля
         prof_name = self.profile_list[self.profile_widget.currentIndex().row()]
-
+        if self.remember_profile_checkBox.isChecked():
+            user_name: str = getpass.getuser()
+            computer_name: str = socket.gethostname()
+            self.init_class.orm_db.add_computer_to_profile(user_name, computer_name, prof_name)
+            ...
         self.close()
         self.init_class.setup_program(prof_name)
         # self.main_window.show()
