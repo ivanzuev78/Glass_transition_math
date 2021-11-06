@@ -1728,6 +1728,10 @@ class ORMDataBase:
         :param mass:
         :return:
         """
+        if not name:
+            # TODO Реализовать уведомление, что рецептура без имени и не сохранена в БД
+            return None
+
         time = datetime.now()
 
         connection = sqlite3.connect(self.db_name)
@@ -1784,21 +1788,47 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
-    def update_receipt(self, receipt: ReceiptData, materials: List[Material], name: str, comment: str, mass: float,
-                       profile: Profile, receipt_id: int):
+    def update_receipt(self, materials: List[Material] = None, name: str = None, comment: str = None,
+                       mass: float = None, profile: Profile = None, receipt_id: int = None,
+                       receipt: ReceiptData = None):
+        if receipt is not None:
+            if name is None:
+                name = receipt.name
+            if comment is None:
+                comment = receipt.comment
+            if mass is None:
+                mass = receipt.mass
+            if receipt_id is None:
+                receipt_id = receipt.receipt_id
+
+        if receipt_id is None:
+            return None
 
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        string = f"DELETE FROM Receipt_data WHERE receipt_id={receipt_id}"
-        cursor.execute(string)
-        cursor.execute(f"UPDATE Receipt SET name='{name}', comment='{comment}', mass={mass} WHERE receipt_id={receipt_id}")
+        cursor.execute(
+            f"UPDATE Receipt SET name='{name}', comment='{comment}', mass={mass} WHERE receipt_id={receipt_id}")
 
-        # Добавление самой рецептуры
-        for material in materials:
-            insert = f"INSERT INTO Receipt_data (receipt_id, material, percent) VALUES (?, ?, ?);"
-            insert_data = [receipt_id, material.data_material.db_id, material.percent]
-            cursor.execute(insert, insert_data)
+        if materials is not None:
+            string = f"DELETE FROM Receipt_data WHERE receipt_id={receipt_id}"
+            cursor.execute(string)
+            # Добавление самой рецептуры
+            for material in materials:
+                insert = f"INSERT INTO Receipt_data (receipt_id, material, percent) VALUES (?, ?, ?);"
+                insert_data = [receipt_id, material.data_material.db_id, material.percent]
+                cursor.execute(insert, insert_data)
 
+        if profile is not None:
+            cursor.execute(
+                f"SELECT * FROM Receipt_profile_map WHERE profile='{profile.profile_name}' AND receipt_id={receipt_id}")
+            if cursor.fetchone() is None:
+                # Добавление рецептуры к профилю
+                insert = f"INSERT INTO Receipt_profile_map (profile, receipt_id) VALUES (?, ?);"
+                insert_data = [profile.profile_name, receipt_id]
+                cursor.execute(insert, insert_data)
+
+        connection.commit()
+        connection.close()
 
     # ============================= Создание БД =======================================
 

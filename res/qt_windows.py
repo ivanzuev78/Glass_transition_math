@@ -1244,6 +1244,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         if "B" in component:
             receipt = self.create_receipt('B')
+            if receipt is None:
+                return None
             receipts_lines.append(receipt.to_excel(col_start=len(receipts_lines) * 6 + 1))
             receipts.append(receipt)
 
@@ -1285,6 +1287,15 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         for line in lines_to_add:
             ws.append(line)
 
+        for receipt in receipts:
+            ws[receipt.final_ew_link].number_format = "0.00"
+
+        if component == "AB" and self.receipt_a.receipt_counter.mass_ratio is not None:
+            ws[f"C{ws.max_row - 1}"].number_format = "0.00"
+            ws[f"C{ws.max_row}"].number_format = "0.00"
+            ws[f"D{ws.max_row - 2}"].number_format = "0.0000"
+            ws[f"E{ws.max_row - 2}"].number_format = "0.0000"
+
         right_border = Border(left=Side(style='thin'))
         for cell in ws['G']:
             cell.border = right_border
@@ -1300,17 +1311,18 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             if col % 6 == 4:
                 ws.column_dimensions[letter(col)].width = 13
             if col % 6 == 5:
-                ws.column_dimensions[letter(col)].width = 12
+                ws.column_dimensions[letter(col)].width = 8
             if col % 6 == 0:
                 ws.column_dimensions[letter(col)].hidden = True
 
-        filename_base = "_".join([receipt.name for receipt in receipts])
+        filename_base = "_".join([receipt.name if receipt.name else "noname" for receipt in receipts])
         filename = filename_base
         saved = False
         iteration = 1
         while not saved:
             try:
                 wb.save(filename + '.xlsx')
+                # TODO Вынести выбор запуска файла в настройки
                 os.startfile(filename + '.xlsx')
                 saved = True
             except:
