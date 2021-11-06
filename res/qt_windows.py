@@ -1050,6 +1050,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.excel_save_B.triggered.connect(lambda: self.export_to_excel("B"))
         self.excel_save_all.triggered.connect(lambda: self.export_to_excel("AB"))
 
+        self.save_a.triggered.connect(lambda: self.save_receipt("A"))
+        self.save_b.triggered.connect(lambda: self.save_receipt("B"))
+
         # ====================================== Кнопки дебага =======================================
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
