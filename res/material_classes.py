@@ -270,7 +270,6 @@ class ReceiptCounter:
         self.__tg = value
         self.main_window.set_tg(value)
 
-
     @property
     def tg_inf(self):
         return self.__tg_inf
@@ -645,7 +644,8 @@ class DataGlass:
 
 class ReceiptData:
     def __init__(self, name: str, comment: str, profile: "Profile",
-                 materials_id: List[int], percents: List[float], mass: float, date: datetime, receipt_id: int, materials: List[DataMaterial] = None):
+                 materials_id: List[int], percents: List[float], mass: float, date: datetime, receipt_id: int,
+                 materials: List[DataMaterial] = None):
         self.name = str(name)
         self.comment = str(comment)
         self.profile = profile
@@ -681,10 +681,10 @@ class ReceiptData:
         col_ew = letter(col_start + 4)
         col_1_div_ew = letter(col_start + 5)
         rows = list()
-        rows.append([self.name, "", "", self.date.date(), "", ""])
+        rows.append([self.name, "", self.date.date(), self.date.time(), "", ""])
         rows.append([self.comment] + ["" for _ in range(5)])
         rows.append(["Тип", "Компонент", "Содержание, %", "Загрузка, г", "ew", r"% / ew"])
-        for row, (mat_id, percent) in enumerate(zip(self.materials_id, self.percents), start=row_start+3):
+        for row, (mat_id, percent) in enumerate(zip(self.materials_id, self.percents), start=row_start + 3):
             material = self.profile.get_material_by_db_id(mat_id)
             formula_1_div_ew = f"=IF({col_ew}{row}<>0, IF({col_type}{row}=\"Amine\", - {col_percent}{row}/{col_ew}{row}, {col_percent}{row}/{col_ew}{row}), 0)"
             formula_mass = f"={col_percent}{row} * {col_mass}{row_end} / 100"
@@ -694,8 +694,8 @@ class ReceiptData:
             else:
                 row_line = ["None", "Материал не найден", percent, formula_mass, 0, formula_1_div_ew]
                 rows.append(row_line)
-        formula_sum_percent = f"=SUM({col_percent}{row_start+3}:{col_percent}{row_end-1})"
-        formula_1_div_ew = f"=SUM({col_1_div_ew}{row_start+3}:{col_1_div_ew}{row_end-1})"
+        formula_sum_percent = f"=SUM({col_percent}{row_start + 3}:{col_percent}{row_end - 1})"
+        formula_1_div_ew = f"=SUM({col_1_div_ew}{row_start + 3}:{col_1_div_ew}{row_end - 1})"
         row_line = ["", "", formula_sum_percent, self.mass, "", formula_1_div_ew]
         rows.append(row_line)
         formula_eew_ahew = f'=IF({col_1_div_ew}{row_end}>0,"EEW","AHEW")'
@@ -708,7 +708,6 @@ class ReceiptData:
     @property
     def final_ew_link(self):
         return f"{letter(self.col_start + 4)}{self.row_start + len(self.materials) + 4}"
-
 
 
 class CorrectionFunction:
@@ -1005,7 +1004,8 @@ class TgCorrectionManager:
         total_influence = 0.0
 
         for material, percent in material_dict.items():
-            mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
+            mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100,
+                                                                              pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
             mat_inf_table = mat_inf_df * percent_df
             print("-------------------------------------")
@@ -1064,7 +1064,7 @@ class Profile:
         self.add_material(material)
         return material
 
-    def update_material_in_db(self, material: DataMaterial, new_type: str = None, new_ew = None):
+    def update_material_in_db(self, material: DataMaterial, new_type: str = None, new_ew=None):
         self.orm_db.update_material(material.name, new_type, new_ew)
         material.ew = new_ew
         material.mat_type = new_type
@@ -1807,5 +1807,3 @@ class ORMDataBase:
         # TODO реализовать создание базы данных при отсутствии файла
         (После того, как структура будет окончательной)
         """
-
-

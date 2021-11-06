@@ -34,10 +34,32 @@ from res.material_classes import Material, Receipt, Profile, ReceiptData
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
     saved_receipt_listWidget: "SavedReceiptWidget"
 
-    lineEdit_name_a: QLineEdit
-    lineEdit_name_b: QLineEdit
-    comment_textEdit_a: QTextEdit
-    comment_textEdit_b: QTextEdit
+    lineEdit_name_a: QLineEdit  # Строка с названием Компонента А
+    lineEdit_name_b: QLineEdit  # Строка с названием Компонента Б
+    comment_textEdit_a: QTextEdit  # Строка с комментарием Компонента А
+    comment_textEdit_b: QTextEdit  # Строка с комментарием Компонента Б
+
+    final_a: QLabel  # Строка "ИТОГО" в конце рецептуры
+    final_b: QLabel  # Строка "ИТОГО" в конце рецептуры
+    final_a_numb_label: QLabel  # Сумма процентов в рецептуре А
+    final_b_numb_label: QLabel  # Сумма процентов в рецептуре Б
+    final_mass_a: QLineEdit  # Масса загрузки компонента А
+    final_mass_b: QLineEdit  # Масса загрузки компонента Б
+    mass_radio_used_group_a: QButtonGroup  # QButtonGroup для объединения QRadioButton
+    mass_radio_used_group_b: QButtonGroup  # QButtonGroup для объединения QRadioButton
+    default_radio_a: QRadioButton  # QRadioButton для отключения логики фиксированной массы одного компонента
+    default_radio_b: QRadioButton  # QRadioButton для отключения логики фиксированной массы одного компонента
+
+    cur_mass_radio_used_a: int  # Текущий индекс mass_radio_used_group_a
+    cur_mass_radio_used_b: int  # Текущий индекс mass_radio_used_group_b
+    remember_mass_a: float  # Переменная для запоминания массы
+    remember_mass_b: float  # Переменная для запоминания массы
+
+    adw_a: "AcceptDropWidget"  # Область для перетаскивания рецептуры для установки в компонент А
+    adw_b: "AcceptDropWidget"  # Область для перетаскивания рецептуры для установки в компонент Б
+    receipt_bin: "AcceptDropWidget"  # Область для перетаскивания рецептуры для удаления
+
+    all_receipts: List[ReceiptData]  # Список всех рецептур в профиле
 
     def __init__(self, profile: Profile, debug=False):
         super(MyMainWindow, self).__init__()
@@ -88,62 +110,119 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.list_of_material_names = {}
         self.update_list_of_material_names()
 
-        # QLine со значением суммы в конце рецептуры
-        self.final_a = None
-        self.final_b = None
-        self.final_a_numb_label = None
-        self.final_b_numb_label = None
-        self.final_mass_a: QLineEdit = None
-        self.final_mass_b: QLineEdit = None
+        # ================ Инициализация переменных для строки ИТОГО в рецептуре ==============
+        self.setup_final_lines()
+
+        # ========================  Контейнеры для хранения данных ========================
+
+        # QComboBox с типами материалов
+        self.material_a_types: List[QComboBox] = []
+        self.material_b_types: List[QComboBox] = []
+        # QComboBox с названиями материалов
+        self.material_comboboxes_a: List[QComboBox] = []
+        self.material_comboboxes_b: List[QComboBox] = []
+        # QLineEdit с процентами материалов
+        self.material_percent_lines_a: List[QLineEdit] = []
+        self.material_percent_lines_b: List[QLineEdit] = []
+        # QCheckBox для логики фиксации процентов при нормировании
+        self.lock_checkboxies_a: List[QCheckBox] = []
+        self.lock_checkboxies_b: List[QCheckBox] = []
+
+        # QLineEdit с массами загрузки
+        self.mass_lines_a: List[QLineEdit] = []
+        self.mass_lines_b: List[QLineEdit] = []
+        # QRadioButton для логики работы с массами загрузки
+        self.mass_radio_list_a: List[QRadioButton] = []
+        self.mass_radio_list_b: List[QRadioButton] = []
         self.mass_radio_used_group_a = QButtonGroup()
         self.mass_radio_used_group_b = QButtonGroup()
         self.default_radio_a = QRadioButton()
         self.default_radio_b = QRadioButton()
         self.mass_radio_used_group_a.addButton(self.default_radio_a, 0)
         self.mass_radio_used_group_b.addButton(self.default_radio_b, 0)
-        self.cur_mass_radio_used_a = None
-        self.cur_mass_radio_used_b = None
-        self.remember_mass_a = 0.0
-        self.remember_mass_b = 0.0
-
-        self.hide_top("A")
-        self.hide_top("B")
-
-        # ========================  Контейнеры для хранения строк ========================
-        self.material_a_types: List[QComboBox] = []
-        self.material_b_types: List[QComboBox] = []
-        self.material_comboboxes_a: List[QComboBox] = []
-        self.material_comboboxes_b: List[QComboBox] = []
-        self.material_percent_lines_a: List[QLineEdit] = []
-        self.material_percent_lines_b: List[QLineEdit] = []
-        self.lock_checkboxies_a: List[QCheckBox] = []
-        self.lock_checkboxies_b: List[QCheckBox] = []
+        # Объекты класса Material
         self.material_list_a: List[Material] = []
         self.material_list_b: List[Material] = []
-        self.mass_lines_a: List[QLineEdit] = []
-        self.mass_lines_b: List[QLineEdit] = []
-        self.mass_radio_list_a: List[QRadioButton] = []
-        self.mass_radio_list_b: List[QRadioButton] = []
-
+        # Рецептуры, в которых вся логика рецептур
         self.receipt_a: Optional[Receipt] = None
         self.receipt_b: Optional[Receipt] = None
 
-        # ======================== Переменные для окон =======================================
+        self.receipt_data_a: Optional[ReceiptData] = None
+        self.receipt_data_b: Optional[ReceiptData] = None
+
+        # ======================== Переменные для окон =====================================
 
         self.a_receipt_window: Optional[SintezWindow] = None
         self.b_receipt_window: Optional[SintezWindow] = None
 
         self.pair_react_window: Optional[PairReactWindow] = None
 
-        # ======================== Подключаем кнопки =======================================
-        self.connect_buttons()
+        # ======= Подключаем кнопки =============================================
+        self.setup_connect_buttons()
+        # ======= Настройка логики перетаскивания рецептуры ======================
+        self.setup_receipts_drag_logic()
 
         # ======================== тесты по зеленым квадратикам ============================
 
         self.inf_window = None
         self.warring_grid = MyQGridLayout(self.centralwidget)
 
-        # ======================== Настройка перетаскивания рецептуры ============================
+    # ================== Функции для инициализации данных ============================
+
+    def setup_final_lines(self):
+        """
+        Инициализация переменных для последних строк рецептур
+        """
+        self.final_a = None
+        self.final_b = None
+        self.final_a_numb_label = None
+        self.final_b_numb_label = None
+        self.final_mass_a: QLineEdit = None
+        self.final_mass_b: QLineEdit = None
+        self.cur_mass_radio_used_a = None
+        self.cur_mass_radio_used_b = None
+        self.remember_mass_a = 0.0
+        self.remember_mass_b = 0.0
+        self.hide_top("A")
+        self.hide_top("B")
+
+    def setup_connect_buttons(self):
+        """
+        Подключение всех кнопок окна
+        """
+        # ======================== Подключаем кнопки =======================================
+        self.add_A_but.clicked.connect(self.add_a_line)
+        self.add_B_but.clicked.connect(self.add_b_line)
+        self.del_A_but.clicked.connect(self.del_a_line)
+        self.del_B_but.clicked.connect(self.del_b_line)
+
+        self.normalise_A.clicked.connect(self.normalise_func("A"))
+        self.normalise_B.clicked.connect(self.normalise_func("B"))
+
+        self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
+        self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
+
+        # ====================================== Кнопки меню =======================================
+        self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
+        self.menu_prof_edit.triggered.connect(self.add_profile_edit_window)
+        self.menu_add_mat.triggered.connect(self.add_material_window)
+
+        self.excel_save_A.triggered.connect(lambda: self.export_to_excel("A"))
+        self.excel_save_B.triggered.connect(lambda: self.export_to_excel("B"))
+        self.excel_save_all.triggered.connect(lambda: self.export_to_excel("AB"))
+
+        self.save_a.triggered.connect(lambda: self.save_receipt("A"))
+        self.save_b.triggered.connect(lambda: self.save_receipt("B"))
+
+        # ====================================== Кнопки дебага =======================================
+        self.debug_but.clicked.connect(self.debug)
+        self.update_but.clicked.connect(self.debug_2)
+
+    def setup_receipts_drag_logic(self):
+        """
+        Подключает логику работы с рецептурами
+        :return:
+        """
 
         self.adw_a = AcceptDropWidget(self, 'load', "A")
         self.adw_a.move(QPoint(405, 35))
@@ -172,7 +251,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.receipt_bin.setPixmap(pixmap)
 
         self.saved_receipt_listWidget = SavedReceiptWidget(self)
-        self.all_receipts = sorted(self.profile.orm_db.get_profile_receipts(self.profile), key=lambda x: x.date)
+        self.all_receipts = sorted(self.profile.orm_db.get_profile_receipts(self.profile),
+                                   key=lambda x: x.date, reverse=True)
         for index, receipt in enumerate(self.all_receipts):
             self.saved_receipt_listWidget.addItem(str(receipt.name))
             self.saved_receipt_listWidget.item(index).setToolTip(str(receipt.comment))
@@ -259,8 +339,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         final_mass_line.editingFinished.connect(lambda: (self.to_float(component),
                                                          self.update_mass_in_component_lines(component)))
 
-
-
         if component == "A":
             items_type = self.material_a_types
             items = self.material_comboboxes_a
@@ -329,7 +407,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         percent_line.setFixedWidth(45)
         percent_line.setFont((QtGui.QFont("Times New Roman", self.font_size)))
         percent_line.editingFinished.connect(lambda: self.to_float(component))
-
 
         mass_line = QLineEdit()
         mass_line.setText("0.00")
@@ -436,7 +513,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             grid = self.gridLayout_b
             lock_check_boxes = self.lock_checkboxies_b
             if self.final_b:
-
                 final_mass = self.final_mass_b.text()
                 self.final_b.deleteLater()
                 self.final_b = None
@@ -723,6 +799,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         :param component:
         :return:
         """
+
         def wrapper():
             if component == 'A':
                 default = self.mass_radio_used_group_a.button(0)
@@ -739,6 +816,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                     default.setChecked(True)
                 else:
                     self.cur_mass_radio_used_b = current_line
+
         return wrapper
 
     def update_mass(self):
@@ -1025,38 +1103,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         icon.addPixmap(QtGui.QPixmap("icons/update.png"))
         self.update_but.setIcon(icon)
 
-    def connect_buttons(self):
-        """
-        Здесь происходит подключение всех кнопок
-        """
-        # ======================== Подключаем кнопки =======================================
-        self.add_A_but.clicked.connect(self.add_a_line)
-        self.add_B_but.clicked.connect(self.add_b_line)
-        self.del_A_but.clicked.connect(self.del_a_line)
-        self.del_B_but.clicked.connect(self.del_b_line)
-
-        self.normalise_A.clicked.connect(self.normalise_func("A"))
-        self.normalise_B.clicked.connect(self.normalise_func("B"))
-
-        self.a_receipt_but.clicked.connect(self.add_receipt_window("A"))
-        self.b_receipt_but.clicked.connect(self.add_receipt_window("B"))
-
-        # ====================================== Кнопки меню =======================================
-        self.menu_sintez_edit.triggered.connect(self.add_pair_react_window)
-        self.menu_prof_edit.triggered.connect(self.add_profile_edit_window)
-        self.menu_add_mat.triggered.connect(self.add_material_window)
-
-        self.excel_save_A.triggered.connect(lambda: self.export_to_excel("A"))
-        self.excel_save_B.triggered.connect(lambda: self.export_to_excel("B"))
-        self.excel_save_all.triggered.connect(lambda: self.export_to_excel("AB"))
-
-        self.save_a.triggered.connect(lambda: self.save_receipt("A"))
-        self.save_b.triggered.connect(lambda: self.save_receipt("B"))
-
-        # ====================================== Кнопки дебага =======================================
-        self.debug_but.clicked.connect(self.debug)
-        self.update_but.clicked.connect(self.debug_2)
-
     def create_warring(self):
 
         rect = MyQLabel("test")
@@ -1094,9 +1140,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         receipt = self.profile.orm_db.save_receipt(materials, name, comment, mass, self.profile)
         if receipt is not None:
-            self.saved_receipt_listWidget.addItem(name)
-            self.saved_receipt_listWidget.item(len(self.all_receipts)).setToolTip(str(receipt.comment))
-            self.all_receipts.append(receipt)
+            self.saved_receipt_listWidget.insertItem(0, name)
+            self.saved_receipt_listWidget.item(0).setToolTip(str(receipt.comment))
+            self.all_receipts.insert(0, receipt)
 
         # self.saved_receipt_listWidget.item(0).hint
 
@@ -1104,7 +1150,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         if component == "A":
             materials = self.material_list_a
             name = self.lineEdit_name_a.text()
-            if not (materials and name):
+            if not materials:
+                # TODO Реализовать уведомление, что рецептура без компонентов
                 return None
             comment = self.comment_textEdit_a.toPlainText()
             mass = float(self.final_mass_a.text())
@@ -1112,7 +1159,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         elif component == "B":
             materials = self.material_list_b
             name = self.lineEdit_name_b.text()
-            if not (materials and name):
+            if not materials:
+                # TODO Реализовать уведомление, что рецептура без компонентов
                 return None
             comment = self.comment_textEdit_b.toPlainText()
             mass = float(self.final_mass_b.text())
@@ -1123,8 +1171,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
                               [mat.percent for mat in materials], mass, datetime.now(), None,
                               [mat.data_material for mat in materials])
         return receipt
-
-
 
     def load_receipt(self, component: str, line: int):
         self.set_receipt(component, self.all_receipts[line])
@@ -1208,7 +1254,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         lines_to_add = []
 
         for line in itertools.zip_longest(*receipts_lines, fillvalue=['' for _ in range(6)]):
-
             a = list(itertools.chain(*line))
             lines_to_add.append(a)
 
@@ -1243,7 +1288,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         right_border = Border(left=Side(style='thin'))
         for cell in ws['G']:
             cell.border = right_border
-            print(cell)
+
         for col in range(1, ws.max_column + 1):
 
             if col % 6 == 1:
@@ -1271,7 +1316,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
             except:
                 filename = filename_base + f"_{iteration}"
                 iteration += 1
-
 
 
 class SintezWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/EEWAHEW.ui")[0]):
