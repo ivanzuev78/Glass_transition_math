@@ -1652,6 +1652,11 @@ class ORMDataBase:
         cursor = connection.cursor()
         string = f"DELETE FROM Profiles WHERE Name='{profile_name}'"
         cursor.execute(string)
+        string = f"DELETE FROM Prof_mat_map WHERE Profile='{profile_name}'"
+        cursor.execute(string)
+        string = f"DELETE FROM Receipt_profile_map WHERE profile='{profile_name}'"
+        cursor.execute(string)
+
         connection.commit()
         connection.close()
 
