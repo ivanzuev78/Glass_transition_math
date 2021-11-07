@@ -230,10 +230,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
 
-    def change_font(self, change_delta: int):
-        self.font_delta += change_delta
-        change_font(self, change_delta)
-
     def setup_receipts_drag_logic(self):
         """
         Подключает логику работы с рецептурами
@@ -272,6 +268,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         for index, receipt in enumerate(self.all_receipts):
             self.saved_receipt_listWidget.addItem(str(receipt.name))
             self.saved_receipt_listWidget.item(index).setToolTip(str(receipt.comment))
+
+    def change_font(self, change_delta: int):
+        self.font_delta += change_delta
+        self.font_size += change_delta
+        self.font_size_big += change_delta
+        change_font(self, change_delta, self.material_comboboxes_a, self.material_comboboxes_b, self.material_a_types,
+                    self.material_b_types, self.material_percent_lines_a, self.material_percent_lines_b,
+                    self.mass_lines_a, self.mass_lines_b)
 
     def change_profile(self):
         user_name: str = getpass.getuser()
