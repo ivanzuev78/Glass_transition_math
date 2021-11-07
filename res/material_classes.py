@@ -3,16 +3,20 @@ import os
 import sqlite3
 from collections import defaultdict
 from copy import copy, deepcopy
+from datetime import datetime
 from itertools import chain
 from math import exp
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from openpyxl.utils import get_column_letter as letter
 
 import numpy as np
 import pandas
+from PyQt5.QtWidgets import QWidget
 from pandas import DataFrame
 # import init_class
 from res.additional_funcs import normalize, normalize_df
 
+PRINT_TO_CONSOLE = False
 
 class Material:
     def __init__(self, mat_type: str, mat_index: int, profile: "Profile", receipt: "Receipt"):
@@ -27,7 +31,7 @@ class Material:
         receipt.add_material(self)
 
     @property
-    def data_material(self):
+    def data_material(self) -> "DataMaterial":
         return self.__data_material
 
     @data_material.setter
@@ -267,7 +271,6 @@ class ReceiptCounter:
         self.__tg = value
         self.main_window.set_tg(value)
 
-
     @property
     def tg_inf(self):
         return self.__tg_inf
@@ -342,15 +345,18 @@ class ReceiptCounter:
                 df.set_value(material_epoxy.data_material, material_amine.data_material, percent_epoxy * percent_amine)
 
         df = df * abs(sum_a)
-        os.system('cls')
-        # print("+==================================")
+        if PRINT_TO_CONSOLE:
+            os.system('cls')
+            print(self.tg_df)
+            print("+==================================")
 
         for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
             df.add_value(material_epoxy.data_material, material_amine.data_material, eq)
 
         df.normalize()
-        # print('Матрица процентов пар')
-        # print(df)
+        if PRINT_TO_CONSOLE:
+            print('Матрица процентов пар')
+            print(df)
         self.percent_df = df
 
     def count_tg(self):
@@ -367,14 +373,16 @@ class ReceiptCounter:
         self.tg = primary_tg
         inf_receipt_percent_dict = self.count_influence_material_percents()
 
-        # if inf_receipt_percent_dict:
-        #     print("-------------------------------------")
-        #     print("Содержание непрореагировавших веществ")
-        #     for name, percent in inf_receipt_percent_dict.items():
-        #         print(name, round(percent * 100, 4), " %")
+        if inf_receipt_percent_dict:
+            if PRINT_TO_CONSOLE:
+                print("-------------------------------------")
+                print("Содержание непрореагировавших веществ")
+            for name, percent in inf_receipt_percent_dict.items():
+                print(name, round(percent * 100, 4), " %")
         inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
-        # print("-------------------------------------")
-        # print("Полное влияние: ", round(inf_value, 4), " °C")
+        if PRINT_TO_CONSOLE:
+            print("-------------------------------------")
+            print("Полное влияние: ", round(inf_value, 4), " °C")
 
         self.tg_inf = self.tg + inf_value
 
@@ -637,6 +645,74 @@ class DataGlass:
         self.epoxy = epoxy
         self.amine = amine
         self.value = value
+
+
+class ReceiptData:
+    def __init__(self, name: str, comment: str, profile: "Profile",
+                 materials_id: List[int], percents: List[float], mass: float, date: datetime, receipt_id: int,
+                 materials: List[DataMaterial] = None):
+        self.name = str(name)
+        self.comment = str(comment)
+        self.profile = profile
+        self.materials_id = materials_id
+        if materials is None:
+            self.materials = [profile.get_material_by_db_id(id_db) for id_db in materials_id]
+        else:
+            self.materials = materials
+        self.percents = percents
+        self.mass = mass
+        self.date = date
+        self.receipt_id = receipt_id
+        self.col_start = 1
+        self.row_start = 1
+
+    def __iter__(self):
+        return iter(zip(self.materials_id, self.percents))
+
+    def to_excel(self, row_start: int = None, col_start: int = None, empty_rows_end: int = 0):
+        if row_start is not None:
+            self.row_start = row_start
+        else:
+            row_start = self.row_start
+        if col_start is not None:
+            self.col_start = col_start
+        else:
+            col_start = self.col_start
+        row_end = row_start + len(self.materials) + 3
+        col_type = letter(col_start)
+        # col_comp = letter(col_start+1)
+        col_percent = letter(col_start + 2)
+        col_mass = letter(col_start + 3)
+        col_ew = letter(col_start + 4)
+        col_1_div_ew = letter(col_start + 5)
+        rows = list()
+        rows.append([self.name, "", self.date.date(), self.date.time(), "", ""])
+        rows.append([self.comment] + ["" for _ in range(5)])
+        rows.append(["Тип", "Компонент", "Содержание, %", "Загрузка, г", "ew", r"% / ew"])
+        for row, (mat_id, percent) in enumerate(zip(self.materials_id, self.percents), start=row_start + 3):
+            material = self.profile.get_material_by_db_id(mat_id)
+            formula_1_div_ew = f"=IF({col_ew}{row}<>0, IF({col_type}{row}=\"Amine\", - {col_percent}{row}/{col_ew}{row}, {col_percent}{row}/{col_ew}{row}), 0)"
+            formula_mass = f"={col_percent}{row} * {col_mass}{row_end} / 100"
+            if material is not None:
+                row_line = [material.mat_type, material.name, percent, formula_mass, material.ew, formula_1_div_ew]
+                rows.append(row_line)
+            else:
+                row_line = ["None", "Материал не найден", percent, formula_mass, 0, formula_1_div_ew]
+                rows.append(row_line)
+        formula_sum_percent = f"=SUM({col_percent}{row_start + 3}:{col_percent}{row_end - 1})"
+        formula_1_div_ew = f"=SUM({col_1_div_ew}{row_start + 3}:{col_1_div_ew}{row_end - 1})"
+        row_line = ["", "", formula_sum_percent, self.mass, "", formula_1_div_ew]
+        rows.append(row_line)
+        formula_eew_ahew = f'=IF({col_1_div_ew}{row_end}>0,"EEW","AHEW")'
+        row_line = ["", "", "", formula_eew_ahew, f"=ABS(100/{col_1_div_ew}{row_end})", ""]
+        rows.append(row_line)
+        for _ in range(empty_rows_end):
+            rows.append(["" for _ in range(6)])
+        return rows
+
+    @property
+    def final_ew_link(self):
+        return f"{letter(self.col_start + 4)}{self.row_start + len(self.materials) + 4}"
 
 
 class CorrectionFunction:
@@ -933,15 +1009,17 @@ class TgCorrectionManager:
         total_influence = 0.0
 
         for material, percent in material_dict.items():
-            mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100, pair_list)
+            mat_inf_df: MyTableCounter = self.count_influence_of_one_material(material.data_material, percent * 100,
+                                                                              pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
             mat_inf_table = mat_inf_df * percent_df
-            # print("-------------------------------------")
-            # print(f"Матрица влияния '{material}'")
-            # if mat_inf_table.sum() == 0:
-            #     print("\tВлияние при данной концентрации отсутствует")
-            # else:
-            #     print(mat_inf_table)
+            if PRINT_TO_CONSOLE:
+                print("-------------------------------------")
+                print(f"Матрица влияния '{material}'")
+                if mat_inf_table.sum() == 0:
+                    print("\tВлияние при данной концентрации отсутствует")
+                else:
+                    print(mat_inf_table)
             mat_sum_inf = mat_inf_table.sum()
             total_influence += mat_sum_inf
         return total_influence
@@ -969,6 +1047,8 @@ class Profile:
         :param material:
         :return:
         """
+        if material is None:
+            return None
         if material not in self.materials[material.mat_type]:
             if material.db_id is None:
                 self.orm_db.add_material(material, self)
@@ -990,7 +1070,7 @@ class Profile:
         self.add_material(material)
         return material
 
-    def update_material_in_db(self, material: DataMaterial, new_type: str = None, new_ew = None):
+    def update_material_in_db(self, material: DataMaterial, new_type: str = None, new_ew=None):
         self.orm_db.update_material(material.name, new_type, new_ew)
         material.ew = new_ew
         material.mat_type = new_type
@@ -1012,6 +1092,7 @@ class Profile:
         # Если материал Амин или Эпоксид, обнуляем tg_df
         if self.tg_df is not None and material.mat_type in ("Amine", "Epoxy"):
             self.tg_df = None
+        self.orm_db.remove_material_from_profile(material, self)
 
     def get_materials_by_type(self, mat_type: str) -> List[DataMaterial]:
         """
@@ -1024,6 +1105,10 @@ class Profile:
     def get_material_by_db_id(self, db_id: int) -> DataMaterial:
         if db_id in self.id_material_dict:
             return self.id_material_dict[db_id]
+        else:
+            material = self.orm_db.get_material_by_id(db_id)
+            self.add_material(material)
+            return material
 
     def get_mat_names_by_type(self, mat_type: str) -> List[str]:
         """
@@ -1159,7 +1244,7 @@ class ORMDataBase:
 
     # =========================== Получение обработанных данных из БД ==================================
 
-    def get_material_by_id(self, mat_id: int) -> DataMaterial:
+    def get_material_by_id(self, mat_id: int) -> Optional[DataMaterial]:
         """
         Получение материала по id. Используется после получения всех id материалов в профиле
         :param mat_id:
@@ -1172,6 +1257,8 @@ class ORMDataBase:
                 f"SELECT Name, Type, ew  FROM Materials WHERE (id = '{mat_id}') "
             )
             result = cursor.fetchall()
+            if len(result) == 0:
+                return None
             material = DataMaterial(*result[0], mat_id)
             connection.close()
             return material
@@ -1264,6 +1351,37 @@ class ORMDataBase:
         all_types = [data[0] for data in cursor.fetchall()]
         connection.close()
         return all_types
+
+    def get_profile_receipts(self, profile: Profile) -> List[ReceiptData]:
+        """
+
+        :param profile:
+        :return:
+        """
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT receipt_id FROM Receipt_profile_map WHERE profile='{profile.profile_name}'")
+
+        all_receipt_id = [data[0] for data in cursor.fetchall()]
+        # for receipt_id in all_receipt_id:
+        insert = ", ".join([f"{i}" for i in all_receipt_id])
+        cursor.execute(f"SELECT * FROM Receipt WHERE receipt_id in ({insert})")
+        all_receipts = []
+        receipt_data = cursor.fetchall()
+        for receipt_id, name, comment, mass, date in receipt_data:
+            materials = []
+            percents = []
+            date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f")
+            cursor.execute(f"SELECT material, percent FROM Receipt_data WHERE receipt_id={receipt_id}")
+            # cursor.execute(f"SELECT material, percent FROM Receipt_data")
+            cur_receipt = cursor.fetchall()
+            for material, percent in cur_receipt:
+                materials.append(material)
+                percents.append(percent)
+            all_receipts.append(ReceiptData(name, comment, profile, materials, percents, mass, date, receipt_id))
+
+        connection.close()
+        return all_receipts
 
     # =========================== Получение сырых данных из БД ==================================
     def get_all_profiles(self) -> List[str]:
@@ -1408,9 +1526,10 @@ class ORMDataBase:
         # TODO Возможно, не обязательно вручную всё удалять. Нужны тесты и рефакторинг
         # strings.append(f"DELETE FROM Prof_mat_map WHERE Material={material.db_id}")
         # strings.append(f"DELETE FROM Correction_map WHERE Material_id={material.db_id}")
-
         for string in strings:
             cursor.execute(string)
+        del self.all_materials[material.db_id]
+        del material
         connection.commit()
         connection.close()
 
@@ -1418,7 +1537,10 @@ class ORMDataBase:
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
         cursor.execute(f"SELECT ew, Type FROM Materials WHERE Name='{name}'")
-        result = list(cursor.fetchone())
+        result = cursor.fetchone()
+        if result is None:
+            return None
+        result = list(result)
         if mat_type is not None:
             result[0] = mat_type
         if ew is not None:
@@ -1534,6 +1656,11 @@ class ORMDataBase:
         cursor = connection.cursor()
         string = f"DELETE FROM Profiles WHERE Name='{profile_name}'"
         cursor.execute(string)
+        string = f"DELETE FROM Prof_mat_map WHERE Profile='{profile_name}'"
+        cursor.execute(string)
+        string = f"DELETE FROM Receipt_profile_map WHERE profile='{profile_name}'"
+        cursor.execute(string)
+
         connection.commit()
         connection.close()
 
@@ -1600,6 +1727,118 @@ class ORMDataBase:
         connection.commit()
         connection.close()
 
+    def save_receipt(self, materials: List[Material], name: str, comment: str, mass: float, profile: Profile):
+        """
+        Сохраняет рецептуру в БД
+        :param profile:
+        :param comment:
+        :param name:
+        :param materials:
+        :param mass:
+        :return:
+        """
+        if not name:
+            # TODO Реализовать уведомление, что рецептура без имени и не сохранена в БД
+            return None
+
+        time = datetime.now()
+
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(f"SELECT receipt_id FROM Receipt WHERE name='{name}'")
+        receipt_id = cursor.fetchone()
+        if receipt_id is not None:
+            self.update_receipt(materials, name, comment, mass, profile, receipt_id[0])
+            # Обновить рецептуру
+            ...
+            return None
+
+        # Добавление данных о рецептуре
+        cursor.execute(f"SELECT MAX(receipt_id) FROM Receipt")
+        max_id = cursor.fetchone()
+        receipt_id = max_id[0] + 1 if max_id[0] is not None else 1
+        insert = f"INSERT INTO Receipt (receipt_id, name, comment, mass, date) VALUES (?, ?, ?, ?, ?);"
+        insert_data = [receipt_id, name, comment, mass, time]
+        cursor.execute(insert, insert_data)
+
+        # Добавление самой рецептуры
+        for material in materials:
+            insert = f"INSERT INTO Receipt_data (receipt_id, material, percent) VALUES (?, ?, ?);"
+            insert_data = [receipt_id, material.data_material.db_id, material.percent]
+            cursor.execute(insert, insert_data)
+
+        # Добавление рецептуры к профилю
+        insert = f"INSERT INTO Receipt_profile_map (profile, receipt_id) VALUES (?, ?);"
+        insert_data = [profile.profile_name, receipt_id]
+        cursor.execute(insert, insert_data)
+
+        connection.commit()
+        connection.close()
+        return ReceiptData(name, comment, profile, [mat.data_material.db_id for mat in materials],
+                           [mat.percent for mat in materials], mass, time, receipt_id)
+
+    def remove_receipt(self, receipt: Union[ReceiptData, int]):
+        """
+        Удаляет рецептуру из БД
+        :param receipt: Рецептура
+        :return:
+        """
+        if isinstance(receipt, ReceiptData):
+            receipt = receipt.receipt_id
+
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Receipt WHERE receipt_id={receipt}"
+        cursor.execute(string)
+        string = f"DELETE FROM Receipt_data WHERE receipt_id={receipt}"
+        cursor.execute(string)
+        string = f"DELETE FROM Receipt_profile_map WHERE receipt_id={receipt}"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()
+
+    def update_receipt(self, materials: List[Material] = None, name: str = None, comment: str = None,
+                       mass: float = None, profile: Profile = None, receipt_id: int = None,
+                       receipt: ReceiptData = None):
+        if receipt is not None:
+            if name is None:
+                name = receipt.name
+            if comment is None:
+                comment = receipt.comment
+            if mass is None:
+                mass = receipt.mass
+            if receipt_id is None:
+                receipt_id = receipt.receipt_id
+
+        if receipt_id is None:
+            return None
+
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        cursor.execute(
+            f"UPDATE Receipt SET name='{name}', comment='{comment}', mass={mass} WHERE receipt_id={receipt_id}")
+
+        if materials is not None:
+            string = f"DELETE FROM Receipt_data WHERE receipt_id={receipt_id}"
+            cursor.execute(string)
+            # Добавление самой рецептуры
+            for material in materials:
+                insert = f"INSERT INTO Receipt_data (receipt_id, material, percent) VALUES (?, ?, ?);"
+                insert_data = [receipt_id, material.data_material.db_id, material.percent]
+                cursor.execute(insert, insert_data)
+
+        if profile is not None:
+            cursor.execute(
+                f"SELECT * FROM Receipt_profile_map WHERE profile='{profile.profile_name}' AND receipt_id={receipt_id}")
+            if cursor.fetchone() is None:
+                # Добавление рецептуры к профилю
+                insert = f"INSERT INTO Receipt_profile_map (profile, receipt_id) VALUES (?, ?);"
+                insert_data = [profile.profile_name, receipt_id]
+                cursor.execute(insert, insert_data)
+
+        connection.commit()
+        connection.close()
+
     # ============================= Создание БД =======================================
 
     def create_db(self):
@@ -1607,3 +1846,31 @@ class ORMDataBase:
         # TODO реализовать создание базы данных при отсутствии файла
         (После того, как структура будет окончательной)
         """
+
+    def get_profile_name_by_computer(self, user_name: str, computer_name: str):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"SELECT profile FROM Computer_settings WHERE user_name = '{user_name}' and computer_name = '{computer_name}'"
+        cursor.execute(string)
+        profile = cursor.fetchone()
+        if profile is not None:
+            return profile[0]
+        return None
+
+    def add_computer_to_profile(self, user_name: str, computer_name: str, profile: str):
+        if self.get_profile_name_by_computer(user_name, computer_name) is None:
+            connection = sqlite3.connect(self.db_name)
+            cursor = connection.cursor()
+            insert = f"INSERT INTO Computer_settings (user_name, computer_name, profile) VALUES (?, ?, ?);"
+            insert_data = [user_name, computer_name, profile]
+            cursor.execute(insert, insert_data)
+            connection.commit()
+            connection.close()
+
+    def remove_computer_from_db(self, user_name: str, computer_name: str):
+        connection = sqlite3.connect(self.db_name)
+        cursor = connection.cursor()
+        string = f"DELETE FROM Computer_settings WHERE user_name='{user_name}' AND computer_name='{computer_name}'"
+        cursor.execute(string)
+        connection.commit()
+        connection.close()

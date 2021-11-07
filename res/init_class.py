@@ -1,6 +1,7 @@
 import configparser
 from os.path import exists
-
+import getpass
+import socket
 
 from res.material_classes import Receipt, ReceiptCounter, Profile, ORMDataBase, TgCorrectionManager
 from res.qt_windows import MyMainWindow, PairReactWindow, ProfileManagerWindow
@@ -9,6 +10,14 @@ DB_NAME = "material.db"
 
 
 class InitClass:
+    profile: Profile
+    my_main_window: MyMainWindow
+    receipt_a: Receipt
+    receipt_b: Receipt
+    receipt_counter: ReceiptCounter
+    tg_correction_manager: TgCorrectionManager
+    profile_manager_window: ProfileManagerWindow
+    
     def __init__(self, debug=False):
         self.debug = debug
         src_ini_setting = "settings.ini"
@@ -29,12 +38,14 @@ class InitClass:
 
         self.orm_db = ORMDataBase(self.config["profile"]["path_db"])
 
-        self.profile_manager_window = ProfileManagerWindow(
-            self.orm_db.get_all_profiles(), self
-        )
+        user_name: str = getpass.getuser()
+        computer_name: str = socket.gethostname()
 
-        if not debug:
-            self.profile_manager_window.show()
+        profile = self.orm_db.get_profile_name_by_computer(user_name, computer_name)
+        if profile is not None:
+            self.setup_program(profile)
+        else:
+            self.choose_profile()
 
     def setup_program(self, profile_name: str):
         # новый профиль с БД
@@ -45,7 +56,7 @@ class InitClass:
         # self.profile_manager.save_profile_manager()
 
         # ==== Создаём главное окно ====
-        self.my_main_window = MyMainWindow(self.profile, debug=self.debug)
+        self.my_main_window = MyMainWindow(self.profile, self, debug=self.debug)
         self.profile.my_main_window = self.my_main_window
 
         # ============== Создаем рецептуры и передаём их в главное окно ==================
@@ -75,3 +86,9 @@ class InitClass:
 
         if not self.debug:
             self.my_main_window.show()
+            
+    def choose_profile(self):
+        self.profile_manager_window = ProfileManagerWindow(self.orm_db.get_all_profiles(), self)
+
+        if not self.debug:
+            self.profile_manager_window.show()

@@ -1,9 +1,10 @@
 from collections.abc import Iterable
 
 import numpy as np
-from PyQt5.QtWidgets import QPushButton, QComboBox
+from PyQt5.QtCore import QSize
+from PyQt5.QtWidgets import QPushButton, QComboBox, QLabel, QLineEdit, QTextEdit, QListWidget, QRadioButton, QGridLayout
 from pandas import DataFrame
-from PyQt5.QtGui import QBrush, QImage, QPalette
+from PyQt5.QtGui import QBrush, QImage, QPalette, QFont
 
 
 def normalize_df(df: DataFrame) -> DataFrame:
@@ -54,3 +55,61 @@ def set_qt_stile(style_path, window, *args):
         elif isinstance(widget_list, QComboBox):
             widget_list.setStyleSheet(style_combobox)
 
+
+def change_font(window, font_delta: int, *args):
+    def font_changer(widget, fd):
+        font: QFont = widget.font()
+        size = font.pointSize()
+        font.setPointSize(size + fd)
+        widget.setFont(font)
+
+    checker_list = (QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QListWidget)
+    for attr_name, attr_instance in window.__dict__.items():
+        if isinstance(attr_instance, checker_list):
+            font_changer(attr_instance, font_delta)
+        elif isinstance(attr_instance, QRadioButton):
+            font_changer(attr_instance, font_delta)
+    # Проходимся по неименованым переданным аргументам, ищем, что бы раскрасить
+    for widget_list in args:
+        if isinstance(widget_list, Iterable):
+            for attr_instance in widget_list:
+                font_changer(attr_instance, font_delta)
+        elif isinstance(widget_list, checker_list):
+            font_changer(widget_list, font_delta)
+
+
+def resizer(window):
+    window_width = window.size().width()
+    window_height = window.size().height()
+    checker_list = (QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QListWidget, QRadioButton)
+    for attr_name, attr_instance in window.__dict__.items():
+        if isinstance(attr_instance, checker_list):
+            pos = attr_instance.pos()
+            x = window_width * attr_instance.scale_x
+            y = window_height * attr_instance.scale_y
+            pos.setX(x)
+            pos.setY(y)
+            attr_instance.move(pos)
+            size_x = window_width * attr_instance.size_x
+            size_y = window_height * attr_instance.size_y
+            attr_instance.resize(QSize(size_x, size_y))
+
+
+def set_scale_ratio(window):
+
+    window_width = window.size().width()
+    window_height = window.size().height()
+    checker_list = (QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QListWidget, QRadioButton)
+    for attr_name, attr_instance in window.__dict__.items():
+        if isinstance(attr_instance, checker_list):
+            pos = attr_instance.pos()
+            x = pos.x()
+            y = pos.y()
+            attr_instance.scale_x = x / window_width
+            attr_instance.scale_y = y / window_height
+            size = attr_instance.size()
+            size_x = size.width()
+            size_y = size.height()
+            attr_instance.size_x = size_x / window_width
+            attr_instance.size_y = size_y / window_height
+            print(attr_instance.scale_x)

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1032</width>
+    <width>1136</width>
     <height>680</height>
    </rect>
   </property>
@@ -41,7 +41,7 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>500</x>
+      <x>560</x>
       <y>20</y>
       <width>151</width>
       <height>30</height>
@@ -80,7 +80,7 @@
    <widget class="QPushButton" name="add_B_but">
     <property name="geometry">
      <rect>
-      <x>650</x>
+      <x>710</x>
       <y>20</y>
       <width>30</width>
       <height>30</height>
@@ -122,7 +122,7 @@
    <widget class="QPushButton" name="del_B_but">
     <property name="geometry">
      <rect>
-      <x>690</x>
+      <x>750</x>
       <y>20</y>
       <width>30</width>
       <height>30</height>
@@ -149,22 +149,25 @@
       <height>261</height>
      </rect>
     </property>
-    <layout class="QGridLayout" name="gridLayout_a">
+    <layout class="QGridLayout" name="gridLayout_a" rowstretch="0" columnstretch="0" rowminimumheight="0">
      <property name="sizeConstraint">
       <enum>QLayout::SetMinimumSize</enum>
+     </property>
+     <property name="bottomMargin">
+      <number>0</number>
      </property>
      <property name="horizontalSpacing">
       <number>5</number>
      </property>
      <property name="verticalSpacing">
-      <number>10</number>
+      <number>8</number>
      </property>
     </layout>
    </widget>
    <widget class="QWidget" name="gridLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>500</x>
+      <x>560</x>
       <y>170</y>
       <width>281</width>
       <height>261</height>
@@ -178,7 +181,7 @@
       <number>5</number>
      </property>
      <property name="verticalSpacing">
-      <number>10</number>
+      <number>8</number>
      </property>
     </layout>
    </widget>
@@ -211,7 +214,7 @@
    <widget class="Line" name="line">
     <property name="geometry">
      <rect>
-      <x>460</x>
+      <x>520</x>
       <y>140</y>
       <width>20</width>
       <height>411</height>
@@ -224,10 +227,10 @@
    <widget class="QPushButton" name="normalise_A">
     <property name="geometry">
      <rect>
-      <x>353</x>
+      <x>335</x>
       <y>140</y>
-      <width>81</width>
-      <height>21</height>
+      <width>80</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="font">
@@ -242,10 +245,10 @@
    <widget class="QPushButton" name="normalise_B">
     <property name="geometry">
      <rect>
-      <x>675</x>
+      <x>715</x>
       <y>140</y>
-      <width>81</width>
-      <height>21</height>
+      <width>80</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="font">
@@ -273,10 +276,10 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>500</x>
+      <x>560</x>
       <y>140</y>
       <width>47</width>
-      <height>21</height>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">
@@ -299,10 +302,10 @@
    <widget class="QLabel" name="label_6">
     <property name="geometry">
      <rect>
-      <x>565</x>
+      <x>625</x>
       <y>140</y>
       <width>111</width>
-      <height>21</height>
+      <height>20</height>
      </rect>
     </property>
     <property name="text">
@@ -315,10 +318,10 @@
    <widget class="QLabel" name="eew_label">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>60</y>
+      <x>290</x>
+      <y>110</y>
       <width>111</width>
-      <height>16</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -328,10 +331,10 @@
    <widget class="QLabel" name="ahew_label">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>60</y>
+      <x>670</x>
+      <y>110</y>
       <width>141</width>
-      <height>16</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="text">
@@ -363,6 +366,9 @@
     <property name="contextMenuPolicy">
      <enum>Qt::DefaultContextMenu</enum>
     </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
+    </property>
     <property name="inputMask">
      <string/>
     </property>
@@ -376,11 +382,14 @@
    <widget class="QLineEdit" name="lineEdit_name_b">
     <property name="geometry">
      <rect>
-      <x>500</x>
+      <x>560</x>
       <y>60</y>
       <width>131</width>
       <height>20</height>
      </rect>
+    </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
     </property>
     <property name="placeholderText">
      <string>Название рецептуры</string>
@@ -390,7 +399,7 @@
     <property name="geometry">
      <rect>
       <x>180</x>
-      <y>100</y>
+      <y>110</y>
       <width>91</width>
       <height>23</height>
      </rect>
@@ -408,7 +417,7 @@
    <widget class="QLabel" name="label_lock_a">
     <property name="geometry">
      <rect>
-      <x>438</x>
+      <x>419</x>
       <y>143</y>
       <width>16</width>
       <height>16</height>
@@ -424,7 +433,7 @@
    <widget class="QLabel" name="label_lock_b">
     <property name="geometry">
      <rect>
-      <x>760</x>
+      <x>799</x>
       <y>143</y>
       <width>16</width>
       <height>16</height>
@@ -440,8 +449,8 @@
    <widget class="QPushButton" name="b_receipt_but">
     <property name="geometry">
      <rect>
-      <x>500</x>
-      <y>100</y>
+      <x>560</x>
+      <y>110</y>
       <width>91</width>
       <height>23</height>
      </rect>
@@ -539,6 +548,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
+    </property>
     <property name="placeholderText">
      <string>....... %</string>
     </property>
@@ -574,7 +586,7 @@ c избытком</string>
    <widget class="QPushButton" name="update_but">
     <property name="geometry">
      <rect>
-      <x>450</x>
+      <x>510</x>
       <y>20</y>
       <width>41</width>
       <height>41</height>
@@ -584,23 +596,10 @@ c избытком</string>
      <string/>
     </property>
    </widget>
-   <widget class="Line" name="line_2">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>10</y>
-      <width>20</width>
-      <height>541</height>
-     </rect>
-    </property>
-    <property name="orientation">
-     <enum>Qt::Vertical</enum>
-    </property>
-   </widget>
    <widget class="Line" name="line_3">
     <property name="geometry">
      <rect>
-      <x>790</x>
+      <x>900</x>
       <y>10</y>
       <width>20</width>
       <height>531</height>
@@ -678,30 +677,90 @@ c избытком</string>
 </string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_8">
+   <widget class="QPushButton" name="normalise_mass_A">
     <property name="geometry">
      <rect>
-      <x>820</x>
-      <y>30</y>
-      <width>141</width>
-      <height>16</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Параметры сохранения</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="lineEdit_sintez_mass">
-    <property name="geometry">
-     <rect>
-      <x>820</x>
-      <y>60</y>
-      <width>131</width>
+      <x>442</x>
+      <y>140</y>
+      <width>75</width>
       <height>20</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Пересчитать</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="normalise_mass_B">
+    <property name="geometry">
+     <rect>
+      <x>822</x>
+      <y>140</y>
+      <width>75</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>8</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Пересчитать</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="comment_textEdit_b">
+    <property name="geometry">
+     <rect>
+      <x>700</x>
+      <y>60</y>
+      <width>191</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
+    </property>
     <property name="placeholderText">
-     <string>Масса загрузки</string>
+     <string>Комментарий к рецептуре</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="comment_textEdit_a">
+    <property name="geometry">
+     <rect>
+      <x>320</x>
+      <y>60</y>
+      <width>191</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="acceptDrops">
+     <bool>false</bool>
+    </property>
+    <property name="placeholderText">
+     <string>Комментарий к рецептуре</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_8">
+    <property name="geometry">
+     <rect>
+      <x>950</x>
+      <y>10</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Рецептуры</string>
     </property>
    </widget>
   </widget>
@@ -711,7 +770,7 @@ c избытком</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1032</width>
+     <width>1136</width>
      <height>21</height>
     </rect>
    </property>
@@ -734,24 +793,10 @@ c избытком</string>
      <addaction name="save_a"/>
      <addaction name="save_b"/>
     </widget>
-    <widget class="QMenu" name="menu_6">
-     <property name="title">
-      <string>Сохранить как...</string>
-     </property>
-     <addaction name="save_as_a"/>
-     <addaction name="save_as_b"/>
-    </widget>
-    <widget class="QMenu" name="menu_7">
-     <property name="title">
-      <string>Загрузить</string>
-     </property>
-     <addaction name="load_a"/>
-     <addaction name="load_b"/>
-    </widget>
     <addaction name="menu_5"/>
-    <addaction name="menu_6"/>
     <addaction name="menu_Excel"/>
-    <addaction name="menu_7"/>
+    <addaction name="separator"/>
+    <addaction name="menu_change_profile"/>
    </widget>
    <widget class="QMenu" name="add_menu">
     <property name="title">
@@ -885,6 +930,11 @@ c избытком</string>
   <action name="menu_prof_edit">
    <property name="text">
     <string>Настройки профиля</string>
+   </property>
+  </action>
+  <action name="menu_change_profile">
+   <property name="text">
+    <string>Сменить профиль</string>
    </property>
   </action>
  </widget>
