@@ -1,9 +1,9 @@
 from collections.abc import Iterable
 
 import numpy as np
-from PyQt5.QtWidgets import QPushButton, QComboBox
+from PyQt5.QtWidgets import QPushButton, QComboBox, QLabel, QLineEdit, QTextEdit, QListWidget, QRadioButton
 from pandas import DataFrame
-from PyQt5.QtGui import QBrush, QImage, QPalette
+from PyQt5.QtGui import QBrush, QImage, QPalette, QFont
 
 
 def normalize_df(df: DataFrame) -> DataFrame:
@@ -54,3 +54,24 @@ def set_qt_stile(style_path, window, *args):
         elif isinstance(widget_list, QComboBox):
             widget_list.setStyleSheet(style_combobox)
 
+
+def change_font(window, font_delta: int, *args):
+    def font_changer(widget, fd):
+        font: QFont = widget.font()
+        size = font.pointSize()
+        font.setPointSize(size + fd)
+        widget.setFont(font)
+
+    checker_list = (QLabel, QPushButton, QComboBox, QLineEdit, QTextEdit, QListWidget)
+    for attr_name, attr_instance in window.__dict__.items():
+        if isinstance(attr_instance, checker_list):
+            font_changer(attr_instance, font_delta)
+        elif isinstance(attr_instance, QRadioButton):
+            font_changer(attr_instance, font_delta)
+    # Проходимся по неименованым переданным аргументам, ищем, что бы раскрасить
+    for widget_list in args:
+        if isinstance(widget_list, Iterable):
+            for attr_instance in widget_list:
+                font_changer(attr_instance, font_delta)
+        elif isinstance(widget_list, checker_list):
+            font_changer(widget_list, font_delta)

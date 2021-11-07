@@ -27,7 +27,7 @@ from PyQt5.QtWidgets import (
 )
 
 from res.additional_classes import MyQLabel, MyQGridLayout
-from res.additional_funcs import set_qt_stile
+from res.additional_funcs import set_qt_stile, change_font
 
 from res.edit_db_windows import EditDataWindow, EditMaterialWindow
 from res.material_classes import Material, Receipt, Profile, ReceiptData
@@ -63,6 +63,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
     all_receipts: List[ReceiptData]  # Список всех рецептур в профиле
 
+    font_up_but: QPushButton  # Кнопка увеличения шрифта
+    font_down_but: QPushButton  # Кнопка уменьшения шрифта
+
     def __init__(self, profile: Profile, init_class, debug=False):
         super(MyMainWindow, self).__init__()
         self.setupUi(self)
@@ -70,7 +73,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.profile = profile
         self.debug_flag = debug
         self.init_class = init_class
-
 
         # TODO Вынести изменения шрифта в init_class, чтобы установка происходила через него и сразу всем
         self.all_labels = [
@@ -96,6 +98,7 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.all_big_labels = [self.label, self.label_2]
         self.font_size = 9
         self.font_size_big = 5
+        self.font_delta = 0
 
         # QSpacerItem в gridLayout для подпирания строк снизу
         self.gridLayout_a.addItem(QSpacerItem(100, 100), 100, 0, 100, 20)
@@ -219,10 +222,17 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.save_b.triggered.connect(lambda: self.save_receipt("B"))
 
         self.menu_change_profile.triggered.connect(self.change_profile)
+        # ====================================== Кнопки изменения шрифта =======================================
+        self.font_up_but.clicked.connect(lambda : self.change_font(1))
+        self.font_down_but.clicked.connect(lambda : self.change_font(-1))
 
         # ====================================== Кнопки дебага =======================================
         self.debug_but.clicked.connect(self.debug)
         self.update_but.clicked.connect(self.debug_2)
+
+    def change_font(self, change_delta: int):
+        self.font_delta += change_delta
+        change_font(self, change_delta)
 
     def setup_receipts_drag_logic(self):
         """
@@ -302,7 +312,9 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # self.create_warring()
 
         # self.save_receipt('A')
-        self.export_to_excel('AB')
+
+        # self.export_to_excel('AB')
+        change_font(self, -1)
         print('debug')
 
     def hide_top(self, component: str) -> None:
@@ -2203,7 +2215,7 @@ class ProfileManagerWindow(
             user_name: str = getpass.getuser()
             computer_name: str = socket.gethostname()
             self.init_class.orm_db.add_computer_to_profile(user_name, computer_name, prof_name)
-            ...
+
         self.close()
         self.init_class.setup_program(prof_name)
         # self.main_window.show()
