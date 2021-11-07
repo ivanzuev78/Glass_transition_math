@@ -27,13 +27,15 @@ from PyQt5.QtWidgets import (
 )
 
 from res.additional_classes import MyQLabel, MyQGridLayout
-from res.additional_funcs import set_qt_stile, change_font
+from res.additional_funcs import set_qt_stile, change_font, resizer, set_scale_ratio
 
 from res.edit_db_windows import EditDataWindow, EditMaterialWindow
 from res.material_classes import Material, Receipt, Profile, ReceiptData
 
 
 class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui")[0]):
+    resized = QtCore.pyqtSignal()
+
     saved_receipt_listWidget: "SavedReceiptWidget"
 
     lineEdit_name_a: QLineEdit  # Строка с названием Компонента А
@@ -75,26 +77,6 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.init_class = init_class
 
         # TODO Вынести изменения шрифта в init_class, чтобы установка происходила через него и сразу всем
-        self.all_labels = [
-            self.mass_ratio_label,
-            self.tg_main_label,
-            self.mass_ratio_label_2,
-            self.label_3,
-            self.label_4,
-            self.label_5,
-            self.label_6,
-            self.label_7,
-            self.eew_label,
-            self.ahew_label,
-            self.extra_ew_label,
-            self.sintez_pair_label,
-            self.debug_string,
-            self.lineEdit_name_a,
-            self.lineEdit_name_b,
-            self.tg_cor_label,
-            self.tg_extra_label,
-            self.extra_ratio_line,
-        ]
         self.all_big_labels = [self.label, self.label_2]
         self.font_size = 9
         self.font_size_big = 5
@@ -174,6 +156,14 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.inf_window = None
         self.warring_grid = MyQGridLayout(self.centralwidget)
 
+        # ============ Эксперименты по размеру окна!!! ================
+        # self.resized.connect(self.debug_2)
+        # self.test = QPushButton(self)
+        # self.test.resize(100, 100)
+        # self.test.move(200, 200)
+        # self.test.setText('hahaha')
+        # self.test.show()
+
     # ================== Функции для инициализации данных ============================
 
     def setup_final_lines(self):
@@ -223,8 +213,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
 
         self.menu_change_profile.triggered.connect(self.change_profile)
         # ====================================== Кнопки изменения шрифта =======================================
-        self.font_up_but.clicked.connect(lambda : self.change_font(1))
-        self.font_down_but.clicked.connect(lambda : self.change_font(-1))
+        self.font_up_but.clicked.connect(lambda: self.change_font(1))
+        self.font_down_but.clicked.connect(lambda: self.change_font(-1))
 
         # ====================================== Кнопки дебага =======================================
         self.debug_but.clicked.connect(self.debug)
@@ -257,6 +247,8 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         self.receipt_bin.move(QPoint(1080, 35))
         self.receipt_bin.resize(QSize(30, 30))
         self.receipt_bin.show()
+
+
 
         pixmap = QPixmap("icons/bin.png")
         self.receipt_bin.setScaledContents(True)
@@ -318,8 +310,37 @@ class MyMainWindow(QtWidgets.QMainWindow, uic.loadUiType("windows/Main_window.ui
         # self.save_receipt('A')
 
         # self.export_to_excel('AB')
-        change_font(self, -1)
-        print('debug')
+        # change_font(self, -1)
+        # widget = self
+        # size = widget.size()
+        # width = size.width()
+        # height = size.height()
+        # if self.set_scale_ratio_flag:
+        #     set_scale_ratio(self)
+        #     print('!!!')
+        #     self.set_scale_ratio_flag = False
+        # resizer(self)
+        # grid: QGridLayout
+        # self.size_x = width
+        # self.size_y = height
+
+        # print(width, height)
+        # size.setWidth(width + 10)
+        # widget.setSizeIncrement(5, 5)
+        # widget.setBaseSize(width, height)
+        # print(size)
+        # print('debug')
+        ...
+
+    def set_scale_ratio(self):
+        set_scale_ratio(self)
+
+    # def resizeEvent(self, event):
+    #     if self.set_scale_ratio_flag:
+    #         self.set_scale_ratio()
+    #         self.set_scale_ratio_flag = False
+    #     self.resized.emit()
+    #     return super(MyMainWindow, self).resizeEvent(event)
 
     def hide_top(self, component: str) -> None:
         """

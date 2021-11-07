@@ -16,6 +16,7 @@ from pandas import DataFrame
 # import init_class
 from res.additional_funcs import normalize, normalize_df
 
+PRINT_TO_CONSOLE = False
 
 class Material:
     def __init__(self, mat_type: str, mat_index: int, profile: "Profile", receipt: "Receipt"):
@@ -344,16 +345,18 @@ class ReceiptCounter:
                 df.set_value(material_epoxy.data_material, material_amine.data_material, percent_epoxy * percent_amine)
 
         df = df * abs(sum_a)
-        os.system('cls')
-        print(self.tg_df)
-        print("+==================================")
+        if PRINT_TO_CONSOLE:
+            os.system('cls')
+            print(self.tg_df)
+            print("+==================================")
 
         for (material_epoxy, material_amine), eq in a_reacted_dict.items() | b_reacted_dict.items():
             df.add_value(material_epoxy.data_material, material_amine.data_material, eq)
 
         df.normalize()
-        print('Матрица процентов пар')
-        print(df)
+        if PRINT_TO_CONSOLE:
+            print('Матрица процентов пар')
+            print(df)
         self.percent_df = df
 
     def count_tg(self):
@@ -371,13 +374,15 @@ class ReceiptCounter:
         inf_receipt_percent_dict = self.count_influence_material_percents()
 
         if inf_receipt_percent_dict:
-            print("-------------------------------------")
-            print("Содержание непрореагировавших веществ")
+            if PRINT_TO_CONSOLE:
+                print("-------------------------------------")
+                print("Содержание непрореагировавших веществ")
             for name, percent in inf_receipt_percent_dict.items():
                 print(name, round(percent * 100, 4), " %")
         inf_value = self.tg_correction_manager.count_full_influence(inf_receipt_percent_dict, percent_df)
-        print("-------------------------------------")
-        print("Полное влияние: ", round(inf_value, 4), " °C")
+        if PRINT_TO_CONSOLE:
+            print("-------------------------------------")
+            print("Полное влияние: ", round(inf_value, 4), " °C")
 
         self.tg_inf = self.tg + inf_value
 
@@ -1008,12 +1013,13 @@ class TgCorrectionManager:
                                                                               pair_list)
             # TODO Обработать отсутствующие стёкла (код 3)
             mat_inf_table = mat_inf_df * percent_df
-            print("-------------------------------------")
-            print(f"Матрица влияния '{material}'")
-            if mat_inf_table.sum() == 0:
-                print("\tВлияние при данной концентрации отсутствует")
-            else:
-                print(mat_inf_table)
+            if PRINT_TO_CONSOLE:
+                print("-------------------------------------")
+                print(f"Матрица влияния '{material}'")
+                if mat_inf_table.sum() == 0:
+                    print("\tВлияние при данной концентрации отсутствует")
+                else:
+                    print(mat_inf_table)
             mat_sum_inf = mat_inf_table.sum()
             total_influence += mat_sum_inf
         return total_influence
@@ -1357,10 +1363,8 @@ class ORMDataBase:
         cursor.execute(f"SELECT receipt_id FROM Receipt_profile_map WHERE profile='{profile.profile_name}'")
 
         all_receipt_id = [data[0] for data in cursor.fetchall()]
-        print(*all_receipt_id)
         # for receipt_id in all_receipt_id:
         insert = ", ".join([f"{i}" for i in all_receipt_id])
-        print(f"SELECT * FROM Receipt WHERE receipt_id in ({insert})")
         cursor.execute(f"SELECT * FROM Receipt WHERE receipt_id in ({insert})")
         all_receipts = []
         receipt_data = cursor.fetchall()
