@@ -1846,7 +1846,7 @@ class ORMDataBase:
     def get_profile_name_by_computer(self, user_name: str, computer_name: str):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        string = f"SELECT profile FROM User_computer WHERE user_name = '{user_name}' and computer_name = '{computer_name}'"
+        string = f"SELECT profile FROM Computer_settings WHERE user_name = '{user_name}' and computer_name = '{computer_name}'"
         cursor.execute(string)
         profile = cursor.fetchone()
         if profile is not None:
@@ -1857,7 +1857,7 @@ class ORMDataBase:
         if self.get_profile_name_by_computer(user_name, computer_name) is None:
             connection = sqlite3.connect(self.db_name)
             cursor = connection.cursor()
-            insert = f"INSERT INTO User_computer (user_name, computer_name, profile) VALUES (?, ?, ?);"
+            insert = f"INSERT INTO Computer_settings (user_name, computer_name, profile) VALUES (?, ?, ?);"
             insert_data = [user_name, computer_name, profile]
             cursor.execute(insert, insert_data)
             connection.commit()
@@ -1866,7 +1866,7 @@ class ORMDataBase:
     def remove_computer_from_db(self, user_name: str, computer_name: str):
         connection = sqlite3.connect(self.db_name)
         cursor = connection.cursor()
-        string = f"DELETE FROM User_computer WHERE user_name='{user_name}' AND computer_name='{computer_name}'"
+        string = f"DELETE FROM Computer_settings WHERE user_name='{user_name}' AND computer_name='{computer_name}'"
         cursor.execute(string)
         connection.commit()
         connection.close()
